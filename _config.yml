@@ -24,7 +24,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   Elektronska knjiga "Programiranje Db2 baza podataka"
   dostupna besplatno na adresi https://theikeofficial.github.io/PDb2BP/.
 baseurl: "/PDb2BP" # the subpath of your site, e.g. /blog
-url: "https://theikeofficial.github.io/PDb2BP/" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://theikeofficial.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 theme: minima

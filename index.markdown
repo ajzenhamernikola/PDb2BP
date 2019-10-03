@@ -10,13 +10,13 @@ Autori:
 - [Ajzenhamer Nikola](https://www.nikolaajzenhamer.rs)
 - [Vulović Ana](http://www.math.rs/~aspasic)
 
-[Predgovor](predgovor/)
+[Predgovor]({{site.baseurl}}/predgovor/)
 
 ## Sadržaj
 
 ### Deo 1 - Arhitektura aplikacija sa podrškom za Db2 baze podataka
 
-#### [1. Klijentsko-serverska arhitektura](poglavlja/1/)
+#### [1. Klijentsko-serverska arhitektura]({{site.baseurl}}/poglavlja/1/)
 
 ### Deo 2 - Programiranje klijentskih C/SQL aplikacija 
 
