@@ -12,7 +12,7 @@ Autori:
 
 ## Sadržaj
 
-### Deo 1 - Arhitektura aplikacija sa podrškom za Db2 baze podataka
+### Deo 1 - Uvod u programiranje aplikacija sa podrškom za Db2 baze podataka
 
 #### [1. Arhitektura klijent-server]({{site.baseurl}}/poglavlja/1/)
 
