@@ -1,3 +1,5 @@
+(setq markdown-css-paths '("../../Stilovi/img.css"))
+
 [Knjiga](../../README.md)
 
 ---
