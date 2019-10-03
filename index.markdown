@@ -14,7 +14,7 @@ Autori:
 
 ### Deo 1 - Arhitektura aplikacija sa podrškom za Db2 baze podataka
 
-#### [1. Klijentsko-serverska arhitektura]({{site.baseurl}}/poglavlja/1/)
+#### [1. Arhitektura klijent-server]({{site.baseurl}}/poglavlja/1/)
 
 ### Deo 2 - Programiranje klijentskih C/SQL aplikacija 
 
