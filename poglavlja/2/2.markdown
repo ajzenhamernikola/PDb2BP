@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/2/
+layout: page
+title: 2. Osnovni koncepti programiranja C/SQL aplikacija
+---

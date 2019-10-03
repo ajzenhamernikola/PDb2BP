@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/4/
+layout: page
+title: 4. Implementiranje transakcija
+---

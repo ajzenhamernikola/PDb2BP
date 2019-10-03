@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/5/
+layout: page
+title: 5. Aplikacije u višekorisničkom okruženju
+---

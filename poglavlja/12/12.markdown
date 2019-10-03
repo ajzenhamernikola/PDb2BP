@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/12/
+layout: page
+title: 12. Napredno kreiranje upita pomoću Hibernate Criteria API
+---

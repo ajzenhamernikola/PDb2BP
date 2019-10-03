@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/6/
+layout: page
+title: 6. Aplikacije sa dinamičkim SQL naredbama
+---

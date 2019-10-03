@@ -1,0 +1,5 @@
+---
+permalink: /poglavlja/8/
+layout: page
+title: 8. Osnovni koncepti programiranja Java/SQL aplikacija sa dinamičkim SQL naredbama (JDBC)
+---
