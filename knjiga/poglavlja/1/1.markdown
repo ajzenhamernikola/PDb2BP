@@ -1,7 +1,6 @@
-(setq markdown-css-paths '("../../Stilovi/img.css"))
-
-[Knjiga](../../README.md)
-
+---
+permalink: /poglavlja/1
+layout: page
 ---
 
 # 1. Klijentsko-serverska arhitektura
@@ -16,7 +15,3 @@ Programiranje na klijentu (levo) podrazumeva korišćenje viših programskih jez
 Sa druge strane, programiranje na serveru obuhvata programiranje tzv. SQL *rutina* (engl. *routines*). SQL rutina može biti: *pohranjena procedura* (engl. *stored procedure*), *korisnički-definisana funkcija* (engl. *user-defined function*) ili *okidač* (engl. *trigger*). Svi ovi tipovi SQL rutina podrazumevaju programiranje operacija koje se čuvaju u samoj bazi podataka. Programeri zatim imaju mogućnost poziva ovih sačuvanih procedura, odn. njihovog izračunavanja.
 
 !["Dva načina za programiranje baza podataka: programiranje na klijentu (levo) i programiranje na serveru (desno)."](./Slike/klijent-server-arhitektura.png "Dva načina za programiranje baza podataka: programiranje na klijentu (levo) i programiranje na serveru (desno).")
-
----
-
-[Knjiga](../../README.md)
