@@ -1,9 +1,8 @@
 ---
 permalink: /predgovor/
 layout: page
+title: Predgovor
 ---
-
-# Predgovor
 
 Ovaj tekst predstavlja literaturu za časove vežbi za dva kursa "Programiranje baza podataka" na Matematičkom fakultetu Univerziteta u Beogradu - prvi je izborni kurs na 3. godini smera Informatika, a drugi je obavezni kurs na 4. godini smera Računarstvo i Informatika. Knjiga je dostupna u celosti, besplatno, na zvaničnom sajtu koji se može pronaći na adresi [https://theikeofficial.github.io/PDb2BP/](https://theikeofficial.github.io/PDb2BP/).
 

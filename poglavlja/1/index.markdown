@@ -1,9 +1,8 @@
 ---
-permalink: /poglavlja/1
+permalink: /poglavlja/1/
 layout: page
+title: 1. Klijentsko-serverska arhitektura
 ---
-
-# 1. Klijentsko-serverska arhitektura
 
 DB2 je sistem za upravljanje relacionim bazama podataka (RSUBP) koji nudi veoma moćne softverske alate za programiranje baza podataka. Ovi alati su korisni  kako administratorima baza podataka, tako i programerima aplikacija koje koriste mogućnosti relacionih baza podataka. Pod programiranjem baza podataka možemo smestiti naredne dve aktivnosti:
 

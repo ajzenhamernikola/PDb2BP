@@ -1,8 +1,6 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: page
+title: Programiranje Db2 baza podataka
 ---
 
 Autori:
@@ -10,7 +8,7 @@ Autori:
 - [Ajzenhamer Nikola](https://www.nikolaajzenhamer.rs)
 - [Vulović Ana](http://www.math.rs/~aspasic)
 
-[Predgovor]({{site.baseurl}}/predgovor/)
+#### [Predgovor]({{site.baseurl}}/predgovor/)
 
 ## Sadržaj
 
