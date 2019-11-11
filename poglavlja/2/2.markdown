@@ -3,3 +3,87 @@ permalink: /poglavlja/2/
 layout: page
 title: 2. Osnovni koncepti programiranja C/SQL aplikacija
 ---
+
+U ovom poglavlju ćemo se detaljnije upustiti u diskusiju konstrukcije aplikacija, napisanih u programskom jeziku C, koje koriste DB2 RSUBP. S obzirom da pretprostavljamo da imamo podešeno okruženje, govorićemo o prevođenju od izvornog koda do izvršne aplikacije i uvešćemo elemente neophodne za kompilaciju naših programa, kao što su DB2 pretprocesorske naredbe, upravljanje greškama, ugnežđavanje najrazličitijih vrsta upita i druge. Sve ovo će biti demonstrirano kroz veliki broj primera koji podrazumevaju da postoji baza podataka VSTUD. Opis ove baze podataka možete pronaći u dodatku A.
+
+## 2.1 Prevođenje programa
+
+Pre nego što započnemo diskusiju o načinu konstrukcije C/SQL aplikacija, neophodno je da se upoznamo sa specifičnostima prevođenja C/SQL aplikacija. Za početak, potrebno je da razumemo da DB2 očekuje da naši programi budu napisani u datotekama čije su ekstenzije `.sqc`. U ovim datotekama se, dakle, nalazi izvorni kod napisan u programskom jeziku C u kojem su ugnežđeni SQL upiti. Izvorni kodovi napisani na ovaj način definišu jednu *SQL-ugnežđenu aplikaciju*.
+
+> Za aplikaciju kažemo da je *SQL-ugnežđena* ukoliko postoji barem jedna SQL naredba koja je ugnežđena u matični jezik, kao što su C, C++, Java, i dr.
+
+Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva naredne korake:
+
+1. Ostvarivanje konekcije na bazu podataka. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
+
+```shell
+db2 connect to IMEBAZE user KORISNIK using LOZINKA
+```
+
+2. Pretprocesiranje aplikacije koju izvodi specijalan program koji se naziva db2 pretprocesor. Ovaj program kao ulaz prihvata napisanu `.sqc` datoteku, a kao izlaz konstruiše dve datoteke: 
+
+- Datoteku sa ekstenzijom `.c` koja sadrži "čisti" izvorni C kod. U ovoj datoteci su sve naredbe DB2 API-ja zamenjene pozivima C funkcija, dok je kod napisan od strane razvijača prepisan u izvornoj formi.
+
+- Datoteku sa ekstenzijom `.bnd` koja sadrži samo SQL upite. 
+
+Ovo podrazumeva pokretanje naredne naredbe iz terminala:
+
+```shell
+db2 PRECOMPILE IMEDATOTEKE.sqc BINDFILE
+```
+
+3. Ako je kreirana `IMEDATOTEKE.bnd` datoteka (korišćenjem `BINDFILE` opcije u `PRECOMPILE` naredbi u koraku 2), vrši se vezivanje te datoteke sa bazom podataka da bi se kreirao aplikacioni paket. 
+
+> *Vezivanje* predstavlja proces kojim se od datoteke sa ekstenzijom `.bnd` kreira paket koji se čuva u bazi podataka.
+
+> *Paket* sadrži izvršivu formu svakog SQL upita iz izvornog koda aplikacije. Za svaku SQL naredbu se čuvaju razne informacije, kao što su: koji se postojeći indeksi koriste, načini njihovog korišćenja, pristupi tabelama i dr. U suštini, paket predstavlja pristupni plan podacima i igra ključnu ulogu u komunikaciji klijentske aplikacije i DB2 servera.
+
+Ovo podrazumeva pokretanje naredne naredbe iz terminala:
+
+```shell
+db2 BIND IMEDATOTEKE.bnd
+```
+
+4. Kompiliranje modifikovanog aplikacionog izvornog koda i izvornih datoteka koji ne sadrže ugnežđeni SQL da bi se kreirale objektne datoteke (jedna ili više njih, zavisno od modularnosti koda; kod nas će uglavnom biti jedna objektna datoteka po primeru). Potrebno je kompilatoru specifikovati gde se nalaze zaglavlja koje nam DB2 sistem nudi. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
+
+```shell
+cc -I/opt/ibm/db2/V10.5/include -c IMEDATOTEKE.c
+```
+
+5. Linkovanje aplikacionih objektnih datoteka sa DB2 bibliotekama i bibliotekama matičnog jezika da bi se kreirao izvršni program. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
+
+```shell
+cc -o IMEDATOTEKE IMEDATOTEKE.o -Wl,-rpath,/opt/ibm/db2/V10.5/lib32 -L/ opt/ibm/db2/V10.5/lib32 -ldb2
+```
+
+S obzirom da je ovaj proces poprilično linearan za svaku aplikaciju koju ćemo pisati (uz jednocifren broj izuzetaka), dobro bi bilo automatizovati ga. U tu svrhu, kreirali smo skript `prevodjenje` čiji je sadržaj:
+
+```shell
+#!/bin/sh
+
+DB2PATH = /opt/ibm/db2/V10.5
+EXTRA_LFLAG = "-Wl,-rpath,$DB2PATH/lib32"
+
+if (test $# -lt 3)
+then
+    db2 connect to $2
+else
+    db2 connect to $2 user $3 using $4
+fi
+
+db2 precompile $1.sqc bindfile
+db2 bind $1.bnd
+cc -I$DB2PATH/include -c $1.c
+cc -o $1 $1.o $EXTRA_LFLAG -L$DB2PATH/lib32 -ldb2
+```
+
+Ovaj skript u svojoj osnovnoj varijanti zahteva 4 argumenta:
+
+1. Naziv datoteke koji se prevodi bez ekstenzije `.sqc` (u prethodnim koracima vrednost `IMEDATOTEKE`).
+
+2. Naziv baze podataka na koju se vrši konekcija (u prethodnim koracima vrednost
+`IMEBAZE`) obavezan argument.
+
+3. Naziv korisnika sa kojim se pristupa bazi podataka (u prethodnim koracima vrednost `KORISNIK`).
+
+4. Lozinka za pristup bazi podataka za korisnika `KORISNIK` iz koraka 3 (u prethodnim koracima vrednost `LOZINKA`).
