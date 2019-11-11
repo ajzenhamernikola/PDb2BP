@@ -195,7 +195,9 @@ Indikatorska promenljiva se u SQL naredbi navodi odmah nakon matične promenljiv
 
 ```sql
 SELECT 
-    nullKolona INTO :maticnaPromenljiva :indikatorskaPromenljiva
+    nullKolona
+INTO 
+    :maticnaPromenljiva :indikatorskaPromenljiva
 ...
 ```
 
@@ -274,7 +276,7 @@ int main()
 }
 ```
 
-## 2.3 Tok pisanja programa
+### 2.2.7 Tok pisanja programa
 
 Ovo poglavlje završavamo sekcijom koja opisuje koji su to osnovni koraci u programiranju C/SQL aplikacija na jednostavnom uvodnom primeru. 
 
@@ -547,7 +549,7 @@ int main()
 }
 ```
 
-## 2.4 Naredbe `INSERT`, `UPDATE` i `DELETE`
+### 2.2.8 Naredbe `INSERT`, `UPDATE` i `DELETE`
 
 Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u tabeli (ili, eventualno, nijedan), korišćenjem naredbe `SELECT INTO`. U nastavku slede zadaci u kojem ćemo demonstrirati upotrebu naredbi `INSERT`, `UPDATE` i `DELETE`. Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
 
