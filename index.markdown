@@ -8,9 +8,11 @@ Autori:
 - [Ajzenhamer Nikola](https://www.nikolaajzenhamer.rs)
 - [Vulović Ana](http://www.math.rs/~aspasic)
 
-#### [Predgovor]({{site.baseurl}}/predgovor/)
+![Programiranje DB2 Baza Podataka]({{site.baseurl}}/resources/cover.png)
 
 ## Sadržaj
+
+#### [Predgovor]({{site.baseurl}}/predgovor/)
 
 ### Deo 1 - Uvod u programiranje aplikacija sa podrškom za Db2 baze podataka
 
