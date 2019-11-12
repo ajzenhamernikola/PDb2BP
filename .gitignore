@@ -1,5 +1,10 @@
+# Jekyll stuff
 _site
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
 vendor
+
+# npm stuff
+node_modules
+package-lock.json
