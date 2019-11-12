@@ -3,3 +3,106 @@ permalink: /poglavlja/3/
 layout: page
 title: 3. Programiranje korišćenjem kursora
 ---
+
+Do sada su rezultati naših SQL upita bili kardinalnosti 1. Zbog toga smo mogli da koristimo jednostavnu `SELECT INTO` naredbu za dohvatanje informacija iz rezultata upita. Ukoliko smo sigurni da će rezultat upita biti jedan red, ovakav način programiranja je prihvatljiv. Međutim, ukoliko znamo da se rezultat može sastojati od više redova, potreban nam je drugačiji pristup.
+
+U slučaju da nam je nepoznat broj redova u rezultatu upita, za dohvatanje rezultata možemo iskoristiti mehanizam zasnovan na kursorima. Kursorima je moguće procesirati svaki red rezultata, bez obzira na to koliko redova rezultat sadrži. Kursor je imenovana kontrolna struktura koja se koristi od strane aplikativnog programa da "pokazuje" na specifičan red u okviru uređenog skupa redova.
+
+## 3.1 Rad sa kursorima
+
+Rad sa kursorima se najčešće može opisati kroz naredna četiri koraka:
+
+1. Deklaracija kursora
+2. Otvaranje kursora
+3. Iteriranje kroz kursor
+4. Zatvaranje kursora
+
+### 3.1.1. Deklaracija kursora
+
+Deklaracija kursora se izvodi navo\dj enjem SQL naredbe `DECLARE` \v cija je sintaksa data u nastavku:
+
+```sql
+DECLARE <IME_KURSORA>
+CURSOR FOR <UPIT>
+[(FOR READ ONLY)|(FOR UPDATE OF <LISTA_ATRIBUTA>)]
+[(WITHOUT HOLD)|(WITH HOLD)]
+```
+
+Promenljiva `<IME_KURSORA>` mora biti jedinstvena u programu. Vrednost `<UPIT>` predstavlja upit, tj. naredbu `SELECT` za koji se kursor vezuje. Upit ne može da sadrži parametarske oznake, ali može sadržati matične promenljive, s tim da deklaracije matičnih promenljivih koje se koriste u upitu moraju biti pre deklaracije kursora. 
+
+Ukoliko navedemo klauzu `FOR READ ONLY`, time definišemo kursor koji služi samo za čitanje podataka. Ukoliko želimo da se podaci menjaju pomoću kursora, tada se nakon `<UPIT>` navodi klauza `FOR UPDATE OF` za kojom sledi lista imena kolona u rezultatu upita koji se mogu menjati kursorom, odvojeni zapetama.
+
+Kursor se implicitno ograničava samo za čitanje (kažemo da je kursor *čitajući*) ako je ispunjen barem jedan od sledećih uslova:
+
+- Bilo koja `FROM` klauza koja se nalazi u `<UPIT>` sadrži više od jedne tabele ili sadrži pogled koji služi samo za čitanje.
+
+- `<UPIT>` sadrži neku od klauza `DISTINCT`, `VALUES` ili `ORDER BY`.
+
+- `<UPIT>` sadrži agregatne funkcije ili neku od klauza `GROUP BY` ili `HAVING`.
+
+- `<UPIT>` sadrži neki skupovni operator, kao što su `UNION`, `INTERSECT` ili `EXCEPT` sa izuzetkom `UNION ALL`.
+
+Za kursor kažemo da je *brišući* ukoliko nije čitajući. Za kursor kažemo da je *ažurirajući* ukoliko je brišući i kolone koje su proglašene za ažuriranje u klauzi `FOR UPDATE OF` predstavljaju neke od kolona u baznoj tabeli. Za kursor kažemo da je *dvosmisleni* ukoliko je upit dinamički pripremljen i nije navedena nijedna od klauza `FOR READ ONLY` ili `FOR UPDATE OF`.
+
+Navođenjem neke od opcionih klauza `WITHOUT HOLD` ili `WITH HOLD` možemo specifikovati da li će se kursor zatvarati ili ne kao posledica operacije *pohranjivanja* (engl. *commit*). Navođenjem klauze `WITHOUT HOLD` kursor se ne sprečava da bude zatvoren, što je podrazumevano ponašanje. Navođenjem klauze `WITH HOLD` kursor održava resurse kroz različite jedinice posla. Kada budemo diskutovali o transakcijama, definisaćemo preciznije ovo ponašanje.
+
+### 3.1.2. Otvaranje kursora
+
+Otvaranje kursora se izvodi navo\dj enjem SQL naredbe `OPEN` \v cija je sintaksa data u nastavku:
+
+```sql
+OPEN <IME_KURSORA>
+[USING <LISTA_MATICNIH_PROMENLJIVIH>]
+```
+
+Naredbom `OPEN` se vrši otvaranje kursora i njegovo izvršavanje, zarad dohvatanja redova iz rezultujuće tabele. Promenljiva `<IME_KURSORA>` mora biti deklarisana naredbom `DECLARE` pre samog otvaranja kursora. Kada se izvrši naredba `OPEN`, kursor naziva `<IME_KURSORA>` mora biti u zatvorenom stanju (bilo da je eksplicitno zatvoren ili da je samo deklarisan pre otvaranja).
+
+Ukoliko se kursor otvara za pripremljenu SQL naredbu, navođenjem klauze `USING` možemo uvesti vrednosti koje se koriste za zamenu parametarskih oznaka. U slučaju statičke SQL naredbe, pri deklaraciji kursora, klauza `USING` se može koristiti, upravo iz razloga \v sto stati\v cke SQL naredbe ne mogu imati parametarske oznake.
+
+Nakon otvaranja kursor je pozicioniran ispred prvog reda rezultujuće tabele.
+
+### 3.1.3. Iteriranje kroz kursor
+
+Iteriranje kroz kursor se izvodi navo\dj enjem SQL naredbe `FETCH` \v cija je sintaksa data u nastavku:
+
+```sql
+FETCH <IME_KURSORA>
+INTO <LISTA_MATICNIH_PROMENLJIVIH>
+```
+
+Naredbom `FETCH` se vrši pozicioniranje kursora na naredni red iz rezultujuće tabele i dodeljuju se vrednosti iz tog reda ciljanim promenljivama. Promenljiva `<IME_KURSORA>` mora biti deklarisana naredbom `DECLARE` pre samog dohvatanja podataka. Dodatno, da bi se izvršila naredba `FETCH`, kursor naziva `<IME_KURSORA>` mora biti u otvorenom stanju.
+
+Klauzom `INTO` se prva vrednost dohvaćenog reda smešta u prvu promenljivu koja je navedena u `<LISTA_MATICNIH_PROMENLJIVIH>`, druga vrednost reda u drugu promenljivu, itd. Ako dođe do greške pri bilo kojoj dodeli vrednosti, ta vrednost se ne dodeljuje promenljivoj, kao ni bilo koja vrednost nakon nje. Sve do tada dodeljene vrednosti ostaju dodeljene.
+
+Otvoreni kursor ima tri moguće pozicije: 
+
+1. Mo\v ze biti pozicioniran ispred prvog reda.
+2. Mo\v ze biti pozicioniran na nekom redu.
+3. Mo\v ze biti pozicioniran nakon poslednjeg reda.
+
+Kursor može biti samo pozicioniran na nekom redu isklju\v civo primenom naredbe `FETCH`. Ako se kursor pozicionira na poslednjem redu rezultujuće tabele ili iza njega, izvršavanje naredbe `FETCH` ima naredne efekte:
+
+- Vrednost koda za dijagnostiku gre\v ske (u na\v sim programima, vrednost u koju se razmota makro `SQLCODE`) postavlja se na vrednost `+100`.
+
+- Kursor se pozicionira nakon poslednjeg reda rezultata.
+
+- Vrednosti se ne dodeljuju matičnim promenljivama.
+
+Ako je kursor pozicioniran ispred prvog reda, izvršavanjem naredbe `FETCH`, kursor se pozicionira na prvi red, i vrednosti se dodeljuju matičnim promenljivama klauzom `INTO`. Ako je kursor pozicioniran na redu koji nije poslednji, izvršavanjem naredbe `FETCH`, kursor se pozicionira na naredni red i vrednosti tog reda se dodeljuju matičnim promenljivama klauzom `INTO`.
+
+Ako je kursor pozicioniran na nekom redu, taj red se naziva *tekući red kursora*. Kursor na koji se referiše u pozicioniraju\'cim naredbama `UPDATE` ili `DELETE` mora biti pozicioniran na nekom redu. Moguće je da se, dolaskom do greške, stanje kursora postavi na nepredvidivo.
+
+### 3.1.4. Zatvaranje kursora
+
+Zatvaranje kursora se izvodi navo\dj enjem SQL naredbe `CLOSE` \v cija je sintaksa data u nastavku:
+
+```sql
+CLOSE <IME_KURSORA>
+[WITH RELEASE]
+```
+
+Naredbom `CLOSE` se vrši zatvaranje kursora. Ukoliko je rezultujuća tabela kreirana kada je kursor otvoren, ta tabela se uništava. Promenljiva `<IME_KURSORA>` mora biti deklarisana naredbom `DECLARE` pre samog dohvatanja podataka. Dodatno, da bi se izvršila naredba `CLOSE`, kursor naziva `<IME_KURSORA>` mora biti u otvorenom stanju.
+
+Ukoliko se navede opciona klauza `WITH RELEASE`, prilikom zatvaranja kursora se pokušava sa oslobađanjem svih katanaca koji su držani od strane kursora. S obzirom da se katanci mogu držati drugim operacijama ili procesima, ne znači da će biti nužno i oslobođeni zatvaranjem kursora. O katancima će biti više reči u kasnijim poglavljima.
+
+Na kraju jedinice posla, svi kursori koji pripadaju procesu aplikacije i koji su deklarisani bez klauze `WITH HOLD` se implicitno zatvaraju.
