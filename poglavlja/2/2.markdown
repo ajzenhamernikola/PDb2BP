@@ -551,7 +551,11 @@ int main()
 
 ### 2.2.8 Naredbe `INSERT`, `UPDATE` i `DELETE`
 
-Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u tabeli (ili, eventualno, nijedan), korišćenjem naredbe `SELECT INTO`. U nastavku slede zadaci u kojem ćemo demonstrirati upotrebu naredbi `INSERT`, `UPDATE` i `DELETE`. Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
+Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u tabeli (ili, eventualno, nijedan), korišćenjem naredbe `SELECT INTO`. U nastavku slede zadatak u kojem ćemo demonstrirati upotrebu naredbe `INSERT`, zatim pretražujućih varijanti naredbi `UPDATE` i `DELETE`. 
+
+> Naredbe `UPDATE` ili `DELETE` zovemo *pretražujućim* ukoliko se podaci koji se ažuriraju, odnosno, brišu pronalaze na osnovu nekih uslova restrikcije u klauzi `WHERE`.
+
+Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
 
 > Zadatak 2.4. Napisati C/SQL program u kojem su implementirane naredne funkcije. Napisati i funkciju `int main()` koja testira napisane funkcije.
 - Napisati funkciju `void unesi_novi_predmet()` koja sa standardnog ulaza učitava podatke o identifikatoru, šifri, nazivu, bodovima i broju semestara za novi predmet na fakultetu. Potrebno je uneti te podatke u tabelu `PREDMET`. Nakon toga, odgovarajućom naredbom proveriti da li su podaci dobro uneti i ispisati ih.
