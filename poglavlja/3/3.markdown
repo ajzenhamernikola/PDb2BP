@@ -131,72 +131,72 @@ EXEC SQL END DECLARE SECTION;
 
 void is_error(const char* str)
 {
-	if (SQLCODE < 0)
+    if (SQLCODE < 0)
     {
-		printf("SQLCODE %d: %s\n", SQLCODE, str);
-		exit(EXIT_FAILURE);
-	}
+        printf("SQLCODE %d: %s\n", SQLCODE, str);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main()
 {
     // Konektujemo se na bazu podataka
-	EXEC SQL CONNECT TO vstud user student using abcdef;
-	is_error("Connect");
-	
-	// Deklarisemo kursor koji prolazi tabelom smer
-	EXEC SQL DECLARE c_smer CURSOR FOR 
-		SELECT 
+    EXEC SQL CONNECT TO vstud user student using abcdef;
+    is_error("Connect");
+    
+    // Deklarisemo kursor koji prolazi tabelom smer
+    EXEC SQL DECLARE c_smer CURSOR FOR 
+        SELECT 
             id_smera, 
             oznaka, 
             naziv, 
             semestara, 
             bodovi 
-		FROM 
+        FROM 
             smer;
-	is_error("Declare cursor");
-	
-	// Otvaramo kursor, cime se izvrsava upit naveden u deklaraciji
-	EXEC SQL OPEN c_smer;
-	is_error("Open cursor");
+    is_error("Declare cursor");
+    
+    // Otvaramo kursor, cime se izvrsava upit naveden u deklaraciji
+    EXEC SQL OPEN c_smer;
+    is_error("Open cursor");
 
-	// Sve dok ima redova u rezultujucoj tabeli
-	for(;;)
+    // Sve dok ima redova u rezultujucoj tabeli
+    for(;;)
     {
-		// Citamo red po red
-		EXEC SQL 
+        // Citamo red po red
+        EXEC SQL 
             FETCH 
                 c_smer
-			INTO 
+            INTO 
                 :d_id, 
                 :d_oznaka, 
                 :d_naziv, 
                 :d_semestara, 
                 :d_bodovi;
-		is_error("Fetch cursor");
+        is_error("Fetch cursor");
 
-		// Ako smo stigli do kraja rezultujuce tabele, 
+        // Ako smo stigli do kraja rezultujuce tabele, 
         // izlazimo iz petlje
-		if (SQLCODE == 100) 
+        if (SQLCODE == 100) 
         {
             break;
         }
 
-		// Inace, stampamo red iz rezultata
-		printf("ID:%d   OZNAKA:%s   NAZIV:%.70s   "
+        // Inace, stampamo red iz rezultata
+        printf("ID:%d   OZNAKA:%s   NAZIV:%.70s   "
             "SEMESTARA:%hd   bodovi:%hd\n", 
-			d_id, d_oznaka, d_naziv, d_semestara, d_bodovi);
-	}
+            d_id, d_oznaka, d_naziv, d_semestara, d_bodovi);
+    }
 
-	// Zatvaramo kursor
-	EXEC SQL CLOSE c_smer;
-	is_error("Close cursor");
+    // Zatvaramo kursor
+    EXEC SQL CLOSE c_smer;
+    is_error("Close cursor");
 
-	// Raskidamo konekciju sa bazom podataka
-	EXEC SQL CONNECT RESET;
-	is_error("Connect reset");
-	
-	return 0;
+    // Raskidamo konekciju sa bazom podataka
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+    
+    return 0;
 }
 ```
 
@@ -238,98 +238,98 @@ EXEC SQL END DECLARE SECTION;
 
 void is_error(const char* str)
 {
-	if (SQLCODE < 0)
+    if (SQLCODE < 0)
     {
-		printf("SQLCODE %d: %s\n", SQLCODE, str);
-		exit(EXIT_FAILURE);
-	}
+        printf("SQLCODE %d: %s\n", SQLCODE, str);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main()
-{	
+{    
     // Odgovor od korisnika
-	char c; 
+    char c; 
 
-	EXEC SQL CONNECT TO vstud user student using abcdef;
-	is_error("Connect");
-	
-	// Deklarisemo kursor koji prolazi tabelom smer, 
+    EXEC SQL CONNECT TO vstud user student using abcdef;
+    is_error("Connect");
+    
+    // Deklarisemo kursor koji prolazi tabelom smer, 
     // kojim zelimo da menjamo atribut bodovi
-	EXEC SQL DECLARE c_smer CURSOR FOR 
-		SELECT 
+    EXEC SQL DECLARE c_smer CURSOR FOR 
+        SELECT 
             id_smera, 
             oznaka, 
             naziv, 
             semestara, 
             bodovi 
-		FROM 
+        FROM 
             smer
-		FOR UPDATE OF bodovi; // Na ovaj nacin najavljujemo 
+        FOR UPDATE OF bodovi; // Na ovaj nacin najavljujemo 
                               // da cemo vrsiti promenu kolone "bodovi"
-	is_error("Declare cursor");
-	
-	EXEC SQL OPEN c_smer;
-	is_error("Open cursor");
+    is_error("Declare cursor");
+    
+    EXEC SQL OPEN c_smer;
+    is_error("Open cursor");
 
-	for(;;)
+    for(;;)
     {
-		EXEC SQL 
+        EXEC SQL 
             FETCH 
                 c_smer
-			INTO 
+            INTO 
                 :d_id, 
                 :d_oznaka, 
                 :d_naziv, 
                 :d_semestara, 
                 :d_bodovi;
-		is_error("Fetch cursor");
+        is_error("Fetch cursor");
 
-		if (SQLCODE == 100)
+        if (SQLCODE == 100)
         {
             break;
         }
-		
-		printf("Da li zelite da povecate broj bodova za smer %.70s za 10?\n"
+        
+        printf("Da li zelite da povecate broj bodova za smer %.70s za 10?\n"
             "Unesite d/D ili n/N. \n", d_naziv);
-		scanf("%c", &c);
+        scanf("%c", &c);
 
-		// Da bismo procitali i znak za novi red
-		getchar();
-		
-		// Ukoliko korisnik zeli izmenu
-		if (c == 'd' || c == 'D')
+        // Da bismo procitali i znak za novi red
+        getchar();
+        
+        // Ukoliko korisnik zeli izmenu
+        if (c == 'd' || c == 'D')
         {
-			EXEC SQL 
+            EXEC SQL 
                 UPDATE 
                     smer
-				SET 
+                SET 
                     bodovi = bodovi + 10
-				WHERE CURRENT OF c_smer; // Na ovaj nacin kazemo da zelimo izmenu 
+                WHERE CURRENT OF c_smer; // Na ovaj nacin kazemo da zelimo izmenu 
                                          // nad trenutnim redom u kursoru c_smer
-			is_error("Update");
-			
-			EXEC SQL 
+            is_error("Update");
+            
+            EXEC SQL 
                 SELECT 
                     bodovi 
                 INTO 
                     :d_bodovi
-				FROM 
+                FROM 
                     smer
-				WHERE 
+                WHERE 
                     id_smera = :d_id;
-			is_error("Select into");
-			
+            is_error("Select into");
+            
             printf("Broj bodova je sada %hd\n", d_bodovi);
-		}
-	}
+        }
+    }
 
-	EXEC SQL CLOSE c_smer;
-	is_error("Close cursor");
-	
-	EXEC SQL CONNECT RESET;
-	is_error("Connect reset");
-	
-	return 0;
+    EXEC SQL CLOSE c_smer;
+    is_error("Close cursor");
+    
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+    
+    return 0;
 }
 ```
 
@@ -357,30 +357,30 @@ EXEC SQL END DECLARE SECTION;
 
 void is_error(const char* str)
 {
-	if (SQLCODE < 0)
+    if (SQLCODE < 0)
     {
-		printf("SQLCODE %d: %s\n", SQLCODE, str);
-		exit(EXIT_FAILURE);
-	}
+        printf("SQLCODE %d: %s\n", SQLCODE, str);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main()
 {
     // Brojac obrisanih redova
-	int i = 0;
+    int i = 0;
 
-	EXEC SQL CONNECT TO vstud USER student USING abcdef;
-	is_error("Connect");
-	
-	EXEC SQL DECLARE prvi_ispit CURSOR FOR 
-		WITH pomocna AS (
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+    
+    EXEC SQL DECLARE prvi_ispit CURSOR FOR 
+        WITH pomocna AS (
             SELECT
                 i.indeks, 
                 min(coalesce(datum_usmenog, datum_pismenog)) datum_prvog
-			FROM
+            FROM
                 ispit i JOIN
                 dosije d ON d.indeks = i.indeks join
-				smer s ON s.id_smera = d.id_smera
+                smer s ON s.id_smera = d.id_smera
             WHERE
                 s.oznaka = 'I' AND
                 ocena > 5 AND
@@ -389,62 +389,62 @@ int main()
                 i.indeks
         )
 
-		SELECT 
+        SELECT 
             i.indeks, 
             coalesce(datum_usmenog, datum_pismenog)
-		FROM 
+        FROM 
             ispit i
-		WHERE EXISTS (
+        WHERE EXISTS (
             SELECT 
                 *
             FROM 
                 pomocna po 
-			WHERE 
+            WHERE 
                 po.indeks = i.indeks AND
                 po.datum_prvog = coalesce(i.datum_usmenog, i.datum_pismenog)
             );
-	is_error("Declare cursor");
-	
-	EXEC SQL OPEN prvi_ispit;
-	is_error("Open cursor");
+    is_error("Declare cursor");
+    
+    EXEC SQL OPEN prvi_ispit;
+    is_error("Open cursor");
 
-	for(;;)
+    for(;;)
     {
-		EXEC SQL 
+        EXEC SQL 
             FETCH 
                 prvi_ispit
-			INTO 
+            INTO 
                 :indeks, 
                 :datum;
-		is_error("Fetch cursor");
+        is_error("Fetch cursor");
 
-		if (SQLCODE == 100) 
+        if (SQLCODE == 100) 
         {
             break;
         }
 
-		printf("Student sa brojem indeksa %d ima datum polaganja prvog ispita %s...\n"
+        printf("Student sa brojem indeksa %d ima datum polaganja prvog ispita %s...\n"
             "Izbrisacemo to iz tabele ispit!\n", indeks, datum);
 
         // Uvecavamo brojac za jedan
-		++i;
+        ++i;
 
-		EXEC SQL 
+        EXEC SQL 
             DELETE FROM ispit 
             WHERE CURRENT OF prvi_ispit; // Na ovaj nacin kazemo da zelimo da obrisemo 
                                          // trenutni red u kursoru prvi_ispit
-		is_error("Delete");
-	}
+        is_error("Delete");
+    }
 
-	printf("\n\nObrisali smo %d redova.\n", i);
+    printf("\n\nObrisali smo %d redova.\n", i);
 
-	EXEC SQL CLOSE prvi_ispit;
-	is_error("Close cursor");
-	
-	EXEC SQL CONNECT RESET;
-	is_error("Connect reset");
-	
-	return 0;
+    EXEC SQL CLOSE prvi_ispit;
+    is_error("Close cursor");
+    
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+    
+    return 0;
 }
 ```
 
@@ -494,119 +494,119 @@ EXEC SQL END DECLARE SECTION;
 
 void is_error(const char* err)
 {
-	if (SQLCODE < 0)
-	{
-		printf("SQLCODE %d: %s\n\n", SQLCODE, err);
-		exit(EXIT_FAILURE);
-	}
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main()
 {
-	EXEC SQL CONNECT TO vstud;  
-	is_error("Konekcija na bazu");
-	
-	EXEC SQL DECLARE smerovi CURSOR FOR 
-		SELECT 
+    EXEC SQL CONNECT TO vstud;  
+    is_error("Konekcija na bazu");
+    
+    EXEC SQL DECLARE smerovi CURSOR FOR 
+        SELECT 
             id_smera, 
             naziv
-		FROM 
+        FROM 
             smer
-		ORDER BY 
+        ORDER BY 
             id_smera;
-	is_error("Deklaracija kursora - smerovi");
-	
-	EXEC SQL DECLARE padaliIspit CURSOR FOR 
-		SELECT 
+    is_error("Deklaracija kursora - smerovi");
+    
+    EXEC SQL DECLARE padaliIspit CURSOR FOR 
+        SELECT 
             indeks, 
             ime, 
             prezime
-		FROM 
+        FROM 
             dosije d 
-		WHERE 
+        WHERE 
             d.id_smera = :id_smera AND
-			EXISTS (
-				SELECT 
+            EXISTS (
+                SELECT 
                     * 
-				FROM 
+                FROM 
                     ispit
-				WHERE 
+                WHERE 
                     indeks = d.indeks AND
-					ocena = 5 AND
-					status_prijave = 'o'
-			)
-		ORDER BY 
+                    ocena = 5 AND
+                    status_prijave = 'o'
+            )
+        ORDER BY 
             indeks;
-	is_error("Deklaracija kursora - padaliIspit");
-	
+    is_error("Deklaracija kursora - padaliIspit");
+    
     /////////////////////////////////////
     // Pocetak obrade spoljasnjeg kursora
 
-	EXEC SQL OPEN smerovi;
-	is_error("Otvaranje kursora - smerovi");
+    EXEC SQL OPEN smerovi;
+    is_error("Otvaranje kursora - smerovi");
 
-	while(1)
-	{
-		EXEC SQL 
+    while(1)
+    {
+        EXEC SQL 
             FETCH 
                 smerovi
-			INTO 
+            INTO 
                 :id_smera, 
                 :naziv;
-		is_error("Dohvatanje podataka iz kursora - smerovi");
+        is_error("Dohvatanje podataka iz kursora - smerovi");
 
-		if(SQLCODE == 100)
-		{
-			break;
-		}
-		
-		// Stampamo sekciju za smer
-		printf("\n*****************\nStudenti sa smera %d: %s!\n*****************\n",
-			id_smera, naziv);
-		
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+        
+        // Stampamo sekciju za smer
+        printf("\n*****************\nStudenti sa smera %d: %s!\n*****************\n",
+            id_smera, naziv);
+        
         /////////////////////////////////////
         // Pocetak obrade unutrasnjeg kursora
 
-		EXEC SQL OPEN padaliIspit;
-		is_error("Otvaranje kursora - padaliIspit");
-		
-		while(1)
-		{
-			EXEC SQL 
+        EXEC SQL OPEN padaliIspit;
+        is_error("Otvaranje kursora - padaliIspit");
+        
+        while(1)
+        {
+            EXEC SQL 
                 FETCH 
                     padaliIspit
-				INTO 
+                INTO 
                     :indeks, 
                     :ime, 
                     :prezime;
-			is_error("Dohvatanje podataka iz kursora - padaliIspit");
+            is_error("Dohvatanje podataka iz kursora - padaliIspit");
 
-			if(SQLCODE == 100)
-			{
-				break;
-			}
-			
-			// Stampamo informacije o studentu
-			printf("Student %s %s sa brojem indeksa %d\n", ime, prezime, indeks);	
-		}
-		
-		EXEC SQL CLOSE padaliIspit;
-		is_error("Zatvaranje kursora - padaliIspit");
+            if(SQLCODE == 100)
+            {
+                break;
+            }
+            
+            // Stampamo informacije o studentu
+            printf("Student %s %s sa brojem indeksa %d\n", ime, prezime, indeks);    
+        }
+        
+        EXEC SQL CLOSE padaliIspit;
+        is_error("Zatvaranje kursora - padaliIspit");
         
         // Kraj obrade unutrasnjeg kursora
         //////////////////////////////////
-	}
+    }
 
-	EXEC SQL CLOSE smerovi;
-	is_error("Zatvaranje kursora - padaliIspit");
+    EXEC SQL CLOSE smerovi;
+    is_error("Zatvaranje kursora - padaliIspit");
 
     // Kraj obrade spoljasnjeg kursora
     //////////////////////////////////
 
-	EXEC SQL CONNECT RESET;
-	is_error("Connect reset");
-	
-	return 0;
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+    
+    return 0;
 }
 ```
 
@@ -627,150 +627,150 @@ EXEC SQL END DECLARE SECTION;
 
 void is_error(const char* err)
 {
-	if (SQLCODE < 0)
-	{
-		printf("SQLCODE %d: %s\n\n", SQLCODE, err);
-		exit(EXIT_FAILURE);
-	}
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main()
 {
-	EXEC SQL CONNECT TO vstud;  
-	is_error("Konekcija na bazu");
-	
-	EXEC SQL DECLARE najvisePolozenih CURSOR FOR 
-		WITH pomocna AS (
-			SELECT 
+    EXEC SQL CONNECT TO vstud;  
+    is_error("Konekcija na bazu");
+    
+    EXEC SQL DECLARE najvisePolozenih CURSOR FOR 
+        WITH pomocna AS (
+            SELECT 
                 d.id_smera, 
                 d.indeks, 
                 sum(p.bodovi) suma
-			FROM 
+            FROM 
                 dosije d JOIN
-				ispit i ON i.indeks = d.indeks JOIN
+                ispit i ON i.indeks = d.indeks JOIN
                 predmet p ON p.id_predmeta = i.id_predmeta
-			WHERE 
+            WHERE 
                 ocena > 5 AND
-				status_prijave='o'
+                status_prijave='o'
             GROUP BY 
                 d.id_smera, 
                 d.indeks
-		)
-		    
-		SELECT 
+        )
+            
+        SELECT 
             pom.suma, 
             d.indeks, 
-            pom.id_smera	
-		FROM 
+            pom.id_smera    
+        FROM 
             pomocna pom JOIN
-			dosije d ON d.indeks = pom.indeks 
+            dosije d ON d.indeks = pom.indeks 
         WHERE 
             pom.suma IN (
-			    SELECT 
+                SELECT 
                     max(suma) 
                 FROM 
                     pomocna pom1 
                 WHERE 
                     pom1.id_smera = pom.id_smera
-		    )
-		ORDER BY 
+            )
+        ORDER BY 
             id_smera;
-	is_error("Deklaracija kursora - najvisePolozenih");
-	
-	EXEC SQL DECLARE poslednji_ispit CURSOR FOR 
-		WITH pomocna AS (
-			SELECT 
+    is_error("Deklaracija kursora - najvisePolozenih");
+    
+    EXEC SQL DECLARE poslednji_ispit CURSOR FOR 
+        WITH pomocna AS (
+            SELECT 
                 i.indeks, 
-				max(coalesce(datum_usmenog, datum_pismenog)) datum_prvog
-			FROM 
+                max(coalesce(datum_usmenog, datum_pismenog)) datum_prvog
+            FROM 
                 ispit i JOIN
                 dosije d ON d.indeks = i.indeks
-			WHERE 
+            WHERE 
                 ocena > 5 AND
                 status_prijave = 'o'
-			GROUP BY
+            GROUP BY
                 i.indeks
-		)
+        )
 
-		SELECT
+        SELECT
             i.indeks
-		FROM
+        FROM
             ispit i
-		WHERE 
+        WHERE 
             i.indeks = :indeks AND
-			EXISTS (
-				SELECT 
+            EXISTS (
+                SELECT 
                     * 
-				FROM 
+                FROM 
                     pomocna po 
-				WHERE 
+                WHERE 
                     po.indeks = i.indeks AND
-					po.datum_prvog = coalesce(i.datum_usmenog, i.datum_pismenog)
-			)
-		FOR UPDATE OF napomena;
-	is_error("Deklaracija kursora - poslednji_ispit");
-	
-	EXEC SQL OPEN najvisePolozenih;
-	is_error("Otvaranje kursora - najvisePolozenih");
+                    po.datum_prvog = coalesce(i.datum_usmenog, i.datum_pismenog)
+            )
+        FOR UPDATE OF napomena;
+    is_error("Deklaracija kursora - poslednji_ispit");
+    
+    EXEC SQL OPEN najvisePolozenih;
+    is_error("Otvaranje kursora - najvisePolozenih");
 
-	while(1)
-	{
-		EXEC SQL 
+    while(1)
+    {
+        EXEC SQL 
             FETCH 
-                najvisePolozenih				
-			INTO 
+                najvisePolozenih                
+            INTO 
                 :suma, 
                 :indeks, 
                 :id_smera;
-		is_error("Dohvatanje podataka iz kursora - najvisePolozenih");
+        is_error("Dohvatanje podataka iz kursora - najvisePolozenih");
 
-		if(SQLCODE == 100)
-		{
-			break;
-		}
-		
-		// Stampamo informaciju o studentu koji ima najvise kredita na smeru
-		printf("Student sa brojem indeksa %d na smeru %d ima polozeno %d bodova!\n", 
-			indeks, id_smera, suma);
-		
-		EXEC SQL OPEN poslednji_ispit;
-		is_error("Otvaranje kursora - poslednji_ispit");
-		
-		while(1)
-		{
-			EXEC SQL 
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+        
+        // Stampamo informaciju o studentu koji ima najvise kredita na smeru
+        printf("Student sa brojem indeksa %d na smeru %d ima polozeno %d bodova!\n", 
+            indeks, id_smera, suma);
+        
+        EXEC SQL OPEN poslednji_ispit;
+        is_error("Otvaranje kursora - poslednji_ispit");
+        
+        while(1)
+        {
+            EXEC SQL 
                 FETCH 
                     poslednji_ispit
-				INTO 
+                INTO 
                     :indeks, 
                     :datum;
-			is_error("Dohvatanje podataka iz kursora - poslednji_ispit");
+            is_error("Dohvatanje podataka iz kursora - poslednji_ispit");
 
-			if(SQLCODE == 100)
-			{
-				break;
-			}
-			
-			EXEC SQL 
+            if(SQLCODE == 100)
+            {
+                break;
+            }
+            
+            EXEC SQL 
                 UPDATE 
                     ispit
-				SET 
+                SET 
                     napomena = 'Ovo je student koji ima najvise polozenih kredita na svom smeru'
-				WHERE CURRENT OF poslednji_ispit;
-		    is_error("Azuriranje tabele ispit");
-		}
-		
-		EXEC SQL CLOSE poslednji_ispit;
-		is_error("Zatvaranje kursora - poslednji_ispit");
-	}
+                WHERE CURRENT OF poslednji_ispit;
+            is_error("Azuriranje tabele ispit");
+        }
+        
+        EXEC SQL CLOSE poslednji_ispit;
+        is_error("Zatvaranje kursora - poslednji_ispit");
+    }
 
-	EXEC SQL CLOSE najvisePolozenih;
-	is_error("Zatvaranje kursora - najvisePolozenih");
+    EXEC SQL CLOSE najvisePolozenih;
+    is_error("Zatvaranje kursora - najvisePolozenih");
 
-	EXEC SQL CONNECT RESET;
-	is_error("Diskonekcija sa baze");
-	
-	return 0;
+    EXEC SQL CONNECT RESET;
+    is_error("Diskonekcija sa baze");
+    
+    return 0;
 }
 ```
 
@@ -801,4 +801,4 @@ int main()
 > Zadatak 3.18: Napisati C/SQL program koji ispisuje izveštaj za svaki predmet o njegovim uslovnim predmetima. Za svaki predmet ispisati informacije o identifikatoru predmeta i njegovom nazivu. Svaka sekcija koja ispisuje informacije o uslovnim predmetima treba da izlistava identifikator i naziv uslovnih predmeta za tekući predmet za koji se pravi sekcija, pri čemu se prikazuju informacije samo o onim uslovnim predmetima za koje postoji polaganje sa ocenom 10 na osnovnim studijama čiji je datum polaganja bio pre 2011. godine. Stavke sekcije prikazati razdvojene zapetom, i svaki uslovni predmet prikazati u posebnom redu.
 
 > Zadatak 3.19: Napisati C/SQL program koji za svaki ispitni rok ispisuje njegov naziv i broj uspešnih polaganja za svaku ocenu u tom ispitnom roku. Nakon ispisivanja informacija o ispitnom roku, ponuditi korisniku da izbriše informacije o polaganim ispitima u tom roku. Ukoliko korisnik želi da obriše te podatke, prvo izlistati podatke o indeksu, identifikatoru predmeta, godini roka, oznaci roka i datumu polaganja (ako postoji) za svako polaganje koje se briše. Na kraju brisanja polaganja u jednom ispitnom roku, ispisati ukupan broj obrisanih redova.
-	
+    
