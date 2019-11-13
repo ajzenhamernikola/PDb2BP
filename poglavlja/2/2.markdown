@@ -20,6 +20,7 @@ Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva 
 db2 connect to IMEBAZE user KORISNIK using LOZINKA
 ```
 
+{:start="2"}
 2. Pretprocesiranje aplikacije koju izvodi specijalan program koji se naziva db2 pretprocesor. Ovaj program kao ulaz prihvata napisanu `.sqc` datoteku, a kao izlaz konstruiše dve datoteke: 
 
 - Datoteku sa ekstenzijom `.c` koja sadrži "čisti" izvorni C kod. U ovoj datoteci su sve naredbe Db2 API-ja zamenjene pozivima C funkcija, dok je kod napisan od strane razvijača prepisan u izvornoj formi.
@@ -32,6 +33,7 @@ Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 db2 PRECOMPILE IMEDATOTEKE.sqc BINDFILE
 ```
 
+{:start="3"}
 3. Ako je kreirana `IMEDATOTEKE.bnd` datoteka (korišćenjem `BINDFILE` opcije u `PRECOMPILE` naredbi u koraku 2), vrši se vezivanje te datoteke sa bazom podataka da bi se kreirao aplikacioni paket. 
 
 > *Vezivanje* predstavlja proces kojim se od datoteke sa ekstenzijom `.bnd` kreira paket koji se čuva u bazi podataka.
@@ -44,12 +46,14 @@ Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 db2 BIND IMEDATOTEKE.bnd
 ```
 
+{:start="4"}
 4. Kompiliranje modifikovanog aplikacionog izvornog koda i izvornih datoteka koji ne sadrže ugnežđeni SQL da bi se kreirale objektne datoteke (jedna ili više njih, zavisno od modularnosti koda; kod nas će uglavnom biti jedna objektna datoteka po primeru). Potrebno je kompilatoru specifikovati gde se nalaze zaglavlja koje nam Db2 sistem nudi. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
 ```shell
 cc -I/opt/ibm/db2/V10.5/include -c IMEDATOTEKE.c
 ```
 
+{:start="5"}
 5. Linkovanje aplikacionih objektnih datoteka sa Db2 bibliotekama i bibliotekama matičnog jezika da bi se kreirao izvršni program. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
 ```shell
@@ -82,7 +86,7 @@ Ovaj skript u svojoj osnovnoj varijanti zahteva 4 argumenta:
 1. Naziv datoteke koji se prevodi bez ekstenzije `.sqc` (u prethodnim koracima vrednost `IMEDATOTEKE`).
 
 2. Naziv baze podataka na koju se vrši konekcija (u prethodnim koracima vrednost
-`IMEBAZE`) obavezan argument.
+`IMEBAZE`).
 
 3. Naziv korisnika sa kojim se pristupa bazi podataka (u prethodnim koracima vrednost `KORISNIK`).
 
