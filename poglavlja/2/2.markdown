@@ -142,7 +142,7 @@ EXEC SQL SELECT SUM(ZARADA) INTO :ukupnaZarada FROM ZAPOSLENI;
 
 Kao što znamo, programski jezik C definiše određeni broj osnovnih tipova. Neki od ovih tipova korespondiraju sa DB2 tipovima kolona u tabelama. U narednoj tabeli prikazan je pregled nekih najčešćih tipova kolona u DB2, kao i odgovarajući C tipovi. Ovi tipovi se mogu koristiti za deklaraciju matičnih promenljivih. Kada DB2 pretprocesor naiđe na deklaraciju matične promenljive, on određuje prikladni SQL tip. RSUBP zatim koristi ovu vrednost za konverziju podataka koji se razmenjuju između aplikacije i njega. Napomenimo da se tipovi označeni zvezdicom preporučuju u odnosu na druge zbog kompatibilnosti između operativnih sistema.
 
-| DB2 tip kolone | C tip | Opis DB2 tipa |
+| DB2&nbsp;tip&nbsp;kolone | C tip | Opis DB2 tipa |
 | -------------- | ----- | ------------- |
 | `SMALLINT` | `short` <br> `short int` <br> `sqlint16` | 16-bitni označeni ceo broj |
 | `INTEGER` | `int` <br> `long` <br> `long int` <br> `sqlint32`* | 32-bitni označeni ceo broj |

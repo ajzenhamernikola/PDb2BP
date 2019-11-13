@@ -1,14 +1,12 @@
 ---
-layout: page
+layout: index
 title: Programiranje Db2 baza podataka
 ---
 
-Autori:
+## Autori
 
 - [Ajzenhamer Nikola](https://www.nikolaajzenhamer.rs)
 - [Vulović Ana](http://www.math.rs/~aspasic)
-
-![Programiranje DB2 Baza Podataka]({{site.baseurl}}/resources/cover.png)
 
 ## Sadržaj
 

@@ -22,7 +22,7 @@ title: Programiranje Db2 baza podataka
 email: nikola_ajzenhamer@math.rs
 description: >- # this means to ignore newlines until "baseurl:"
   Elektronska knjiga "Programiranje Db2 baza podataka"
-  dostupna besplatno na adresi https://theikeofficial.github.io/PDb2BP/.
+  dostupna besplatno na adresi
 baseurl: "/PDb2BP" # the subpath of your site, e.g. /blog
 url: "https://theikeofficial.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
 
@@ -50,3 +50,5 @@ plugins:
 #   - vendor/cache/
 #   - vendor/gems/
 #   - vendor/ruby/
+kramdown:
+  parse_block_html: true
