@@ -382,7 +382,7 @@ void is_error(const char∗ str)
 int main()
 {
     // Konekcija na bazu
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Konekcija na bazu podataka");
 
     // Izdvajamo maksimalni indeks i smestamo u maticnu promenljivu maxIndeks
@@ -447,7 +447,7 @@ void is_error(const char∗ str)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Konekcija na bazu podataka");
 
     EXEC SQL 
@@ -512,7 +512,7 @@ void is_error(const char∗ str)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Konekcija na bazu podataka");
 
     printf("Unesite broj indeksa: ");
@@ -596,7 +596,7 @@ void obrisi_novi_predmet();
 // Glavni deo zadatka
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef; 
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Konekcija na bazu");
 
     unesi_novi_predmet();

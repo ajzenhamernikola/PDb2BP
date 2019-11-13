@@ -141,7 +141,7 @@ void is_error(const char* str)
 int main()
 {
     // Konektujemo se na bazu podataka
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     // Deklarisemo kursor koji prolazi tabelom smer
@@ -250,7 +250,7 @@ int main()
     // Odgovor od korisnika
     char c; 
 
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     // Deklarisemo kursor koji prolazi tabelom smer, 
@@ -503,7 +503,7 @@ void is_error(const char* err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud;  
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;  
     is_error("Konekcija na bazu");
     
     EXEC SQL DECLARE smerovi CURSOR FOR 
@@ -636,7 +636,7 @@ void is_error(const char* err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud;  
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;  
     is_error("Konekcija na bazu");
     
     EXEC SQL DECLARE najvisePolozenih CURSOR FOR 
