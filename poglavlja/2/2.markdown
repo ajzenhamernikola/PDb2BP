@@ -144,21 +144,21 @@ Kao što znamo, programski jezik C definiše određeni broj osnovnih tipova. Nek
 
 | DB2 tip kolone | C tip | Opis DB2 tipa |
 | -------------- | ----- | ------------- |
-| SMALLINT | short <br> short int <br> sqlint16 | 16-bitni označeni ceo broj |
-| INTEGER | int <br> long <br> long int <br> sqlint32* | 32-bitni označeni ceo broj |
-| BIGINT | long long <br> long <br> __int64 <br> sqlint64* | 64-bitni označeni ceo broj |
-| REAL | float | Broj u pokretnom zarezu jednostruke preciznosti |
-| DOUBLE | double | Broj u pokretnom zarezu dvostruke preciznosti |
-| DECIMAL(p,s) | Nema precizan ekvivalentan tip; koristiti double | Pakovan decimalni zapis |
-| CHAR(1) | char | Jedan karakter |
-| CHAR(n) | Nema precizan ekvivalentan tip; koristiti char[n+1] gde je n dovoljno veliko da sadrži podatak, tj. 1 <= n <= 254 | Niska nepromenljive dužine |
-| VARCHAR(n) | struct tag { <br>&nbsp;&nbsp;&nbsp;&nbsp;short int; <br>&nbsp;&nbsp;&nbsp;&nbsp;char[n] <br> }, gde je 1 <= n <= 32672 | Niska promenljive dužine bez terminirajuće nule sa 2-bajtnim indikatorom dužine |
-| DATE | Nula-terminirajuća karakterna forma | Dopustiti barem 11 karaktera da bi se smestio terminirajući karakter |
-| DATE | VARCHAR struktuirana forma | Dopustiti barem 10 karaktera |
-| TIME | Nula-terminirajuća karakterna forma | Dopustiti barem 9 karaktera da bi se smestio terminirajući karakter |
-| TIME | VARCHAR struktuirana forma | Dopustiti barem 8 karaktera |
-| TIMESTAMP(p) | Nula-terminirajuća karakterna forma | Dopustiti barem 20-33 karaktera da bi se smestio terminirajući karakter |
-| TIMESTAMP(p) | VARCHAR struktuirana forma | Dopustiti barem 19-32 karaktera |
+| `SMALLINT` | `short` <br> `short int` <br> `sqlint16` | 16-bitni označeni ceo broj |
+| `INTEGER` | `int` <br> `long` <br> `long int` <br> `sqlint32`* | 32-bitni označeni ceo broj |
+| `BIGINT` | `long long` <br> `long` <br> `__int64` <br> `sqlint64`* | 64-bitni označeni ceo broj |
+| `REAL` | `float` | Broj u pokretnom zarezu jednostruke preciznosti |
+| `DOUBLE` | `double` | Broj u pokretnom zarezu dvostruke preciznosti |
+| `DECIMAL(p,s)` | Nema precizan ekvivalentan tip; koristiti `double` | Pakovan decimalni zapis |
+| `CHAR(1)` | `char` | Jedan karakter |
+| `CHAR(n)` | Nema precizan ekvivalentan tip; koristiti `char[n+1]` gde je `n` dovoljno veliko da sadrži podatak, tj. `1 <= n <= 254` | Niska nepromenljive dužine |
+| `VARCHAR(n)` | <code>struct tag {<br>&nbsp;&nbsp;&nbsp;&nbsp;short int; <br>&nbsp;&nbsp;&nbsp;&nbsp;char[n] <br>}</code><br>gde je `1 <= n <= 32672` | Niska promenljive dužine bez terminirajuće nule sa 2-bajtnim indikatorom dužine |
+| `DATE` | Nula-terminirajuća karakterna forma | Dopustiti barem 11 karaktera da bi se smestio terminirajući karakter |
+| `DATE` | `VARCHAR` strukturna forma | Dopustiti barem 10 karaktera |
+| `TIME` | Nula-terminirajuća karakterna forma | Dopustiti barem 9 karaktera da bi se smestio terminirajući karakter |
+| `TIME` | `VARCHAR` strukturna forma | Dopustiti barem 8 karaktera |
+| `TIMESTAMP(p)` | Nula-terminirajuća karakterna forma | Dopustiti barem 20-33 karaktera da bi se smestio terminirajući karakter |
+| `TIMESTAMP(p)` | `VARCHAR` strukturna forma | Dopustiti barem 19-32 karaktera |
 
 ### 2.2.4 Naredba SELECT INTO
 
