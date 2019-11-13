@@ -3,3 +3,945 @@ permalink: /poglavlja/4/
 layout: page
 title: 4. Implementiranje transakcija
 ---
+
+Transakcije predstavljaju izuzetno važan alat za svakog programera koji koristi baze podataka u svojim aplikacijama. Svaka iole kompleksnija operacija nad podacima zahteva korišćenje transakcija da bi se takva operacija uspešno implementirala. Pritom, postoji veliki broj pitanja i potencijalnih problema koji se otvaraju prilikom korišćenja  transakcija. U ovoj sekciji ćemo se upoznati sa različitim naredbama za rad sa transakcijama u DB2 sistemu za upravljanje relacionim bazama podataka. Započnimo ovaj deo teksta narednom definicijom.
+
+> *Transakcija* (engl. *transaction*) predstavlja logičku jedinicu posla pri radu sa podacima.
+
+Transakcija predstavlja niz radnji koji ne narušava uslove integriteta. Sa stanovišta korisnika, izvršavanje transakcije je atomično. Po izvršenju kompletne transakcije stanje baze treba da bude konzistentno, tj. da su ispunjeni uslovi integriteta. Dakle, posmatrana kao jedinica posla, transakcija prevodi jedno konzistentno stanje baze u drugo takvo stanje baze, dok u međukoracima transakcije konzistentnost podataka može biti i narušena. Transakcija na taj način predstavlja i bezbedno sredstvo za interakciju korisnika sa bazom.
+
+## 4.1 Operacije potvrđivanja i poništavanja izmena u bazi podataka
+
+Pre nego što započnemo detaljnu diskusiju o transakcijama, obratićemo pažnju na dve vrlo važne operacije kada je u pitanju rad sa transakcijama. Ono što do sada nismo napomenuli jeste da, čak i kad naš C/SQL program uspešno izvrši neku naredbu, ona neće biti u tom trenutku trajno upisana u bazu podataka. To znači da neki drugi C/SQL program, ukoliko želi da pročita "izmenjenu" vrednost, ne'ce biti u stanju to da uradi pre nego što prvi program ne potvrdi svoje izmene. Naredna slika ilustruje ovu situaciju: u nekom trenutku Program 1 vrši izmenu Reda 1 u Tabeli, neposredno zatim Program 2 želi da izvrši čitanje te "izmenjene" vrednosti. Međutim, pošto u tom trenutku Program 1 nije potvrdio te izmene, Program 2 ne vidi izmene i čita staru vrednost. Tek nakon čitanja Programa 2, Program 1 vrši potvrđivanje izmena i red biva izmenjen.
+
+![Čitanje izmene reda koja nije potvrđena može dovesti do nekorektnog ponašanja](./Slike/CitanjePrePotvrdjivanja.png)
+
+SQL jezik definiše naredne dve naredbe za rad sa transakcijama:
+
+- Naredba `COMMIT` služi za potvrđivanje izmena koje su do tada bile izvršene nad bazom podataka. Sve načinjene izmene se trajno pamte u bazi podataka i svi ostali procesi dobijaju mogućnost da vide načinjene izmene.
+
+- Naredba `ROLLBACK` služi za poništavanje izmena koje su do tada bile izvršene nad bazom podataka. Izvršavanjem ove naredbe možemo poništiti sve one akcije koje do trenutka poništavanja nisu prethodno bile potvrđene. 
+
+Pogledajmo efekat ovih naredbi na narednom zadatku.
+
+-----
+
+**Zadatak 4.1**
+
+Napisati C/SQL program koji redom:
+
+1. Pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
+2. Briše studenta sa pronađenim indeksom iz tabele `ISPIT` i ispisuje poruku korisniku o uspešnosti brisanja.
+3. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
+4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.
+5. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
+
+-----
+
+Rešenje:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+sqlint32 indeks;
+EXEC SQL END DECLARE SECTION;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+    
+        // U funkciju za obradu greske dodajemo naredbu ROLLBACK
+        // da bismo ponistili eventualne izmene u bazi podataka
+        // ukoliko zaista dodje do greske.
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main()
+{
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+    
+    EXEC SQL 
+        SELECT 
+            MAX(INDEKS) 
+        INTO 
+            :indeks 
+        FROM 
+            ISPIT;
+    is_error("Select 1");
+    
+    // Ako nema studenata u tabeli ispit
+    if(SQLCODE != 100)
+    {
+        printf("Maksimalni indeks je %d.\n", indeks);
+
+        // Brisanje studenta sa najvecim indeksom iz tabele ispit
+        EXEC SQL 
+            DELETE FROM 
+                ispit 
+            WHERE 
+                indeks = :indeks;
+        is_error("Delete");
+
+        printf("Uspesno je obrisan podatak");
+
+        // Ispisivanje najveceg indeksa iz tabele ispit
+        EXEC SQL 
+            SELECT 
+                MAX(INDEKS) 
+            INTO 
+                :indeks 
+            FROM 
+                ISPIT;
+        is_error("Select 2");
+        
+        if(SQLCODE != 100)
+        {
+            printf("Maximalni indeks je %d.\n", indeks);
+        }
+        else
+        {
+            printf("Tabela je prazna!\n");
+        }
+        
+        // Pitamo korisnika za dalju akciju
+        printf("Izaberite jednu od dve akcije:\n"
+            "1. Potvrdjivanje izmena\n"
+            "2. Ponistavanje izmena\n");
+
+        short odgovor;
+        scanf("%d", &odgovor);
+
+        if (odgovor == 1)
+        {
+            // Potvrdjujemo izmene naredbom COMMIT
+            EXEC SQL COMMIT;
+            is_error("Commit");
+        }
+        else
+        {
+            // Ponistavamo izmene naredbom ROLLBACK
+            EXEC SQL ROLLBACK;
+            is_error("Rollback");
+        }
+
+        printf("Vasa akcija je izvrsena!\n");
+        
+        // Ispisujemo najveci indeks ponovo
+        EXEC SQL 
+            SELECT 
+                MAX(INDEKS) 
+            INTO 
+                :indeks 
+            FROM 
+                ISPIT;
+        is_error("Select 3");
+        
+        if(SQLCODE != 100)
+        {
+            printf("Maximalni indeks je %d.\n", indeks);
+        }
+        else
+        {
+            printf("Tabela je prazna!\n");
+        }        
+    }
+    else
+    {
+        printf("Tabela je prazna!\n");
+    }
+
+    // U slucaju uspesnog izvrsavanja programa,
+    // potvrdjujemo sve akcije koje je nas program izvrsio
+    EXEC SQL COMMIT;
+    is_error("Commit - kraj programa");
+
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+```
+
+Vrlo je bitno primetiti naredne dve stvari u kodu:
+
+- U slučaju uspešnog izvršavanja programa, pre nego što zatvorimo konekciju sa bazom podataka, izvršavamo SQL naredbu `COMMIT` kako bismo potvrdili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.
+
+- U slučaju da dođe do greške prilikom izvršavanja programa, pre nego što izađemo iz programa i prijavimo neuspeh, u funkciji `is_error` izvršavamo naredbu `ROLLBACK` kako bismo poništili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.
+
+Ovo je dobra praksa i mi ćemo usvojiti ovaj način rada u našim C/SQL programima.
+
+## 4.2 Složena SQL naredba
+
+U ovoj sekciji ćemo diskutovati o načinima za izvršavanje više SQL naredbi kao jedne naredbe, tzv. složene SQL naredbe. Složene SQL naredbe predstavljaju osnovu rada sa transakcijama, o čemu će biti detaljnije reči u nastavku teksta.
+
+> *Složena SQL naredba* (engl. *compound SQL*) predstavlja sekvencu SQL naredbi ograđenu odgovarajućim ključnim rečima kojim se definiše jedan blok izvršavanja.
+
+Postoje tri tipa složenih SQL naredbi:
+
+1. *Linijske* (engl. *inline*) - Složena SQL linijska naredba je složena SQL naredba koja je umetnuta linijski tokom faze izvršavanja u okviru druge SQL naredbe. Složene SQL linijske naredbe imaju svojstvo atomičnosti; ako izvršavanje bilo koje pojedinačne SQL naredbe podigne grešku, cela naredba se poništava.
+
+2. *Ugnežđene* (engl. *embedded*) - Ovaj tip naredbi kombinuje jednu ili više SQL naredbi (odnosno, podnaredbi) u jedan izvršivi blok. 
+
+3. *Kompilirane* (engl. *compiled*) - Predstavlja sekvencu SQL naredbi koje se izvršavaju sa lokalnim opsegom za promenljive, uslove, kursore i pokazivače na slogove (engl. *handle*).
+
+Mi ćemo u daljem tekstu razmatrati isključivo složene SQL ugnežđene naredbe, tako da podrazumevamo ovaj tip kada kažemo "složena SQL naredba". Sintaksa ovih naredbi je data u nastavku:
+
+```sql
+BEGIN COMPOUND (ATOMIC|NOT ATOMIC) STATIC
+[STOP AFTER FIRST <MATICNA_PROMENLJIVA> STATEMENTS]
+
+<SQL_NAREDBA>;
+<SQL_NAREDBA>;
+-- ...
+<SQL_NAREDBA>;
+
+END COMPOUND
+```
+
+U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije složene SQL naredbe, ta naredba može imati različite varijante koji utiču na način izvršavanja:
+
+- Atomičnost - tačno jedna od naredne dve opcije se navode
+   
+   - ATOMIC - Specifikuje da, ako bilo koja od podnaredbi u okviru složene SQL naredbe bude izvršena neuspešno, onda se sve izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe, bilo one uspešne izvršene ili ne, poništavaju.
+   
+   - NOT ATOMIC - Specifikuje da, bez obzira na neuspešno izvršavanje podnaredbi, složena SQL naredba neće poništiti izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe.
+
+- Statičnost - navodi se naredna naredba
+   
+   - STATIC - Specifikuje da će sve matične promenljive za sve podnaredbe zadržati njihove originalne vrednosti. Na primer, ukoliko se u SQL složenoj naredbi nađe naredba:
+
+```sql
+SELECT 
+    MAX(OCENA) 
+INTO 
+    :ocena 
+FROM 
+    ISPIT
+```
+
+koja je praćena naredbom
+
+```sql
+UPDATE ISPIT 
+SET 
+    NAPOMENA = 'Ovo je najveca ocena medju ispitima'
+WHERE 
+    OCENA = :ocena
+```
+
+onda će naredba `UPDATE` koristiti vrednost matične promenljive `ocena` koju je ta promenljiva imala na početku bloka koji je definisan složenom SQL naredbom, a ne vrednost koja je dobijena naredbom `SELECT INTO`. Time je transakcija koja se ostvaruje tom SQL složenom naredbom, za koju bismo možda očekivali da bude korektna, zapravo neispravno implementirana, zato što se oslanja na međuvrednost koju dobija promenljiva `ocena` naredbom `SELECT INTO`. Dodatno, ako se vrednost iste promenljive postavlja od strane više SQL podnaredbi, onda će na kraju bloka ta promenljiva sadržati vrednost koju je postavila poslednja SQL podnaredba.
+
+Napomenimo da u DB2 sistemu nestatičko ponašanje nije podržano. To znači da bi trebalo posmatrati kao da se podnaredbe izvršavaju nesekvencijalno i podnaredbe ne bi trebalo da imaju međuzavisnosti.
+
+- Opcionom klauzom `STOP AFTER FIRST` specifikujemo da će se izvršiti samo određeni broj podnaredbi. Matična promenljiva `<MATICNA_PROMENLJIVA>` tipa `short` sadrži ceo broj *N* kojim se specifikuje koliko prvih *N* podnaredbi će biti izvršeno.
+
+Nakon opisanih opcija, potrebno je navesti nula ili više SQL naredbi `<SQL_NAREDBA>`. SQL naredbe koje je moguće navesti kao deo složenih SQL naredbi su sve izvršive naredbe, osim narednih 14 naredbi:
+
+1. `CALL`
+2. `CLOSE`
+3. `CONNECT`
+4. Složena SQL naredba
+5. `DESCRIBE`
+6. `DISCONNECT`
+7. `EXECUTE IMMEDIATE`
+8. `FETCH`
+9. `OPEN`
+10. `PREPARE`
+11. `RELEASE (Connection)`
+12. `ROLLBACK`
+13. `SET CONNECTION`
+14. `SET variable`
+
+Važe i neka dodatna pravila. Na primer, ukoliko se naredba `COMMIT` koristi kao jedna od podnaredbi, onda se ona mora naći kao poslednja podnaredba. Ukoliko je `COMMIT` nađe na ovoj poziciji, onda će ona biti izvršena, čak i u situaciji da klauza `STOP AFTER FIRST` indikuje da se neće sve podnaredbe u okviru složene SQL naredbe izvršiti. Na primer, pretpostavimo da je `COMMIT` poslednja podnaredba u okviru složene SQL naredbe koja ima 100 podnaredbi. Ukoliko se klauzom `STOP AFTER FIRST` specifikuje da se izvršava prvih 50 podnaredbi, onda će `COMMIT` podnaredba biti izvršena kao 51. podnaredba.
+
+Neka dodatne napomene koje treba imati u vidu prilikom rada sa složenih SQL naredbama u DB2 sistemu su sledeće:
+
+- Nije dozvoljeno ugnežđavati kod iz matičnog jezika unutar bloka koji definiše složena SQL naredba.
+
+- Nije dozvoljeno ugnežđavati složene SQL naredbe u okviru drugih složenih SQL naredbi.
+
+- Pripremljena `COMMIT` naredba nije dozvoljena u `ATOMIC` složenoj SQL naredbi.
+
+- Jedna SQLCA struktura se postavlja za celu složenu SQL naredbu. Važe naredna pravila:
+
+   - Vrednosti `SQLCODE` i `SQLSTATE` koje se postavljaju na kraju složene SQL naredbe su podrazumevano postavljene na osnovu poslednje podnaredbe koja se izvršila u okviru složene SQL naredbe, osim u slučaju opisanom narednom tačkom.
+
+   - Ako je sistem signalizirao upozorenje da "nije pronađen podatak" (`SQLSTATE 02000`, odnosno, `SQLCODE +100`), onda se tom upozorenju daje prednost u odnosu na ostala upozorenja da bi se naredbom `WHENEVER NOT FOUND` moglo dejstvovati. U ovoj situaciji se polja iz `SQLCA` strukture koja se eventualno vraćaju aplikaciji postavljaju na osnovu podnaredbe koja je okinula upozorenje da "nije pronađen podatak". Ukoliko u okviru složene SQL naredbe postoji više podnaredbi koje okidaju ovo upozorenje, onda se polja iz SQLCA strukture postavljaju na osnovu poslednje od tih podnaredbi.
+
+Sada slede primeri korišćenja složenih SQL naredbi. Primetimo da smo, kao i u prethodnom zadatku, koristili naredbu `ROLLBACK` u definiciji funkcije `is_error` da poništimo izmene u bazi podataka u slučaju da dođe do greške, odnosno, naredbu `COMMIT` za potvrđivanje izmena pre raskidanja konekcije.
+
+-----
+
+**Zadatak 4.2**
+
+Napisati C/SQL program koji redom:
+
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u tekućoj godini čija je oznaka "maj" i naziv "Maj GODINA" u zavisnosti od tekuće godine (na primer, "Maj 2019"). Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 20 dana.
+2. Ažurira datum kraja prijavljivanja za prethodno uneti ispitni rok tako što smanjuje trajanje prijavljivanja za 10 dana.
+
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
+
+-----
+
+Rešenje:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main()
+{
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+
+    EXEC SQL 
+        BEGIN COMPOUND ATOMIC STATIC
+            -- Prva naredba
+            INSERT INTO 
+                ispitni_rok
+            VALUES 
+                (YEAR(CURRENT_DATE), 'maj', 'Maj ' || YEAR(CURRENT_DATE), CURRENT_DATE, CURRENT_DATE + 20 DAYS, 1);
+
+            -- Druga naredba
+            UPDATE 
+                ispitni_rok
+            SET kraj_prijavljivanja = kraj_prijavljivanja - 10 DAYS
+            WHERE 
+                godina = 2019 AND
+                oznaka = 'maj';        
+        END COMPOUND;
+    is_error("Compound");
+
+    EXEC SQL COMMIT;
+    is_error("Potvrdjivanje izmena");
+
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+```
+
+## 4.3 Tačke čuvanja u okviru transakcija
+
+U prethodnim primerima smo videli da možemo da predstavimo transakcije kao složene SQL naredbe, a zatim da koristimo specifičnosti složenih SQL naredbi da bismo preciznije definisali ponašanje u zavisnosti od toga da li se pojavila greška tokom rada transakcije ili ne. Preciznije, videli smo kako je moguće poništiti efekat celog izvršavanja programa kao jedinice posla u slučaju pojave greške u nekoj od podnaredbi.
+
+Vrlo često nam je neophodno da imamo precizniju kontrolu nad time šta se tačno poništava, na primer, ukoliko želimo da samo jedan deo transakcije bude poništen, umesto cele transakcije. Da bismo postigli takav efekat, potrebne su nam sofisticiranije metode upravljanja transakcijama. Jedan od takvih metoda podrazumeva korišćenje tačke čuvanja.
+
+> *Tačka čuvanja* (engl. *savepoint*) predstavlja mehanizam za poništavanje precizno definisanog skupa izvršenih naredbi.
+
+Ukoliko se desi neka greška prilikom izvršavanja transakcije, tačka čuvanja se može koristiti da poništi dejstvo naredbi od trenutka kada je tačka čuvanja započeta do trenutka kada je poništenje akcija zahtevano.
+
+Samim tim, tačka čuvanja omogućava konstruisanje grupe od nekoliko SQL naredbi, grupisanih u jedan izvršivi blok, koji se može izvršavati, kao deo jedne transakcije. Ukoliko se neka od podnaredbi izvrši sa greškom, taj definisani blok će biti poništen.
+
+### 4.3.1 Kreiranje tačke čuvanja
+
+Kreiranje tačke čuvanja u izvornom kodu se može izvršiti pozivanjem naredbe `SAVEPOINT`, čija je sintaksa data sa:
+
+```sql
+SAVEPOINT <NAZIV_TACKE_CUVANJA> [UNIQUE]
+ON ROLLBACK RETAIN CURSORS
+[ON ROLLBACK RETAIN LOCKS]
+```
+
+Ovom naredbom se kreira nova tačka čuvanja naziva `<NAZIV_TACKE_CUVANJA>`. Ukoliko specifikujemo opcionu klauzu `UNIQUE`, onda navodimo da aplikacija ne želi da iskoristi ovo ime tačke čuvanja dok je tačka čuvanja aktivna u okviru trenutnog nivoa čuvanja. DB2 sistem će prijaviti grešku ako pokušamo da kreiramo tačku čuvanja kao jedinstvenu ako već postoji tačka čuvanja sa istim imenom, kao i ako pokušamo da kreiramo tačku čuvanja sa imenom koje je prethodno bilo proglašeno za jedinstveno.
+
+Obaveznom klauzom `ON ROLLBACK RETAIN CURSORS` se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na otvorene kursore nakon ove SAVEPOINT naredbe. Ovom klauzom se indikuje da, kada god je to moguće, kursori bivaju van uticaja operacije poništavanja do tačke čuvanja. Za više detalja o tome kako poništavanje izmena utiče na kursore, pogledati [podsekciju 4.5](#45-poništavanje-izmena).
+
+Opcionom klauzom `ON ROLLBACK RETAIN LOCKS` se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na katance koje je aplikacija dobila nakon ove `SAVEPOINT` naredbe. Ukoliko je navedena, katanci koje je aplikacija dobila neće biti oslobođeni prilikom takve operacije poništavanja.
+
+Neka dodatna pravila i napomene koje treba imati u vidu prilikom kreiranja tačaka čuvanja u DB2 sistemu su sledeće:
+
+- Novi nivo čuvanja se kreira kada se naredni događaji okinu:
+
+   - Nova jedinica posla je započela.
+
+   - Pozvana je procedura koja je definisana klauzom `NEW SAVEPOINT LEVEL`.
+
+   - Započeta je atomična složena SQL naredba.
+
+- Nivo čuvanja se završava kada događaj koji je inicirao njegovo kreiranje je završen ili uklonjen. Kada se nivo čuvanja završi, sve tačke čuvanja koje se nalaze na tom nivou se oslobađaju. Svi otvoreni kursori, DDL akcije ili modifikacije podataka su nasleđeni od strane roditeljskog nivoa čuvanja (odnosno, nivoa čuvanja u okviru kojeg se trenutni nivo čuvanja završio) i pod uticajem su bilo koje naredbe koja se tiče nivoa čuvanja i koja važi u okviru roditeljskog nivoa čuvanja.
+
+## 4.4 Potvrđivanje izmena
+
+Kao što smo videli, jedna od dve osnovne operacije za upravljanje izmenama koje je napravila jedna transakcija jeste *potvrđivanje izmena* (engl. *commit*), koja se izvršava naredbom `COMMIT`. Sintaksa ove naredbe je data u nastavku:
+
+```sql
+COMMIT [WORK]
+```
+
+Iako naredba pohranjivanja izmena ima jednostavnu sintaksu, njeni efekti su mnogobrojni. Osnovna upotreba naredbe podrazumeva da se jedinica posla, u kojoj je `COMMIT` naredba izvršena, završava i nova jedinica posla se inicira. Sve izmene koje su izvršene nekom od narednih naredbi se potvrđuju u bazi podataka: `ALTER`, `COMMENT`, `CREATE`, `DROP`, `GRANT`, `LOCK TABLE`, `REVOKE`, `SET INTEGRITY`, `SET Variable`, kao i naredbe za izmenu podataka: `INSERT`, `DELETE`, `MERGE`, `UPDATE`, uključujući i one naredbe koje su  ugnežđene u upitima.
+
+Svi katanci koje je jedinica posla dobila nakon njenog iniciranja se oslobađaju, osim neophodnih katanaca za otvorene kursore koji su deklarisani klauzom `WITH HOLD`. Svi otvoreni kursori koji nisu deklarisani klauzom `WITH HOLD` se zatvaraju. Otvoreni kursori koji jesu deklarisani klauzom `WITH HOLD` ostaju otvoreni, i takvi kursori se pozicioniraju ispred narednog logičkog reda rezultujuće tabele (drugim rečima, naredba `FETCH` se mora izvršiti pre nego što se izvrši pozicionirana naredba `UPDATE` ili `DELETE`).
+
+Sve tačke čuvanja postavljene u okviru transakcije se oslobađaju.
+
+Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:
+
+- Snažno se preporučuje da svaki aplikacioni proces eksplicitno završi svoju jedinicu posla pre nego li se završi. Ako se aplikacioni program završi bez `COMMIT` ili `ROLLBACK` naredbe, onda će SUBP sam pokušati da izvrši operaciju pohranjivanja ili poništavanja u zavisnosti od okruženja aplikacije. Iako su SUBP sistemi napredni, ipak se ne bi trebalo osloniti na njih da rade posao programera.
+
+## 4.5 Poništavanje izmena
+
+Ukoliko želimo da poništimo izmene koje je napravila jedna transakcija, možemo koristiti SQL naredbu `ROLLBACK`. Sintaksa ove naredbe je data u nastavku:
+
+```sql
+ROLLBACK [WORK]
+[TO SAVEPOINT [<IME_TACKE_CUVANJA>]]
+```
+
+Efekat ove naredbe je da se prekida jedinica posla u kojoj je izvršena naredba `ROLLBACK` i nova jedinica posla se inicijalizuje. Sve promene koje su se ostvarile u bazi podataka tokom jedinice posla su poništene. U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije naredbe `ROLLBACK`, ta naredba može imati različite varijante koje utiču na način izvršavanja:
+
+- Navođenjem opcione klauze `TO SAVEPOINT`, poništavanje se izvršava parcijalno, odnosno, do poslednje tačke čuvanja. Ukoliko nijedna tačka čuvanja nije aktivna na trenutnom nivou čuvanja, podiže se greška (`SQLSTATE 3B502`). Nakon uspešnog poništavanja, navedena tačka čuvanja `<IME_TACKE_CUVANJA>` nastavlja da postoji, ali svaka ugnežđena tačka čuvanja se oslobađa i nadalje ne postoji. Ugnežđene tačke čuvanja, ako postoje, smatraju se za poništene i oslobođene kao deo poništavanja do navedene tačke čuvanja. Ukoliko `<IME_TACKE_CUVANJA>` nije navedeno, onda se poništavanje vrši do poslednje postavljene tačke čuvanja na tekućem nivou čuvanja.
+<br>
+Ako se klauza `TO SAVEPOINT` ne postavi, onda naredba `ROLLBACK` poništava čitavu transakciju. Dodatno, sve tačke čuvanja u okviru te transakcije se oslobađaju. Ukoliko se navede `<IME_TACKE_CUVANJA>`, onda će se poništavanje izvršiti do te imenovane tačke čuvanja. Nakon uspešne operacije poništavanja, navedena imenovana tačka čuvanja nastavlja da postoji. Ukoliko ne postoji imenovana tačka čuvanja sa datim nazivom, podiže se greška (`SQLSTATE 3B001`).
+
+Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:
+
+- Svi katanci koji se čuvaju se oslobađaju prilikom izvršavanja naredbe `ROLLBACK` za tu jedinicu posla. Svi otvoreni kursori se zatvaraju.
+
+- Izvršavanje naredbe `ROLLBACK` neće uticati na naredbu `RELEASE`.
+
+- Ukoliko se izvršavanje program ne završi normalno, onda je jedinica posla implicitno poništena.
+
+- Uticaj na kursore koji rezultuje iz naredbe `ROLLBACK TO SAVEPOINT` zavisi od naredbi u okviru tačke čuvanja:
+   
+   - Ako tačka čuvanja sadrži DDL za koji je kursor zavisan, kursor se označava za nevalidan. Pokušaji da se takav kursor koristi rezultuju podizanjem greške (`SQLSTATE 57007`).
+
+   - Inače:
+
+      - Ako je kursor referenciran u tački čuvanja, kursor ostaje otvoren i biva pozicioniran ispred narednog logičkog reda rezultujuće tabele. U tom slučaju je potrebno  izvršiti naredbu `FETCH` pre nego što se izvrši pozicionirajuća naredba `UPDATE` ili `DELETE`.
+
+      - Inače, kursor ne potpada pod uticaj naredbe `ROLLBACK TO SAVEPOINT` (ostaje otvoren i pozicioniran).
+
+- Naredba `ROLLBACK TO SAVEPOINT` će obrisati sve privremeno kreirane ili deklarisane privremene tabele u okviru tačke čuvanja.
+
+- Svi katanci su sadržani nakon `ROLLBACK TO SAVEPOINT` naredbe.
+
+Naredni primeri ilustruju napredno implementiranje transakcija korišćenjem naredbi `COMMIT` i `ROLLBACK`.
+
+-----
+
+**Zadatak 4.3**
+
+Napisati C/SQL program kojim se za svaki ispitni rok prvo ispisuju informacije o nazivu i godini roka, a zatim se korisnik pita da li želi da obriše sva polaganja za taj ispitni rok. Ukoliko želi, aplikacija izvršava brisanje i prikazuje poruku korisniku. Obrada jednog ispitnog roka predstavlja jednu transakciju.
+
+-----
+
+Rešenje:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+sqlint32 godina;
+char naziv[51],
+     oznaka[11];
+EXEC SQL END DECLARE SECTION;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main()
+{
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+
+    // Primetimo da smo morali da navedemo klauzu WITH HOLD ovde
+    // zato sto vrsimo potvrdjivanje izmena tokom obrade kursora.
+    EXEC SQL 
+        DECLARE ispitniRok CURSOR WITH HOLD FOR 
+        SELECT
+            NAZIV,
+            GODINA,
+            OZNAKA
+        FROM
+            ISPITNI_ROK;
+    is_error("Declare");
+
+    EXEC SQL OPEN ispitniRok;
+    is_error("Open");
+
+    for(;;)
+    {
+        EXEC SQL 
+            FETCH 
+                ispitniRok 
+            INTO
+                :naziv,
+                :godina,
+                :oznaka;
+        is_error("Fetch");
+
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+
+        printf("\nObradjujem ispitni rok %s u %d. godini\n"
+            "Da li zelite da obrisete polaganja u ovom ispitnom roku? [d/n] ", naziv, godina);
+            
+        char odgovor_od_korisnika;
+        scanf("%c", &odgovor_od_korisnika);
+        
+        getchar(); // Za citanje novog reda
+
+        if (odgovor_od_korisnika == 'd')
+        {
+            EXEC SQL
+                DELETE FROM 
+                    ISPIT
+                WHERE
+                    GODINA_ROKA = :godina AND
+                    OZNAKA_ROKA = :oznaka;
+            is_error("Delete");
+            
+            // Da nismo naveli klauzu WITH HOLD pri deklaraciji kursora, 
+            // onda bi naredni poziv naredbe COMMIT zatvorio kursor,
+            // pa bi poziv FETCH naredbe u narednoj iteraciji petlje prijavio gresku 
+            // (jer dohvatamo podatak nad zatvorenim kursorom).
+            EXEC SQL COMMIT;
+            is_error("Commit");
+            
+            printf("Podaci su uspesno obrisani\n");
+        }
+    }
+
+    EXEC SQL CLOSE ispitniRok;    
+    is_error("Close");
+
+    EXEC SQL COMMIT;
+    is_error("Potvrdjivanje izmena");
+    
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+```
+
+-----
+
+**Zadatak 4.4**
+
+Kreirati tabelu `OBRADJENI_PREDMETI` sa narednom strukturom:
+
+```sql
+CREATE TABLE OBRADJENI_PREDMETI (
+    ID_PREDMETA INTEGER NOT NULL,
+    PRIMARY KEY (ID_PREDMETA),
+    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
+);
+```
+
+Napisati C/SQL program koji za svaki predmet koji nije obrađen izlistava njegov naziv i bodove. Korisniku se nudi opcija da poveća broj bodova za 1. Obrada 5 uzastopnih predmeta predstavlja jednu transakciju. Nakon svakog 5. predmeta pitati korisnika da li želi da nastavi sa daljim izmenama. Ukoliko ne želi, program se prekida. U suprotnom, nastaviti sa daljom obradom predmeta.
+
+-----
+
+Rešenje:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+sqlint32 id_predmeta;
+short bodovi;
+char naziv[201];
+EXEC SQL END DECLARE SECTION;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main()
+{
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+
+    EXEC SQL 
+        DECLARE neobradjeniPredmeti CURSOR WITH HOLD FOR 
+        SELECT
+            ID_PREDMETA,
+            RTRIM(NAZIV),
+            BODOVI
+        FROM
+            PREDMET
+        WHERE
+            ID_PREDMETA NOT IN (
+                SELECT
+                    ID_PREDMETA
+                FROM
+                    OBRADJENI_PREDMETI
+            )
+        FOR UPDATE OF BODOVI;
+    is_error("Declare");
+
+    EXEC SQL OPEN neobradjeniPredmeti;
+    is_error("Open");
+
+    unsigned broj_obradjenih = 0;
+    
+    for(;;)
+    {
+        EXEC SQL 
+            FETCH 
+                neobradjeniPredmeti 
+            INTO
+                :id_predmeta,
+                :naziv,
+                :bodovi;
+        is_error("Fetch");
+
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+
+        printf("\nPredmet %s ima broj bodova: %d.\n"
+            "Da li zelite da povecate broj bodova za 1? [d/n] ", naziv, bodovi);
+            
+        char odgovor_od_korisnika;
+        scanf("%c", &odgovor_od_korisnika);
+        
+        getchar(); // Za citanje novog reda
+
+        if (odgovor_od_korisnika == 'd')
+        {
+            EXEC SQL 
+                UPDATE
+                    PREDMET
+                SET
+                    BODOVI = BODOVI + 1
+                WHERE CURRENT OF neobradjeniPredmeti;
+            is_error("Update");            
+            
+            printf("Podaci su uspesno azurirani\n");
+        }
+        
+        // Ubelezavamo u BP da smo obradili tekuci predmet
+        EXEC SQL
+            INSERT INTO
+                OBRADJENI_PREDMETI
+            VALUES
+                (:id_predmeta);
+        is_error("Insert into");
+        
+        // Uvecavamo broj obradjenih predmeta        
+        ++broj_obradjenih;
+        
+        // Proveravamo da li je kraj jedne transakcije
+        if (broj_obradjenih == 5)
+        {
+            EXEC SQL COMMIT;
+            is_error("Commit");
+            
+            printf("\nTRANSAKCIJA JE IZVRSENA\n"
+                "Da li zelite da nastavite obradu? [d/n] ");
+            char odgovor_od_korisnika;
+            scanf("%c", &odgovor_od_korisnika);
+            
+            getchar(); // Za citanje novog reda
+
+            if (odgovor_od_korisnika == 'n')
+            {
+                break;
+            }
+        }
+    }
+
+    EXEC SQL CLOSE neobradjeniPredmeti;
+    is_error("Close");
+
+    EXEC SQL COMMIT;
+    is_error("Potvrdjivanje izmena");
+    
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+```
+
+Naredni zadatak ilustruje rad sa tačkama čuvanja u okviru transakcija.
+
+-----
+
+**Zadatak 4.5**
+
+Napisati C/SQL program koji redom:
+
+1. Unosi novi ispitni rok za april u 2019. godini.
+2. Unosi nove ispitne rokove za mart, maj, jun, jul, avgust, septembar i oktobar u 2019. godini.
+3. Ispisuje sve ispitne rokove.
+4. Pita korisnika da li želi da poništi unos ispitnih rokova u koraku 2. Ukoliko korisnik odgovori potvrdno, odgovarajuće izmene se poništavaju. U suprotno, izmene se potvrđuju.
+5. Ispisuje sve ispitne rokove.
+
+-----
+
+Rešenje:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+sqlint32 godina;
+char oznaka[21], 
+     naziv[51];
+EXEC SQL END DECLARE SECTION;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("SQLCODE %d: %s\n\n", SQLCODE, err);
+        
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main()
+{
+    char odgovor_od_korisnika;
+
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+
+    EXEC SQL 
+        DECLARE ispitniRok CURSOR WITH HOLD FOR
+        SELECT 
+            godina, 
+            oznaka, 
+            naziv
+        FROM 
+            ispitni_rok;
+    is_error("Declare");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'apr', 'April 2019', current_date, current_date + 20 days, 1);
+    is_error("Insert into ispitni_rok apr");
+
+    // Kreiranje tacke cuvanja sa nazivom S1
+    EXEC SQL SAVEPOINT S1 ON ROLLBACK RETAIN CURSORS;
+    is_error("Savepoint");
+    
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'mar', 'Mart 2019', current_date - 1 month, current_date - 1 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok mar");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'maj', 'Maj 2019', current_date + 1 month, current_date + 1 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok maj");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'jun', 'Jun 2019', current_date + 2 month, current_date + 2 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok jun");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'jul', 'Jul 2019', current_date + 3 month, current_date + 3 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok jul");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'avg', 'Avgust 2019', current_date + 4 month, current_date + 4 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok avg");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'sep', 'Septembar 2019', current_date + 5 month, current_date + 5 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok sep");
+
+    EXEC SQL 
+        INSERT INTO 
+            ispitni_rok
+        VALUES 
+            (2019, 'okt', 'Oktobar 2019', current_date + 6 month, current_date + 1 month + 20 days, 1);    
+    is_error("Insert into ispitni_rok okt");
+
+    EXEC SQL OPEN ispitniRok;
+    is_error("Open");
+
+    for(;;)
+    {
+        EXEC SQL 
+            FETCH 
+                ispitniRok 
+            INTO 
+                :godina, 
+                :oznaka, 
+                :naziv;
+        is_error("Fetch");
+
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+
+        printf("Godina %d oznaka: %s i naziv %s \n", godina, oznaka, naziv);
+    }
+
+    EXEC SQL CLOSE ispitniRok;    
+    is_error("Close");
+
+    printf("Da li zelite da ponistite izmene? \n");
+
+    odgovor_od_korisnika = getchar();
+    if (odgovor_od_korisnika == 'd' || odgovor_od_korisnika == 'D')
+    {
+        // Ponistavanje izmena samo do tacke cuvanja S1
+        EXEC SQL ROLLBACK TO SAVEPOINT S1;
+        is_error("Rollback");
+    }
+    else 
+    {
+        EXEC SQL COMMIT;
+        is_error("Commit");
+    }
+
+    EXEC SQL OPEN ispitniRok;
+    is_error("Open");
+
+    while(1)
+    {
+        EXEC SQL 
+            FETCH 
+                ispitniRok 
+            INTO 
+                :godina, 
+                :oznaka, 
+                :naziv;
+        is_error("Fetch");
+
+        if(SQLCODE == 100)
+        {
+            break;
+        }
+
+        printf("Godina %d oznaka: %s i naziv %s \n", godina, oznaka, naziv);
+    }
+
+    EXEC SQL CLOSE ispitniRok;    
+    is_error("Close");
+
+    EXEC SQL COMMIT;
+    is_error("Potvrdjivanje izmena");
+    
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+```
+
+## 4.6 Zadaci za vežbu
+
+-----
+
+**Zadatak 4.6** 
+
+Napisati C/SQL program koji redom:
+
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka "apr" i naziv "April 2019". Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.
+2. Ažurira tip za prethodno uneti ispitni rok na tip "Z". 
+
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
+
+-----
+
+**Zadatak 4.7**
+
+Napisati C/SQL program koji redom:
+
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka "apr" i naziv "April 2019". Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.
+2. Ažurira tip za prethodno uneti ispitni rok na tip "Z". 
+
+Obezbediti da se navedene operacije izvrše zasebno.
+
+-----
+
+**Zadatak 4.8** 
+
+Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.
+
+Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. 
+
+Obezbediti da se navedene operacije izvrše zasebno.
+
+-----
+
+**Zadatak 4.9**
+
+Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:
+1. Izvršavanje potvrđivanja
+2. Izvršavanje poništavanja
+3. Bez akcije
+
+U slučaju akcija 1. i 2. potrebno je izvršiti odgovarajuću SQL naredbu i prikazati poruku korisniku o uspešnosti akcije. Takođe ispisati i informaciju o tome za koliko studenata je izvršeno potvrđivanje/poništavanje, na primer: "TRANSAKCIJA JE ZAVRSENA: POTVRDILI STE BRISANJE 7 STUDENATA" ili "TRANSAKCIJA JE ZAVRSENA: PONIŠTILI STE BRISANJE 7 STUDENATA" (ukoliko je pre tekuće akcije korisnik 7 puta odabrao 3. akciju). 
+
+U slučaju akcije 3. potrebno je samo uvećati broj studenata koji je obrisan u tekućoj jedinici posla. Naravno, prilikom izvršavanja akcije 1. ili 2. ovaj broj se mora postaviti na 0.
+
+-----
