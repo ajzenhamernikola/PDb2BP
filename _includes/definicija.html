@@ -1,0 +1,8 @@
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p>{{ include.def
+        | replace: '* ', '</span> '
+        | replace: '*.', '</span>.'
+        | replace: '*,', '</span>,'
+        | replace: '*)', '</span>)'
+        | replace: '*', '<span style="font-style: italic;">' }}</p>
+</div>
