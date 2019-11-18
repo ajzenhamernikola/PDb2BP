@@ -66,19 +66,13 @@ SQL jezik definiše dve naredbe koje odgovaraju opisanim operacijama:
 
 O ovim naredbama i njihovim bočnim efektima ćemo detaljnije govoriti u sekcijama [4.4](#44-potvrđivanje-izmena) i [4.5](#45-poništavanje-izmena). Međutim, diskusija koju smo izložili do sada je dovoljna za demonstraciju najosnovnijeg efekta ovih naredbi.
 
------
-
-**Zadatak 4.1**
-
-Napisati C/SQL program koji redom:
-
-1. Pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
-2. Briše studenta sa pronađenim indeksom iz tabele `ISPIT` i ispisuje poruku korisniku o uspešnosti brisanja.
-3. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
-4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.
-5. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.
-
------
+{% include zadatak.html broj="4.1" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
+2. Briše studenta sa pronađenim indeksom iz tabele `ISPIT` i ispisuje poruku korisniku o uspešnosti brisanja.\n
+3. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
+4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.\n
+5. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n" %}
 
 Rešenje:
 
@@ -321,18 +315,12 @@ Neka dodatne napomene koje treba imati u vidu prilikom rada sa složenih SQL nar
 
 Sada slede primeri korišćenja složenih SQL naredbi. Primetimo da smo, kao i u prethodnom zadatku, koristili naredbu `ROLLBACK` u definiciji funkcije `is_error` da poništimo izmene u bazi podataka u slučaju da dođe do greške, odnosno, naredbu `COMMIT` za potvrđivanje izmena pre raskidanja konekcije.
 
------
-
-**Zadatak 4.2**
-
-Napisati C/SQL program koji redom:
-
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u tekućoj godini čija je oznaka "maj" i naziv "Maj GODINA" u zavisnosti od tekuće godine (na primer, "Maj 2019"). Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 20 dana.
-2. Ažurira datum kraja prijavljivanja za prethodno uneti ispitni rok tako što smanjuje trajanje prijavljivanja za 10 dana.
-
-Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
-
------
+{% include zadatak.html broj="4.2" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u tekućoj godini čija je oznaka `'maj'` i naziv `'Maj GODINA'` u zavisnosti od tekuće godine (na primer, `'Maj 2019'`). Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 20 dana.\n
+2. Ažurira datum kraja prijavljivanja za prethodno uneti ispitni rok tako što smanjuje trajanje prijavljivanja za 10 dana.\n
+\n
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
 
 Rešenje:
 
@@ -483,13 +471,7 @@ Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja i
 
 Naredni primeri ilustruju napredno implementiranje transakcija korišćenjem naredbi `COMMIT` i `ROLLBACK`.
 
------
-
-**Zadatak 4.3**
-
-Napisati C/SQL program kojim se za svaki ispitni rok prvo ispisuju informacije o nazivu i godini roka, a zatim se korisnik pita da li želi da obriše sva polaganja za taj ispitni rok. Ukoliko želi, aplikacija izvršava brisanje i prikazuje poruku korisniku. Obrada jednog ispitnog roka predstavlja jednu transakciju.
-
------
+{% include zadatak.html broj="4.3" tekst="Napisati C/SQL program kojim se za svaki ispitni rok prvo ispisuju informacije o nazivu i godini roka, a zatim se korisnik pita da li želi da obriše sva polaganja za taj ispitni rok. Ukoliko želi, aplikacija izvršava brisanje i prikazuje poruku korisniku. Obrada jednog ispitnog roka predstavlja jednu transakciju." %}
 
 Rešenje:
 
@@ -594,11 +576,9 @@ int main()
 }
 ```
 
------
+{% include zadatak.html broj="4.4" tekst="Napisati C/SQL program koji za svaki predmet koji nije obrađen izlistava njegov naziv i bodove. Korisniku se nudi opcija da poveća broj bodova za 1. Obrada 5 uzastopnih predmeta predstavlja jednu transakciju. Nakon svakog 5. predmeta pitati korisnika da li želi da nastavi sa daljim izmenama. Ukoliko ne želi, program se prekida. U suprotnom, nastaviti sa daljom obradom predmeta." %}
 
-**Zadatak 4.4**
-
-Kreirati tabelu `OBRADJENI_PREDMETI` sa narednom strukturom:
+Rešenje: Pre pokretanja programa, potrebno je kreirati tabelu `OBRADJENI_PREDMETI` sa narednom strukturom:
 
 ```sql
 CREATE TABLE OBRADJENI_PREDMETI (
@@ -607,12 +587,6 @@ CREATE TABLE OBRADJENI_PREDMETI (
     FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
 );
 ```
-
-Napisati C/SQL program koji za svaki predmet koji nije obrađen izlistava njegov naziv i bodove. Korisniku se nudi opcija da poveća broj bodova za 1. Obrada 5 uzastopnih predmeta predstavlja jednu transakciju. Nakon svakog 5. predmeta pitati korisnika da li želi da nastavi sa daljim izmenama. Ukoliko ne želi, program se prekida. U suprotnom, nastaviti sa daljom obradom predmeta.
-
------
-
-Rešenje:
 
 ```c
 #include <stdio.h>
@@ -748,19 +722,13 @@ int main()
 
 Naredni zadatak ilustruje rad sa tačkama čuvanja u okviru transakcija.
 
------
-
-**Zadatak 4.5**
-
-Napisati C/SQL program koji redom:
-
-1. Unosi novi ispitni rok za april u 2019. godini.
-2. Unosi nove ispitne rokove za mart, maj, jun, jul, avgust, septembar i oktobar u 2019. godini.
-3. Ispisuje sve ispitne rokove.
-4. Pita korisnika da li želi da poništi unos ispitnih rokova u koraku 2. Ukoliko korisnik odgovori potvrdno, odgovarajuće izmene se poništavaju. U suprotno, izmene se potvrđuju.
-5. Ispisuje sve ispitne rokove.
-
------
+{% include zadatak.html broj="4.5" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Unosi novi ispitni rok za april u 2019. godini.\n
+2. Unosi nove ispitne rokove za mart, maj, jun, jul, avgust, septembar i oktobar u 2019. godini.\n
+3. Ispisuje sve ispitne rokove.\n
+4. Pita korisnika da li želi da poništi unos ispitnih rokova u koraku 2. Ukoliko korisnik odgovori potvrdno, odgovarajuće izmene se poništavaju. U suprotno, izmene se potvrđuju.\n
+5. Ispisuje sve ispitne rokove." %}
 
 Rešenje:
 
@@ -941,49 +909,31 @@ int main()
 
 ## 4.6 Zadaci za vežbu
 
------
+{% include zadatak.html broj="4.6" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
+2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
+\n
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
 
-**Zadatak 4.6** 
+{% include zadatak.html broj="4.7" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
+2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
+\n
+Obezbediti da se navedene operacije izvrše zasebno." %}
 
-Napisati C/SQL program koji redom:
+{% include zadatak.html broj="4.8" tekst="Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.\n
+\n
+Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. \n
+\n
+Obezbediti da se navedene operacije izvrše zasebno." %}
 
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka "apr" i naziv "April 2019". Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.
-2. Ažurira tip za prethodno uneti ispitni rok na tip "Z". 
-
-Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
-
------
-
-**Zadatak 4.7**
-
-Napisati C/SQL program koji redom:
-
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka "apr" i naziv "April 2019". Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.
-2. Ažurira tip za prethodno uneti ispitni rok na tip "Z". 
-
-Obezbediti da se navedene operacije izvrše zasebno.
-
------
-
-**Zadatak 4.8** 
-
-Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.
-
-Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. 
-
-Obezbediti da se navedene operacije izvrše zasebno.
-
------
-
-**Zadatak 4.9**
-
-Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:
-1. Izvršavanje potvrđivanja
-2. Izvršavanje poništavanja
-3. Bez akcije
-
-U slučaju akcija 1. i 2. potrebno je izvršiti odgovarajuću SQL naredbu i prikazati poruku korisniku o uspešnosti akcije. Takođe ispisati i informaciju o tome za koliko studenata je izvršeno potvrđivanje/poništavanje, na primer: "TRANSAKCIJA JE ZAVRSENA: POTVRDILI STE BRISANJE 7 STUDENATA" ili "TRANSAKCIJA JE ZAVRSENA: PONIŠTILI STE BRISANJE 7 STUDENATA" (ukoliko je pre tekuće akcije korisnik 7 puta odabrao 3. akciju). 
-
-U slučaju akcije 3. potrebno je samo uvećati broj studenata koji je obrisan u tekućoj jedinici posla. Naravno, prilikom izvršavanja akcije 1. ili 2. ovaj broj se mora postaviti na 0.
-
------
+{% include zadatak.html broj="4.9" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
+1. Izvršavanje potvrđivanja\n
+2. Izvršavanje poništavanja\n
+3. Bez akcije\n
+\n
+U slučaju akcija 1. i 2. potrebno je izvršiti odgovarajuću SQL naredbu i prikazati poruku korisniku o uspešnosti akcije. Takođe ispisati i informaciju o tome za koliko studenata je izvršeno potvrđivanje/poništavanje, na primer: `'TRANSAKCIJA JE ZAVRSENA: POTVRDILI STE BRISANJE 7 STUDENATA'` ili `'TRANSAKCIJA JE ZAVRSENA: PONIŠTILI STE BRISANJE 7 STUDENATA'` (ukoliko je pre tekuće akcije korisnik 7 puta odabrao 3. akciju). \n
+\n
+U slučaju akcije 3. potrebno je samo uvećati broj studenata koji je obrisan u tekućoj jedinici posla. Naravno, prilikom izvršavanja akcije 1. ili 2. ovaj broj se mora postaviti na 0." %}

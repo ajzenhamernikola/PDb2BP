@@ -294,7 +294,7 @@ Pisanje C programa sa ugnežđenim SQL naredbama obično podrazumeva naredne kor
 6. Ostvarivanje transakcija
 7. Prekidanje konekcije sa bazom podataka
 
-> Zadatak 2.1. Napisati C/SQL program koji ispisuje maksimalni indeks iz tabele ISPIT.
+{% include zadatak.html broj="2.1" tekst="Napisati C/SQL program koji ispisuje maksimalni indeks iz tabele `ISPIT`." %}
 
 Rešenje. Potrebno je da pratimo prethodno opisane korake za pisanje C programa. U ovom primeru, ignorisaćemo korak 6. Na njega ćemo posvetiti posebnu pažnju u poglavljima koji slede. Dakle, krenimo redom:
 
@@ -420,7 +420,7 @@ Tokom ovog procesa možemo videti da li je došlo do nekih grešaka u fazi prevo
 ./zadatak-2-1
 ```
 
-> Zadatak 2.2. Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta sa maksimalnim indeksom iz tabele `ISPIT`.
+{% include zadatak.html broj="2.2" tekst="Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta sa maksimalnim indeksom iz tabele `ISPIT`." %}
 
 Rešenje:
 
@@ -485,7 +485,7 @@ int main()
 }
 ```
 
-> Zadatak 2.3. Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta čiji se broj indeksa učitava sa standardnog ulaza.
+{% include zadatak.html broj="2.3" tekst="Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta čiji se broj indeksa učitava sa standardnog ulaza." %}
 
 Rešenje:
 
@@ -561,10 +561,10 @@ Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u t
 
 Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
 
-> Zadatak 2.4. Napisati C/SQL program u kojem su implementirane naredne funkcije. Napisati i funkciju `int main()` koja testira napisane funkcije.
-- Napisati funkciju `void unesi_novi_predmet()` koja sa standardnog ulaza učitava podatke o identifikatoru, šifri, nazivu, bodovima i broju semestara za novi predmet na fakultetu. Potrebno je uneti te podatke u tabelu `PREDMET`. Nakon toga, odgovarajućom naredbom proveriti da li su podaci dobro uneti i ispisati ih.
-- Napisati funkciju `void izmeni_novi_predmet()` koja izvršava ažuriranje podataka za novouneseni predmet, tako što se broj bodova duplo povećava i nakon čega se podaci izlistavaju ponovo.
-- Napisati funkciju `void obrisi_novi_predmet()` koja briše novouneseni predmet iz baze podataka. 
+{% include zadatak.html broj="2.4" tekst="Napisati C/SQL program u kojem su implementirane naredne funkcije. Napisati i funkciju `int main()` koja testira napisane funkcije.\n
+- Napisati funkciju `void unesi_novi_predmet()` koja sa standardnog ulaza učitava podatke o identifikatoru, šifri, nazivu, bodovima i broju semestara za novi predmet na fakultetu. Potrebno je uneti te podatke u tabelu `PREDMET`. Nakon toga, odgovarajućom naredbom proveriti da li su podaci dobro uneti i ispisati ih.\n
+- Napisati funkciju `void izmeni_novi_predmet()` koja izvršava ažuriranje podataka za novouneseni predmet, tako što se broj bodova duplo povećava i nakon čega se podaci izlistavaju ponovo.\n
+- Napisati funkciju `void obrisi_novi_predmet()` koja briše novouneseni predmet iz baze podataka."%}
 
 Rešenje:
 
@@ -674,20 +674,20 @@ void obrisi_novi_predmet()
 
 ## 2.5 Zadaci za vežbu
 
-> Zadatak 2.5. Napisati C/SQL program koji ispisuje podatke za predmet čiji je identifikator `640`.
+{% include zadatak.html broj="2.5" tekst="Napisati C/SQL program koji ispisuje podatke za predmet čiji je identifikator `640`." %}
 
-> Zadatak 2.6. Napisati C/SQL program koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza.
+{% include zadatak.html broj="2.6" tekst="Napisati C/SQL program koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza." %}
 
-> Zadatak 2.7. Napisati C/SQL program koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom `LIMIT 1` naredbe `SELECT INTO` se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti `for` petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)
+{% include zadatak.html broj="2.7" tekst="Napisati C/SQL program koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom `LIMIT 1` naredbe `SELECT INTO` se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti `for` petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)" %}
 
-> Zadatak 2.8. Napisati C/SQL program kojim se dodaje da je za polaganje predmeta čiji je identifikator `720` uslov da se položi predmet čiji je identifikator `655`.
+{% include zadatak.html broj="2.8" tekst="Napisati C/SQL program kojim se dodaje da je za polaganje predmeta čiji je identifikator `720` uslov da se položi predmet čiji je identifikator `655`." %}
 
-> Zadatak 2.9. Napisati C/SQL program kojim se u tabelu `NIVO_KVALIFIKACIJE` dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza.
+{% include zadatak.html broj="2.9" tekst="Napisati C/SQL program kojim se u tabelu `NIVO_KVALIFIKACIJE` dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza." %}
 
-> Zadatak 2.10. Napisati C/SQL program kojim se svim obaveznim predmetima na smeru "Informatika" povećava broj semestra za 1.
+{% include zadatak.html broj="2.10" tekst="Napisati C/SQL program kojim se svim obaveznim predmetima na smeru `'Informatika'` povećava broj semestra za 1." %}
 
-> Zadatak 2.11. Napisati C/SQL program kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1.
+{% include zadatak.html broj="2.11" tekst="Napisati C/SQL program kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1." %}
 
-> Zadatak 2.12. Napisati C/SQL program kojim se u tabeli `USLOVNI_PREDMET` brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza.
+{% include zadatak.html broj="2.12" tekst="Napisati C/SQL program kojim se u tabeli `USLOVNI_PREDMET` brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza." %}
 
-> Zadatak 2.13. Napisati C/SQL program kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza.
+{% include zadatak.html broj="2.13" tekst="Napisati C/SQL program kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza." %}

@@ -111,7 +111,7 @@ Na kraju jedinice posla, svi kursori koji pripadaju procesu aplikacije i koji su
 
 Sada smo spremni za rešavanje primera koji zahtevaju upotrebu kursora. Počnimo sa narednim zadacima koji ilustruju čitanje rezultata iz kursora.
 
-> Zadatak 3.1: Napisati C/SQL program koji ispisuje identifikator, oznaku, naziv, broj semestara i broj bodova za svaki od smerova.
+{% include zadatak.html broj="3.1" tekst="Napisati C/SQL program koji ispisuje identifikator, oznaku, naziv, broj semestara i broj bodova za svaki od smerova." %}
 
 Rešenje:
 
@@ -200,7 +200,7 @@ int main()
 }
 ```
 
-> Zadatak 3.2: Napisati C/SQL program kojim se za uneti broj indeksa studenta ispisuju podaci (naziv predmeta, datum polaganja i ocena) za sve ispite koje je on položio. Nakon toga ispisuje se njegov prosek.
+{% include zadatak.html broj="3.2" tekst="Napisati C/SQL program kojim se za uneti broj indeksa studenta ispisuju podaci (naziv predmeta, datum polaganja i ocena) za sve ispite koje je on položio. Nakon toga ispisuje se njegov prosek." %}
 
 ## 3.3 Korišćenje kursora za ažuriranje i brisanje podataka
 
@@ -220,7 +220,7 @@ WHERE CURRENT OF <IME_KURSORA>
 
 Očigledno, kolone `<KOLONA_1>`, `...`, `<KOLONA_N>` moraju biti deklarisane u `FOR UPDATE OF` klauzi pri deklaraciji kursora naziva `<IME_KURSORA>`. Takođe, tabela `<TABELA>` mora biti jedina tabela koja se nalazi u `FROM` klauzi kursora. Na ovaj način će upotrebom opisane naredbe `UPDATE` biti ažuriran tekući red kursora.
 
-> Zadatak 3.3: Napisati C/SQL program kojim se za svaki od smerova korisniku postavlja pitanje da li želi da uveća broj bodova za 10. Ako je odgovor potvrdan, vrši se odgovarajuća promena.
+{% include zadatak.html broj="3.3" tekst="Napisati C/SQL program kojim se za svaki od smerova korisniku postavlja pitanje da li želi da uveća broj bodova za 10. Ako je odgovor potvrdan, vrši se odgovarajuća promena." %}
 
 ```c
 #include <stdio.h>
@@ -342,7 +342,7 @@ WHERE CURRENT OF <IME_KURSORA>
 
 {% include definicija.html def="SQL naredba `DELETE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `DELETE` naredba." %}
 
-> Zadatak 3.4: Napisati C/SQL program kojim se za sve studente smera Informatika briše prvi položen ispit (ukoliko ima položenih ispita tog studenta).
+{% include zadatak.html broj="3.4" tekst="Napisati C/SQL program kojim se za sve studente smera Informatika briše prvi položen ispit (ukoliko ima položenih ispita tog studenta)." %}
 
 ```c
 #include <stdio.h>
@@ -448,7 +448,7 @@ int main()
 }
 ```
 
-## 3.4 Ugnež\djeni kursori
+## 3.4 Ugnežđeni kursori
 
 Do sada smo videli kako možemo koristiti kursore za upravljanje potencijalno višim brojem redova u rezultatu upita. Obrada ovih redova je do sada obuhvatala jednostavno procesiranje podataka, poput ispisivanja na standardni izlaz, uz eventualne transformacije ili ažuriranje ili brisanje podataka na koje pokazuje kursor.
 
@@ -476,7 +476,7 @@ Međutim, šta raditi ukoliko je potrebno da za svaki red rezultata jednog upita
 
 Naredna dva zadatka ilustruju rad sa ugnežđenim kursorima.
 
-> Zadatak 3.5: Napisati C/SQL program kojim se formira izveštaj o studentima koji su padali neki ispit koji sadrži sledeće informacije: ime, prezime i broj indeksa. Za svaki smer formirati posebnu sekciju izveštaja sa odgovarajućim zaglavljem. Sadržaj svake sekcije urediti po broju indeksa.
+{% include zadatak.html broj="3.5" tekst="Napisati C/SQL program kojim se formira izveštaj o studentima koji su padali neki ispit koji sadrži sledeće informacije: ime, prezime i broj indeksa. Za svaki smer formirati posebnu sekciju izveštaja sa odgovarajućim zaglavljem. Sadržaj svake sekcije urediti po broju indeksa." %}
 
 ```c
 #include <stdio.h>
@@ -610,7 +610,7 @@ int main()
 }
 ```
 
-> Zadatak 3.6: Napisati C/SQL program kojim se za svaki smer pronalazi student koji ima najviše položenih ESPB bodova. Zatim u tabeli ISPIT u napomeni koja se odnosi na poslednji položeni ispit tog studenta zapisuje 'Ovo je student koji ima najvise polozenih kredita na svom smeru'.
+{% include zadatak.html broj="3.6" tekst="Napisati C/SQL program kojim se za svaki smer pronalazi student koji ima najviše položenih ESPB bodova. Zatim u tabeli ISPIT u napomeni koja se odnosi na poslednji položeni ispit tog studenta zapisuje 'Ovo je student koji ima najvise polozenih kredita na svom smeru'." %}
 
 ```c
 #include <stdio.h>
@@ -776,29 +776,29 @@ int main()
 
 ## 3.5 Zadaci za vežbu
 
-> Zadatak 3.7: Napisati C/SQL program koji ispisuje sva ženska imena koja postoje među studentima (zajedno sa brojem pojavljivanja) u opadajućem poretku.
+{% include zadatak.html broj="3.7" tekst="Napisati C/SQL program koji ispisuje sva ženska imena koja postoje među studentima (zajedno sa brojem pojavljivanja) u opadajućem poretku." %}
 
-> Zadatak 3.8: Napisati C/SQL program koji ispisuje za svakog studenta ime, prezime, poslednji položeni ispit (naziv predmeta koji je položen), kao i datum polaganja tog ispita.
+{% include zadatak.html broj="3.8" tekst="Napisati C/SQL program koji ispisuje za svakog studenta ime, prezime, poslednji položeni ispit (naziv predmeta koji je položen), kao i datum polaganja tog ispita." %}
 
-> Zadatak 3.9: Napisati C/SQL program koji se za sve studente smera Informatika ažurira u tabeli ISPIT prvi položen ispit (ukoliko ima položenih ispita za tog studenta) tako što povećava ocenu za 1 (ukoliko je ocena bila 5 ili 10 ostavlja je nepromenjenu).
+{% include zadatak.html broj="3.9" tekst="Napisati C/SQL program koji se za sve studente smera Informatika ažurira u tabeli ISPIT prvi položen ispit (ukoliko ima položenih ispita za tog studenta) tako što povećava ocenu za 1 (ukoliko je ocena bila 5 ili 10 ostavlja je nepromenjenu)." %}
 
-> Zadatak 3.10: Napisati C/SQL program koji ispisuje sve napomene koje se nalaze u tabeli ISPIT, navodeći i broj indeksa studenata.
+{% include zadatak.html broj="3.10" tekst="Napisati C/SQL program koji ispisuje sve napomene koje se nalaze u tabeli ISPIT, navodeći i broj indeksa studenata." %}
 
-> Zadatak 3.11: Napisati C/SQL program kojim se sa standardnog ulaza unosi ime smera, a zatim se ispisuje 10 studenata tog smera koji su najviše padali na ispitima tokom studija. Izdvojiti ime, prezime, broj indeksa i broj padova tokom studija.
+{% include zadatak.html broj="3.11" tekst="Napisati C/SQL program kojim se sa standardnog ulaza unosi ime smera, a zatim se ispisuje 10 studenata tog smera koji su najviše padali na ispitima tokom studija. Izdvojiti ime, prezime, broj indeksa i broj padova tokom studija." %}
 
-> Zadatak 3.12: Napisati C/SQL program koji ispisuje za svakog studenta ime, prezime, poslednji položeni ispit (tj. naziv predmeta koji je položen), kao i datum polaganja tog ispita.
+{% include zadatak.html broj="3.12" tekst="Napisati C/SQL program koji ispisuje za svakog studenta ime, prezime, poslednji položeni ispit (tj. naziv predmeta koji je položen), kao i datum polaganja tog ispita." %}
 
-> Zadatak 3.13: Napisati C/SQL program koji za studenta čiji se broj indeksa zadaje sa standardnog ulaza, ispisuje naziv predmeta, datum polaganja, ocenu, broj bodova na pismenom i broj bodova na usmenom delu ispita za svaki ispit koji je student položio. Nakon toga ispisuje se prosečna ocena studenta.
+{% include zadatak.html broj="3.13" tekst="Napisati C/SQL program koji za studenta čiji se broj indeksa zadaje sa standardnog ulaza, ispisuje naziv predmeta, datum polaganja, ocenu, broj bodova na pismenom i broj bodova na usmenom delu ispita za svaki ispit koji je student položio. Nakon toga ispisuje se prosečna ocena studenta." %}
 
-> Zadatak 3.14: Napisati C/SQL program kojim se omogućava nastavniku da unese naziv predmeta, godinu roka i oznaku roka. Za svako polaganje datog predmeta u datom ispitnom roku ponuditi nastavniku mogućnost da izmeni ocenu koju je student osvojio. Ispisati informacije o indeksu, imenu i prezimenu studenta kao i ocenu koju je dobio, pa zatražiti od nastavnika novu ocenu. Nakon unosa nove ocene, obavestiti nastavnika o uspešnosti izmene i preći na naredno polaganje (ukoliko ih ima više).
+{% include zadatak.html broj="3.14" tekst="Napisati C/SQL program kojim se omogućava nastavniku da unese naziv predmeta, godinu roka i oznaku roka. Za svako polaganje datog predmeta u datom ispitnom roku ponuditi nastavniku mogućnost da izmeni ocenu koju je student osvojio. Ispisati informacije o indeksu, imenu i prezimenu studenta kao i ocenu koju je dobio, pa zatražiti od nastavnika novu ocenu. Nakon unosa nove ocene, obavestiti nastavnika o uspešnosti izmene i preći na naredno polaganje (ukoliko ih ima više)." %}
 
-> Zadatak 3.15: Napisati C/SQL program kojim se brišu sva uspešna polaganja ispita iz barem trećeg pokušaja za studente koji su upisivali najviše N godina, gde se vrednost za N unosi sa standardnog ulaza.
+{% include zadatak.html broj="3.15" tekst="Napisati C/SQL program kojim se brišu sva uspešna polaganja ispita iz barem trećeg pokušaja za studente koji su upisivali najviše N godina, gde se vrednost za N unosi sa standardnog ulaza." %}
 
-> Zadatak 3.16: Napisati C/SQL program kojim se prvo unosi identifikator predmeta sa standardnog ulaza. Za taj predmet se zatim korisniku nudi da li želi da obriše uslovne predmete za taj predmet i to tako što se za svaki uslovni predmet nudi da li korisnik hoće da ga obriše ili ne. Odgovori su 'D' ili 'N'. Ukoliko je odgovor 'D', u tabeli `USLOVNI_PREDMET` briše se željeni red koji se odnosi na predmet za koje je pitanje postavljeno.
+{% include zadatak.html broj="3.16" tekst="Napisati C/SQL program kojim se prvo unosi identifikator predmeta sa standardnog ulaza. Za taj predmet se zatim korisniku nudi da li želi da obriše uslovne predmete za taj predmet i to tako što se za svaki uslovni predmet nudi da li korisnik hoće da ga obriše ili ne. Odgovori su 'D' ili 'N'. Ukoliko je odgovor 'D', u tabeli `USLOVNI_PREDMET` briše se željeni red koji se odnosi na predmet za koje je pitanje postavljeno." %}
 
-> Zadatak 3.17: Napisati C/SQL program kojim se, za svakog studenta koji se upisao u godini koja se učitava sa standardnog ulaza, ispisuju podaci o imenu, prezimenu i prosečnoj oceni, a zatim se ispisuju informacije o položenim ispitima i to: naziv predmeta, ocena i datum polaganja.
+{% include zadatak.html broj="3.17" tekst="Napisati C/SQL program kojim se, za svakog studenta koji se upisao u godini koja se učitava sa standardnog ulaza, ispisuju podaci o imenu, prezimenu i prosečnoj oceni, a zatim se ispisuju informacije o položenim ispitima i to: naziv predmeta, ocena i datum polaganja." %}
 
-> Zadatak 3.18: Napisati C/SQL program koji ispisuje izveštaj za svaki predmet o njegovim uslovnim predmetima. Za svaki predmet ispisati informacije o identifikatoru predmeta i njegovom nazivu. Svaka sekcija koja ispisuje informacije o uslovnim predmetima treba da izlistava identifikator i naziv uslovnih predmeta za tekući predmet za koji se pravi sekcija, pri čemu se prikazuju informacije samo o onim uslovnim predmetima za koje postoji polaganje sa ocenom 10 na osnovnim studijama čiji je datum polaganja bio pre 2011. godine. Stavke sekcije prikazati razdvojene zapetom, i svaki uslovni predmet prikazati u posebnom redu.
+{% include zadatak.html broj="3.18" tekst="Napisati C/SQL program koji ispisuje izveštaj za svaki predmet o njegovim uslovnim predmetima. Za svaki predmet ispisati informacije o identifikatoru predmeta i njegovom nazivu. Svaka sekcija koja ispisuje informacije o uslovnim predmetima treba da izlistava identifikator i naziv uslovnih predmeta za tekući predmet za koji se pravi sekcija, pri čemu se prikazuju informacije samo o onim uslovnim predmetima za koje postoji polaganje sa ocenom 10 na osnovnim studijama čiji je datum polaganja bio pre 2011. godine. Stavke sekcije prikazati razdvojene zapetom, i svaki uslovni predmet prikazati u posebnom redu." %}
 
-> Zadatak 3.19: Napisati C/SQL program koji za svaki ispitni rok ispisuje njegov naziv i broj uspešnih polaganja za svaku ocenu u tom ispitnom roku. Nakon ispisivanja informacija o ispitnom roku, ponuditi korisniku da izbriše informacije o polaganim ispitima u tom roku. Ukoliko korisnik želi da obriše te podatke, prvo izlistati podatke o indeksu, identifikatoru predmeta, godini roka, oznaci roka i datumu polaganja (ako postoji) za svako polaganje koje se briše. Na kraju brisanja polaganja u jednom ispitnom roku, ispisati ukupan broj obrisanih redova.
+{% include zadatak.html broj="3.19" tekst="Napisati C/SQL program koji za svaki ispitni rok ispisuje njegov naziv i broj uspešnih polaganja za svaku ocenu u tom ispitnom roku. Nakon ispisivanja informacija o ispitnom roku, ponuditi korisniku da izbriše informacije o polaganim ispitima u tom roku. Ukoliko korisnik želi da obriše te podatke, prvo izlistati podatke o indeksu, identifikatoru predmeta, godini roka, oznaci roka i datumu polaganja (ako postoji) za svako polaganje koje se briše. Na kraju brisanja polaganja u jednom ispitnom roku, ispisati ukupan broj obrisanih redova." %}
     
