@@ -6,7 +6,7 @@ title: 4. Implementiranje transakcija
 
 Transakcije predstavljaju izuzetno važan alat za svakog programera koji koristi baze podataka u svojim aplikacijama. Svaka iole kompleksnija operacija nad podacima zahteva korišćenje transakcija da bi se takva operacija uspešno implementirala. Pritom, postoji veliki broj pitanja i potencijalnih problema koji se otvaraju prilikom korišćenja  transakcija. U ovoj sekciji ćemo se upoznati sa različitim naredbama za rad sa transakcijama u DB2 sistemu za upravljanje relacionim bazama podataka. Započnimo ovaj deo teksta narednom definicijom.
 
-> *Transakcija* (engl. *transaction*) predstavlja logičku jedinicu posla pri radu sa podacima.
+{% include definicija.html def="*Transakcija* (engl. *transaction*) predstavlja logičku jedinicu posla pri radu sa podacima." %}
 
 Transakcija predstavlja niz radnji koji ne narušava uslove integriteta. Sa stanovišta korisnika, izvršavanje transakcije je atomično. Po izvršenju kompletne transakcije stanje baze treba da bude konzistentno, tj. da su ispunjeni uslovi integriteta. Dakle, posmatrana kao jedinica posla, transakcija prevodi jedno konzistentno stanje baze u drugo takvo stanje baze, dok u međukoracima transakcije konzistentnost podataka može biti i narušena. Transakcija na taj način predstavlja i bezbedno sredstvo za interakciju korisnika sa bazom.
 
@@ -14,7 +14,7 @@ Transakcija predstavlja niz radnji koji ne narušava uslove integriteta. Sa stan
 
 Pre nego što započnemo detaljnu diskusiju o implementaciji transakcija, obratićemo pažnju na jedan realan primer izvršavanja programa koji implementira prebacivanje novca sa jednog računa na drugi. Ovaj primer će nam služiti kao glavna motivacija zašto je potrebno da razumemo rad sa transakcijama. Pre nego što demonstriramo primer, dajmo narednu definiciju.
 
-> *Atomična* (engl. *atomic*) operacija je ona operacija koju nije moguće podeliti na više manjih operacija (tj. u pitanju je nedeljiva operacija).
+{% include definicija.html def="*Atomična* (engl. *atomic*) operacija je ona operacija koju nije moguće podeliti na više manjih operacija (tj. u pitanju je nedeljiva operacija)." %}
 
 Premeštaj novca sa jednog računa na drugi se može implementirati narednim nizom atomičnih operacija (radi čuvanja prostora, iz narednog niza eliminišemo razne provere, kao što su provera da li korisnik može da prebaci novac između računa, provera da li ima dovoljno sredstava na prvom računu, itd.):
 
@@ -29,13 +29,13 @@ Pretpostavimo da SUBP operacije iz ovih koraka implementira na takav način da s
 
 Sada je validno postaviti pitanje - u kom trenutku se informacije o izmenama zaista upisuju u bazu podataka? Db2 baza podataka definiše naredne dve operacije za rad sa izmenama u bazi podataka.
 
-> *Potvrđivanje* (engl *commit*) predstavlja trajno upisivanje izmena u bazu podataka koje su do tada bile izvršene nad tom bazom podataka. Sve načinjene izmene se trajno pamte u bazi podataka i svi ostali procesi dobijaju mogućnost da vide načinjene izmene.
+{% include definicija.html def="*Potvrđivanje* (engl *commit*) predstavlja trajno upisivanje izmena u bazu podataka koje su do tada bile izvršene nad tom bazom podataka. Sve načinjene izmene se trajno pamte u bazi podataka i svi ostali procesi dobijaju mogućnost da vide načinjene izmene." %}
 
-> *Poništavanje* (engl *rollback*) predstavlja vraćanje stanje baze podataka u ono u kojem se baza podataka našla pre izvršavanja izmena koje su do tada bile izvršene nad tom bazom podataka. Izvršavanjem ove naredbe možemo poništiti sve one akcije koje do trenutka poništavanja nisu prethodno bile potvrđene. 
+{% include definicija.html def="*Poništavanje* (engl *rollback*) predstavlja vraćanje stanje baze podataka u ono u kojem se baza podataka našla pre izvršavanja izmena koje su do tada bile izvršene nad tom bazom podataka. Izvršavanjem ove naredbe možemo poništiti sve one akcije koje do trenutka poništavanja nisu prethodno bile potvrđene." %}
 
 Da bismo dodatno razumeli koje su to izmene u bazi podataka koje se potvrđuju, odnosno, poništavaju ovim operacijama, potrebno je da definišemo pojam jedinice posla.
 
-> *Jedinica posla* (engl. *unit of work*, skr. *UOW*) predstavlja nadoknadivu sekvencu operacija u okviru aplikacionog procesa.
+{% include definicija.html def="*Jedinica posla* (engl. *unit of work*, skr. *UOW*) predstavlja nadoknadivu sekvencu operacija u okviru aplikacionog procesa." %}
 
 Jedinica posla se inicijalizuje prilikom pokretanja aplikacionog procesa ili kada se prethodna jedinica posla završila posledicom operacije koja nije prekid aplikacionog procesa. Jedinica posla se završava operacijom potvrđivanja ili poništavanja izmena ili završetkom aplikacionog procesa. Operacije potvrđivanja i poništavanja izmena utiču samo da one promene u bazi podataka koje su izvršene tokom te jedinice posla koja se završava.
 
@@ -225,7 +225,7 @@ Ovo je dobra praksa i mi ćemo usvojiti ovaj način rada u našim C/SQL programi
 
 U ovoj sekciji ćemo diskutovati o načinima za izvršavanje više SQL naredbi kao jedne naredbe, tzv. složene SQL naredbe. Složene SQL naredbe predstavljaju osnovu rada sa transakcijama, o čemu će biti detaljnije reči u nastavku teksta.
 
-> *Složena SQL naredba* (engl. *compound SQL*) predstavlja sekvencu SQL naredbi ograđenu odgovarajućim ključnim rečima kojim se definiše jedan blok izvršavanja.
+{% include definicija.html def="*Složena SQL naredba* (engl. *compound SQL*) predstavlja sekvencu SQL naredbi ograđenu odgovarajućim ključnim rečima kojim se definiše jedan blok izvršavanja." %}
 
 Postoje tri tipa složenih SQL naredbi:
 
@@ -392,7 +392,7 @@ U prethodnim primerima smo videli da možemo da predstavimo transakcije kao slo�
 
 Vrlo često nam je neophodno da imamo precizniju kontrolu nad time šta se tačno poništava, na primer, ukoliko želimo da samo jedan deo transakcije bude poništen, umesto cele transakcije. Da bismo postigli takav efekat, potrebne su nam sofisticiranije metode upravljanja transakcijama. Jedan od takvih metoda podrazumeva korišćenje tačke čuvanja.
 
-> *Tačka čuvanja* (engl. *savepoint*) predstavlja mehanizam za poništavanje precizno definisanog skupa izvršenih naredbi.
+{% include definicija.html def="*Tačka čuvanja* (engl. *savepoint*) predstavlja mehanizam za poništavanje precizno definisanog skupa izvršenih naredbi." %}
 
 Ukoliko se desi neka greška prilikom izvršavanja transakcije, tačka čuvanja se može koristiti da poništi dejstvo naredbi od trenutka kada je tačka čuvanja započeta do trenutka kada je poništenje akcija zahtevano.
 

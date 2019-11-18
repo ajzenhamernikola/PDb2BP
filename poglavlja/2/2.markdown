@@ -8,9 +8,9 @@ U ovom poglavlju ćemo se detaljnije upustiti u diskusiju konstrukcije aplikacij
 
 ## 2.1 Prevođenje programa
 
-Pre nego što započnemo diskusiju o načinu konstrukcije C/SQL aplikacija, neophodno je da se upoznamo sa specifičnostima prevođenja C/SQL aplikacija. Za početak, potrebno je da razumemo da Db2 očekuje da naši programi budu napisani u datotekama čije su ekstenzije `.sqc`. U ovim datotekama se, dakle, nalazi izvorni kod napisan u programskom jeziku C u kojem su ugnežđeni SQL upiti. Izvorni kodovi napisani na ovaj način definišu jednu *SQL-ugnežđenu aplikaciju*.
+Pre nego što započnemo diskusiju o načinu konstrukcije C/SQL aplikacija, neophodno je da se upoznamo sa specifičnostima prevođenja C/SQL aplikacija. Za početak, potrebno je da razumemo da Db2 očekuje da naši programi budu napisani u datotekama čije su ekstenzije `.sqc`. U ovim datotekama se, dakle, nalazi izvorni kod napisan u programskom jeziku C u kojem su ugnežđeni SQL upiti. Izvorni kodovi napisani na ovaj način definišu jednu SQL-ugnežđenu aplikaciju.
 
-> Za aplikaciju kažemo da je *SQL-ugnežđena* ukoliko postoji barem jedna SQL naredba koja je ugnežđena u matični jezik, kao što su C, C++, Java, i dr.
+{% include definicija.html def="Za aplikaciju kažemo da je *SQL-ugnežđena* (engl. *SQL-embedded*) ukoliko postoji barem jedna SQL naredba koja je ugnežđena u matični jezik, kao što su C, C++, Java, i dr." %}
 
 Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva naredne korake:
 
@@ -36,9 +36,9 @@ db2 PRECOMPILE IMEDATOTEKE.sqc BINDFILE
 {:start="3"}
 3. Ako je kreirana `IMEDATOTEKE.bnd` datoteka (korišćenjem `BINDFILE` opcije u `PRECOMPILE` naredbi u koraku 2), vrši se vezivanje te datoteke sa bazom podataka da bi se kreirao aplikacioni paket. 
 
-> *Vezivanje* predstavlja proces kojim se od datoteke sa ekstenzijom `.bnd` kreira paket koji se čuva u bazi podataka.
+{% include definicija.html def="*Vezivanje* predstavlja proces kojim se od datoteke sa ekstenzijom `.bnd` kreira paket koji se čuva u bazi podataka." %}
 
-> *Paket* sadrži izvršivu formu svakog SQL upita iz izvornog koda aplikacije. Za svaku SQL naredbu se čuvaju razne informacije, kao što su: koji se postojeći indeksi koriste, načini njihovog korišćenja, pristupi tabelama i dr. U suštini, paket predstavlja pristupni plan podacima i igra ključnu ulogu u komunikaciji klijentske aplikacije i Db2 servera.
+{% include definicija.html def="*Paket* sadrži izvršivu formu svakog SQL upita iz izvornog koda aplikacije. Za svaku SQL naredbu se čuvaju razne informacije, kao što su: koji se postojeći indeksi koriste, načini njihovog korišćenja, pristupi tabelama i dr. U suštini, paket predstavlja pristupni plan podacima i igra ključnu ulogu u komunikaciji klijentske aplikacije i Db2 servera." %}
 
 Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
@@ -116,7 +116,7 @@ Primetimo da se ne navodi ekstenzija datoteke. Zaglavlje `SQLCA.h` predstavlja k
 
 Vrlo često će nam biti neophodno da koristimo promenljive da bismo smeštali rezultate izvršavanja SQL naredbi ili da bismo rezultate nekih izračunavanja u matičnom jeziku koristili kao ulaz SQL naredbi. Međutim, za razliku od regularnih promenljivih u višim programskim jezicima, programiranje SQL naredbi koje zahtevaju korišćenje promenljivih zahteva uvođenje pojma matične promenljive.
 
-> *Matične promenljive* su promenljive koje su definisane u višem programskom jeziku, a koje se ugnežđavaju u SQL naredbe da bi se iskoristile njihove vrednosti ili da bi se rezultati SQL naredbi smestili u njih.
+{% include definicija.html def="*Matične promenljive* su promenljive koje su definisane u višem programskom jeziku, a koje se ugnežđavaju u SQL naredbe da bi se iskoristile njihove vrednosti ili da bi se rezultati SQL naredbi smestili u njih." %}
 
 U programskom jeziku C, da bismo deklarisali ovakve promenljive, potrebno je da njihove deklaracije smestimo između para naredbi `BEGIN DECLARE SECTION` i `END DECLARE SECTION`. Na primer:
 
@@ -557,7 +557,7 @@ int main()
 
 Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u tabeli (ili, eventualno, nijedan), korišćenjem naredbe `SELECT INTO`. U nastavku slede zadatak u kojem ćemo demonstrirati upotrebu naredbe `INSERT`, zatim pretražujućih varijanti naredbi `UPDATE` i `DELETE`. 
 
-> Naredbe `UPDATE` ili `DELETE` zovemo *pretražujućim* ukoliko se podaci koji se ažuriraju, odnosno, brišu pronalaze na osnovu nekih uslova restrikcije u klauzi `WHERE`.
+{% include definicija.html def="Naredbe `UPDATE` ili `DELETE` zovemo *pretražujućim* ukoliko se podaci koji se ažuriraju, odnosno, brišu pronalaze na osnovu nekih uslova restrikcije u klauzi `WHERE`." %}
 
 Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
 

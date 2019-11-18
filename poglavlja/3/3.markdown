@@ -216,7 +216,7 @@ SET
 WHERE CURRENT OF <IME_KURSORA>
 ```
 
-> SQL naredba `UPDATE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `UPDATE` naredba. 
+{% include definicija.html def="SQL naredba `UPDATE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `UPDATE` naredba. " %}
 
 Očigledno, kolone `<KOLONA_1>`, `...`, `<KOLONA_N>` moraju biti deklarisane u `FOR UPDATE OF` klauzi pri deklaraciji kursora naziva `<IME_KURSORA>`. Takođe, tabela `<TABELA>` mora biti jedina tabela koja se nalazi u `FROM` klauzi kursora. Na ovaj način će upotrebom opisane naredbe `UPDATE` biti ažuriran tekući red kursora.
 
@@ -340,7 +340,7 @@ DELETE FROM <IME_TABELE>
 WHERE CURRENT OF <IME_KURSORA>
 ```
 
-> SQL naredba `DELETE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `DELETE` naredba. 
+{% include definicija.html def="SQL naredba `DELETE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `DELETE` naredba." %}
 
 > Zadatak 3.4: Napisati C/SQL program kojim se za sve studente smera Informatika briše prvi položen ispit (ukoliko ima položenih ispita tog studenta).
 
