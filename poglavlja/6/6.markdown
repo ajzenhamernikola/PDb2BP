@@ -15,6 +15,10 @@ Pre nego što započnemo sa poglavljem, napomenimo da ukoliko se koriste struktu
 Da bismo mogli da izvršimo SQL naredbu dinamički, prvo je neophodno skladištiti je u matičnu promenljivu čiji je tip niska. Dinamička SQL naredba podrazumeva da matična
 promenljiva-niska sadrži tekstualnu formu SQL naredbe. Ova naredba, koja je zadata kao tekst, biće procesirana dinamički, odnosno, tek u fazi izvršavanja programa.
 
+Naredna slika prikazuje deo programskog koda koji procesira dinamičku SQL naredbu `SELECT`. Na početku, dinamička SQL naredba je zadata kao niska. Prvi korak se sastoji u procesiranju tog tekstualnog oblika SQL naredbe. Rezultat ove naredbe je pripremljena SQL naredba, odnosno, njen izvršivi oblik. Dodatno, moguće je ovom naredbom upisati informacije o samoj dinamičkoj SQL naredbi u odgovarajuće strukture podataka. Nakon toga, drugi korak se sastoji u samom izvršavanju pripremljene naredbe. Prilikom izvršavanja se informacije koje su bile nepoznate zamenjuju konkretnim vrednostima, naravno, ako je dinamička SQL naredba imala nepoznate informacije.
+
+!["Proces izvršavanja dinamičkih SQL naredbi u dva koraka"](./Slike/dinamicke_naredbe.png)
+
 Tekstualni oblik naredbe neće biti procesiran prilikom prekompilacije aplikacije. Zapravo, sam tekstualni sadrži ne mora ni da postoji u fazi pretprocesiranja. Umesto toga, o dinamičkoj SQL naredbi možemo razmišljati kao matičnoj promenljivoj tokom faze prekompilacije na koju će se referisati prilikom faze izvršavanja.
 
 Sadržaj dinamičkih SQL naredbi odgovara istoj sintaksi kao i za statičke SQL naredbe. Ipak, postoje neki izuzeci nametnuti od strane DB2 SUBP:
