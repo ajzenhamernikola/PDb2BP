@@ -106,12 +106,9 @@ int main()
     is_error("Connect");
     
     EXEC SQL 
-        SELECT 
-            MAX(INDEKS) 
-        INTO 
-            :indeks 
-        FROM 
-            ISPIT;
+        SELECT  MAX(INDEKS) 
+        INTO    :indeks 
+        FROM    ISPIT;
     is_error("Select 1");
     
     // Ako nema studenata u tabeli ispit
@@ -121,22 +118,18 @@ int main()
 
         // Brisanje studenta sa najvecim indeksom iz tabele ispit
         EXEC SQL 
-            DELETE FROM 
-                ispit 
-            WHERE 
-                indeks = :indeks;
+            DELETE 
+            FROM    ISPIT 
+            WHERE   INDEKS = :indeks;
         is_error("Delete");
 
         printf("Uspesno je obrisan podatak");
 
         // Ispisivanje najveceg indeksa iz tabele ispit
         EXEC SQL 
-            SELECT 
-                MAX(INDEKS) 
-            INTO 
-                :indeks 
-            FROM 
-                ISPIT;
+            SELECT  MAX(INDEKS) 
+            INTO    :indeks 
+            FROM    ISPIT;
         is_error("Select 2");
         
         if(SQLCODE != 100)
@@ -173,12 +166,9 @@ int main()
         
         // Ispisujemo najveci indeks ponovo
         EXEC SQL 
-            SELECT 
-                MAX(INDEKS) 
-            INTO 
-                :indeks 
-            FROM 
-                ISPIT;
+            SELECT  MAX(INDEKS) 
+            INTO    :indeks 
+            FROM    ISPIT;
         is_error("Select 3");
         
         if(SQLCODE != 100)
@@ -256,22 +246,17 @@ U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije složen
    - STATIC - Specifikuje da će sve matične promenljive za sve podnaredbe zadržati njihove originalne vrednosti. Na primer, ukoliko se u SQL složenoj naredbi nađe naredba:
 
 ```sql
-SELECT 
-    MAX(OCENA) 
-INTO 
-    :ocena 
-FROM 
-    ISPIT
+SELECT  MAX(OCENA) 
+INTO    :ocena 
+FROM    ISPIT
 ```
 
 koja je praćena naredbom
 
 ```sql
-UPDATE ISPIT 
-SET 
-    NAPOMENA = 'Ovo je najveca ocena medju ispitima'
-WHERE 
-    OCENA = :ocena
+UPDATE  ISPIT 
+SET     NAPOMENA = 'Ovo je najveca ocena medju ispitima'
+WHERE   OCENA = :ocena
 ```
 
 onda će naredba `UPDATE` koristiti vrednost matične promenljive `ocena` koju je ta promenljiva imala na početku bloka koji je definisan složenom SQL naredbom, a ne vrednost koja je dobijena naredbom `SELECT INTO`. Time je transakcija koja se ostvaruje tom SQL složenom naredbom, za koju bismo možda očekivali da bude korektna, zapravo neispravno implementirana, zato što se oslanja na međuvrednost koju dobija promenljiva `ocena` naredbom `SELECT INTO`. Dodatno, ako se vrednost iste promenljive postavlja od strane više SQL podnaredbi, onda će na kraju bloka ta promenljiva sadržati vrednost koju je postavila poslednja SQL podnaredba.
@@ -349,18 +334,15 @@ int main()
     EXEC SQL 
         BEGIN COMPOUND ATOMIC STATIC
             -- Prva naredba
-            INSERT INTO 
-                ispitni_rok
-            VALUES 
-                (YEAR(CURRENT_DATE), 'maj', 'Maj ' || YEAR(CURRENT_DATE), CURRENT_DATE, CURRENT_DATE + 20 DAYS, 1);
+            INSERT 
+            INTO    ispitni_rok
+            VALUES  (YEAR(CURRENT_DATE), 'maj', 'Maj ' || YEAR(CURRENT_DATE), CURRENT_DATE, CURRENT_DATE + 20 DAYS, 1);
 
             -- Druga naredba
-            UPDATE 
-                ispitni_rok
-            SET kraj_prijavljivanja = kraj_prijavljivanja - 10 DAYS
-            WHERE 
-                godina = 2019 AND
-                oznaka = 'maj';        
+            UPDATE  ISPITNI_ROK
+            SET     KRAJ_PRIJAVLJIVANJA = KRAJ_PRIJAVLJIVANJA - 10 DAYS
+            WHERE   GODINA = 2019 AND
+                    OZNAKA = 'maj';
         END COMPOUND;
     is_error("Compound");
 
@@ -507,12 +489,10 @@ int main()
     // zato sto vrsimo potvrdjivanje izmena tokom obrade kursora.
     EXEC SQL 
         DECLARE ispitniRok CURSOR WITH HOLD FOR 
-        SELECT
-            NAZIV,
-            GODINA,
-            OZNAKA
-        FROM
-            ISPITNI_ROK;
+        SELECT  NAZIV,
+                GODINA,
+                OZNAKA
+        FROM    ISPITNI_ROK;
     is_error("Declare");
 
     EXEC SQL OPEN ispitniRok;
@@ -521,12 +501,10 @@ int main()
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                ispitniRok 
-            INTO
-                :naziv,
-                :godina,
-                :oznaka;
+            FETCH   ispitniRok 
+            INTO    :naziv,
+                    :godina,
+                    :oznaka;
         is_error("Fetch");
 
         if(SQLCODE == 100)
@@ -545,11 +523,10 @@ int main()
         if (odgovor_od_korisnika == 'd')
         {
             EXEC SQL
-                DELETE FROM 
-                    ISPIT
-                WHERE
-                    GODINA_ROKA = :godina AND
-                    OZNAKA_ROKA = :oznaka;
+                DELETE 
+                FROM    ISPIT
+                WHERE   GODINA_ROKA = :godina AND
+                        OZNAKA_ROKA = :oznaka;
             is_error("Delete");
             
             // Da nismo naveli klauzu WITH HOLD pri deklaraciji kursora, 
@@ -618,20 +595,15 @@ int main()
 
     EXEC SQL 
         DECLARE neobradjeniPredmeti CURSOR WITH HOLD FOR 
-        SELECT
-            ID_PREDMETA,
-            RTRIM(NAZIV),
-            BODOVI
-        FROM
-            PREDMET
-        WHERE
-            ID_PREDMETA NOT IN (
-                SELECT
-                    ID_PREDMETA
-                FROM
-                    OBRADJENI_PREDMETI
-            )
-        FOR UPDATE OF BODOVI;
+        SELECT  ID_PREDMETA,
+                RTRIM(NAZIV),
+                BODOVI
+        FROM    PREDMET
+        WHERE   ID_PREDMETA NOT IN (
+                    SELECT  ID_PREDMETA
+                    FROM    OBRADJENI_PREDMETI
+                )
+        FOR     UPDATE OF BODOVI;
     is_error("Declare");
 
     EXEC SQL OPEN neobradjeniPredmeti;
@@ -642,12 +614,10 @@ int main()
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                neobradjeniPredmeti 
-            INTO
-                :id_predmeta,
-                :naziv,
-                :bodovi;
+            FETCH   neobradjeniPredmeti 
+            INTO    :id_predmeta,
+                    :naziv,
+                    :bodovi;
         is_error("Fetch");
 
         if(SQLCODE == 100)
@@ -666,11 +636,9 @@ int main()
         if (odgovor_od_korisnika == 'd')
         {
             EXEC SQL 
-                UPDATE
-                    PREDMET
-                SET
-                    BODOVI = BODOVI + 1
-                WHERE CURRENT OF neobradjeniPredmeti;
+                UPDATE  PREDMET
+                SET     BODOVI = BODOVI + 1
+                WHERE   CURRENT OF neobradjeniPredmeti;
             is_error("Update");            
             
             printf("Podaci su uspesno azurirani\n");
@@ -678,10 +646,9 @@ int main()
         
         // Ubelezavamo u BP da smo obradili tekuci predmet
         EXEC SQL
-            INSERT INTO
-                OBRADJENI_PREDMETI
-            VALUES
-                (:id_predmeta);
+            INSERT 
+            INTO    OBRADJENI_PREDMETI
+            VALUES  (:id_predmeta);
         is_error("Insert into");
         
         // Uvecavamo broj obradjenih predmeta        
@@ -764,19 +731,16 @@ int main()
 
     EXEC SQL 
         DECLARE ispitniRok CURSOR WITH HOLD FOR
-        SELECT 
-            godina, 
-            oznaka, 
-            naziv
-        FROM 
-            ispitni_rok;
+        SELECT  GODINA, 
+                OZNAKA, 
+                NAZIV
+        FROM    ISPITNI_ROK;
     is_error("Declare");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'apr', 'April 2019', current_date, current_date + 20 days, 1);
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'apr', 'April 2019', CURRENT_DATE, CURRENT_DATE + 20 DAYS, 1);
     is_error("Insert into ispitni_rok apr");
 
     // Kreiranje tacke cuvanja sa nazivom S1
@@ -784,52 +748,45 @@ int main()
     is_error("Savepoint");
     
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'mar', 'Mart 2019', current_date - 1 month, current_date - 1 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'mar', 'Mart 2019', CURRENT_DATE - 1 MONTH, CURRENT_DATE - 1 MONTH + 20 DAYS, 1);    
     is_error("Insert into ispitni_rok mar");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'maj', 'Maj 2019', current_date + 1 month, current_date + 1 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'maj', 'Maj 2019', CURRENT_DATE + 1 MONTH, CURRENT_DATE + 1 MONTH + 20 DAYS, 1);    
     is_error("Insert into ispitni_rok maj");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'jun', 'Jun 2019', current_date + 2 month, current_date + 2 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'jun', 'Jun 2019', CURRENT_DATE + 2 MONTH, CURRENT_DATE + 2 MONTH + 20 DAYS, 1);    
     is_error("Insert into ispitni_rok jun");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'jul', 'Jul 2019', current_date + 3 month, current_date + 3 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'jul', 'Jul 2019', CURRENT_DATE + 3 MONTH, CURRENT_DATE + 3 MONTH + 20 DAYS, 1);    
     is_error("Insert into ispitni_rok jul");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'avg', 'Avgust 2019', current_date + 4 month, current_date + 4 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'avg', 'Avgust 2019', CURRENT_DATE + 4 MONTH, CURRENT_DATE + 4 MONTH + 20 DAYS, 1);
     is_error("Insert into ispitni_rok avg");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'sep', 'Septembar 2019', current_date + 5 month, current_date + 5 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'sep', 'Septembar 2019', CURRENT_DATE + 5 MONTH, CURRENT_DATE + 5 MONTH + 20 DAYS, 1);    
     is_error("Insert into ispitni_rok sep");
 
     EXEC SQL 
-        INSERT INTO 
-            ispitni_rok
-        VALUES 
-            (2019, 'okt', 'Oktobar 2019', current_date + 6 month, current_date + 1 month + 20 days, 1);    
+        INSERT 
+        INTO    ISPITNI_ROK
+        VALUES  (2019, 'okt', 'Oktobar 2019', CURRENT_DATE + 6 MONTH, CURRENT_DATE + 1 MONTH + 20 DAYS, 1);
     is_error("Insert into ispitni_rok okt");
 
     EXEC SQL OPEN ispitniRok;
@@ -838,12 +795,10 @@ int main()
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                ispitniRok 
-            INTO 
-                :godina, 
-                :oznaka, 
-                :naziv;
+            FETCH   ispitniRok 
+            INTO    :godina, 
+                    :oznaka, 
+                    :naziv;
         is_error("Fetch");
 
         if(SQLCODE == 100)
@@ -878,12 +833,10 @@ int main()
     while(1)
     {
         EXEC SQL 
-            FETCH 
-                ispitniRok 
-            INTO 
-                :godina, 
-                :oznaka, 
-                :naziv;
+            FETCH   ispitniRok 
+            INTO    :godina, 
+                    :oznaka, 
+                    :naziv;
         is_error("Fetch");
 
         if(SQLCODE == 100)

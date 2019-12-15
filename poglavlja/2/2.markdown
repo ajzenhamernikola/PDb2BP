@@ -122,7 +122,7 @@ U programskom jeziku C, da bismo deklarisali ovakve promenljive, potrebno je da 
 
 ```c
 EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 ukupnaZarada;
+double prosek;
 EXEC SQL END DECLARE SECTION;
 ```
 
@@ -133,13 +133,16 @@ Postoje neka pravila koja se moraju ispoštovati pri korišćenju ovih naredbi. 
 Kako se sada ovako definisane matične promenljive koriste? Matičnu promenljivu možemo koristiti u izračunavanjima u matičnom jeziku kao i bilo koje druge promenljive, na primer:
 
 ```c
-ukupnaZarada = 12 000 000;
+printf("Prosecna ocena studenata je %lf\n", prosek);
 ```
 
 Ukoliko želimo da iskoristimo matičnu promenljivu u SQL naredbi, onda ispred identifikatora promenljive moramo staviti karakter dvotačke, na primer:
 
 ```c
-EXEC SQL SELECT SUM(ZARADA) INTO :ukupnaZarada FROM ZAPOSLENI;
+EXEC SQL 
+    SELECT  AVG(CAST(OCENA AS DOUBLE)) 
+    INTO    :ukupnaZarada 
+    FROM    ISPIT;
 ```
 
 ### 2.2.3 DB2 tipovi promenljivih
@@ -156,7 +159,7 @@ Kao što znamo, programski jezik C definiše određeni broj osnovnih tipova. Nek
 | `DECIMAL(p,s)` | Nema precizan ekvivalentan tip; koristiti `double` | Pakovan decimalni zapis |
 | `CHAR(1)` | `char` | Jedan karakter |
 | `CHAR(n)` | Nema precizan ekvivalentan tip; koristiti `char[n+1]` gde je `n` dovoljno veliko da sadrži podatak, tj. `1 <= n <= 254` | Niska nepromenljive dužine |
-| `VARCHAR(n)` | <code>struct tag {<br>&nbsp;&nbsp;&nbsp;&nbsp;short int; <br>&nbsp;&nbsp;&nbsp;&nbsp;char[n] <br>}</code><br>gde je `1 <= n <= 32672` | Niska promenljive dužine bez terminirajuće nule sa 2-bajtnim indikatorom dužine |
+| `VARCHAR(n)` | <code>struct tag {<br>&nbsp;&nbsp;&nbsp;&nbsp;short int; <br>&nbsp;&nbsp;&nbsp;&nbsp;char[n]; <br>}</code><br>gde je `1 <= n <= 32672` | Niska promenljive dužine bez terminirajuće nule sa 2-bajtnim indikatorom dužine |
 | `DATE` | Nula-terminirajuća karakterna forma | Dopustiti barem 11 karaktera da bi se smestio terminirajući karakter |
 | `DATE` | `VARCHAR` strukturna forma | Dopustiti barem 10 karaktera |
 | `TIME` | Nula-terminirajuća karakterna forma | Dopustiti barem 9 karaktera da bi se smestio terminirajući karakter |
@@ -179,14 +182,11 @@ Ukoliko želimo da iz tabele `ISPIT` dohvatimo datume o prvom i poslednjem ispit
 
 ```c
 EXEC SQL 
-    SELECT 
-        MIN(COALESCE(DATUM_PISMENOG, DATUM_USMENOG)), 
-        MAX(COALESCE(DATUM_PISMENOG, DATUM_USMENOG)) 
-    INTO
-        :prviIspit,
-        :poslednjiIspit
-    FROM 
-        ISPIT;
+    SELECT  MIN(COALESCE(DATUM_PISMENOG, DATUM_USMENOG)), 
+            MAX(COALESCE(DATUM_PISMENOG, DATUM_USMENOG)) 
+    INTO    :prviIspit,
+            :poslednjiIspit
+    FROM    ISPIT;
 ```
 
 ### 2.2.5 Indikatorske promenljive
@@ -198,10 +198,8 @@ Kako su ove promenljive deljenje između RSUBP-a i višeg programskog jezika, to
 Indikatorska promenljiva se u SQL naredbi navodi odmah nakon matične promenljive. S obzirom da je i ona sama matična promenljiva, moramo je prefiksovati karakterom dvotačke. Na primer:
 
 ```sql
-SELECT 
-    nullKolona
-INTO 
-    :maticnaPromenljiva :indikatorskaPromenljiva
+SELECT  NULLKOLONA
+INTO    :maticnaPromenljiva :indikatorskaPromenljiva
 ...
 ```
 
@@ -340,10 +338,9 @@ U ovom koraku je potrebno da napišemo odgovarajući SQL upit za izračunavanje 
 
 ```c
 EXEC SQL 
-    SELECT 
-        MAX(INDEKS) INTO :maxIndeks 
-    FROM 
-        ISPIT;
+    SELECT  MAX(INDEKS) 
+    INTO    :maxIndeks 
+    FROM    ISPIT;
 
 printf("Najveci indeks je %d\n", maxIndeks);
 ```
@@ -391,10 +388,9 @@ int main()
 
     // Izdvajamo maksimalni indeks i smestamo u maticnu promenljivu maxIndeks
     EXEC SQL 
-        SELECT 
-            MAX(INDEKS) INTO :maxIndeks 
-        FROM 
-            ISPIT;
+        SELECT  MAX(INDEKS) 
+        INTO    :maxIndeks 
+        FROM    ISPIT;
     is_error("Izdvajanje podatka o najvecem indeksu");
 
     // Ispisujemo podatak koji se sada nalazi u maticnoj promenljivoj maxIndeks
@@ -455,22 +451,18 @@ int main()
     is_error("Konekcija na bazu podataka");
 
     EXEC SQL 
-        SELECT 
-            indeks, 
-            ime, 
-            prezime, 
-            ime_oca, 
-            datum_rodjenja
-        INTO 
-            :indeks, 
-            :ime, 
-            :prezime, 
-            :ime_oca :ind_ime_oca, 
-            :datum_rodjenja :ind_datum_rodjenja
-        FROM 
-            DOSIJE
-        WHERE 
-            INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE);
+        SELECT  INDEKS, 
+                IME, 
+                PREZIME, 
+                IME_OCA, 
+                DATUM_RODJENJA
+        INTO    :indeks, 
+                :ime, 
+                :prezime, 
+                :ime_oca :ind_ime_oca, 
+                :datum_rodjenja :ind_datum_rodjenja
+        FROM    DOSIJE
+        WHERE   INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE);
     is_error("Izdvajanje podatka o studentu sa najvecim indeksom");
 
     printf("\nINDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s\n",
@@ -523,22 +515,18 @@ int main()
     scanf("%d", &indeks);
 
     EXEC SQL 
-        SELECT 
-            indeks, 
-            ime, 
-            prezime, 
-            ime_oca, 
-            datum_rodjenja
-        INTO 
-            :indeks, 
-            :ime, 
-            :prezime, 
-            :ime_oca :ind_ime_oca, 
-            :datum_rodjenja :ind_datum_rodjenja
-        FROM 
-            DOSIJE
-        WHERE 
-            INDEKS = :indeks;
+        SELECT  INDEKS, 
+                IME, 
+                PREZIME, 
+                IME_OCA, 
+                DATUM_RODJENJA
+        INTO    :indeks, 
+                :ime, 
+                :prezime, 
+                :ime_oca :ind_ime_oca, 
+                :datum_rodjenja :ind_datum_rodjenja
+        FROM    DOSIJE
+        WHERE   INDEKS = :indeks;
     is_error("Izdvajanje podatka o studentu sa ucitanim indeksom");
 
     printf("\nINDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s\n",
@@ -631,14 +619,25 @@ void unesi_novi_predmet()
     printf("Bodovi predmeta:");
     scanf("%hd", &bodovi);
 
-    EXEC SQL INSERT INTO PREDMET
-        VALUES (:id_predmeta, :sifra, :naziv, :broj_semestara, :bodovi);
+    EXEC SQL 
+        INSERT 
+        INTO    PREDMET
+        VALUES  (:id_predmeta, :sifra, :naziv, :broj_semestara, :bodovi);
     is_error("Unos podataka o predmetu");
 
-    EXEC SQL SELECT id_predmeta, sifra, naziv, broj_semestara, bodovi
-        INTO :id_predmeta, :sifra, :naziv, :broj_semestara, :bodovi
-        FROM PREDMET
-        WHERE id_predmeta = :id_predmeta;
+    EXEC SQL 
+        SELECT  ID_PREDMETA, 
+                SIFRA, 
+                NAZIV, 
+                BROJ_SEMESTARA, 
+                BODOVI
+        INTO    :id_predmeta, 
+                :sifra, 
+                :naziv, 
+                :broj_semestara, 
+                :bodovi
+        FROM    PREDMET
+        WHERE   ID_PREDMETA = :id_predmeta;
     is_error("Izlistavanje podataka");
 
     printf("\nID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd\n",
@@ -647,15 +646,25 @@ void unesi_novi_predmet()
 
 void izmeni_novi_predmet()
 {
-    EXEC SQL UPDATE PREDMET
-        SET BODOVI = BODOVI*2
-        WHERE id_predmeta = :id_predmeta;
+    EXEC SQL 
+        UPDATE  PREDMET
+        SET     BODOVI = BODOVI * 2
+        WHERE   ID_PREDMETA = :id_predmeta;
     is_error("Azuriranje podataka o predmetu");
 
-    EXEC SQL SELECT id_predmeta, sifra, naziv, broj_semestara, bodovi
-        INTO :id_predmeta, :sifra, :naziv, :broj_semestara, :bodovi
-        FROM PREDMET
-        WHERE id_predmeta = :id_predmeta;
+    EXEC SQL 
+        SELECT  ID_PREDMETA, 
+                SIFRA, 
+                NAZIV, 
+                BROJ_SEMESTARA, 
+                BODOVI
+        INTO    :id_predmeta, 
+                :sifra, 
+                :naziv, 
+                :broj_semestara, 
+                :bodovi
+        FROM    PREDMET
+        WHERE   ID_PREDMETA = :id_predmeta;
     is_error("Izlistavanje podataka");
 
     printf("\nID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd\n", 
@@ -664,8 +673,10 @@ void izmeni_novi_predmet()
 
 void obrisi_novi_predmet()
 {
-    EXEC SQL DELETE FROM PREDMET
-        WHERE id_predmeta = :id_predmeta;
+    EXEC SQL 
+        DELETE 
+        FROM    PREDMET
+        WHERE   ID_PREDMETA = :id_predmeta;
     is_error("Brisanje podataka o predmetu");
 
     printf("\nUspesno su obrisani podaci o predmetu\n");

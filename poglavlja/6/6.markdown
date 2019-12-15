@@ -70,7 +70,7 @@ Niska koja sadrži naredbu ne sme imati parametarske oznake ili reference na mat
 
 Kada se naredba `EXECUTE IMMEDIATE` izvrši, specifikovana naredba se parsira i proveravaju se greške. Ako SQL naredba nije validna, ona se neće izvršiti i uslov koji je doveo do greške se izveštava kroz SQLCA. Ako je SQL naredba validna, ali njeno izvršavanje dovodi do greške, onda se ta greška takođe izveštava kroz SQLCA.
 
-{% include zadatak.html broj="6.1" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički koji omogućava da korisnik sa standardnog ulaza unosi SQL naredbu koja se potom izvršava. U slučaju da korisnik unese naredbu `SELECT`, dovoljno je prekinuti izvršavanje programa sa porukom o grešci. Pretpostaviti da upit koji se unosi sa standardnog ulaza nije duži od 255 karaktera." %}
+{% include zadatak.html broj="6.1" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički koji čita SQL naredbu iz datoteke čiji se naziv zadaje kao prvi argument komandne linije. SQL naredba se čita do pojave karaktera `;` ili do kraja datoteke, ispisuje se korisniku, a potom se izvršava. Pretpostaviti da korisnik neće uneti naredbu `SELECT`, kao ni da neće sadržati parametarske oznake. Pretpostaviti da upit koji se čita iz datoteke nije duži od 255 karaktera." %}
 
 Rešenje:
 
@@ -97,27 +97,33 @@ void is_error(const char* err)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    // Proveravamo argumente i datoteku za citanje
+    // pre nego sto se uopste povezemo
+    if (argc != 2) 
+    {
+        printf("Niste naveli datoteku za citanje!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    FILE *ulaz = fopen(argv[1], "r");
+    if (ulaz == NULL)
+    {
+        printf("Postoji problem sa citanjem datoteke \"%s\"!\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
+
     EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
-
-    printf("Unesite naredbu:\n");
-
-    // Ucitavamo naredbu sa standardnog ulaza.
-    // Pretpostavljamo da je naredba u jednoj liniji.
-    // fgets(stmt, 255, stdin);
-
-    // Alternativno:
-    // Mozemo citati do pojave karaktera ';' 
-    // Ovako mozemo imati i karaktere za nov red unutar upita
-    char c;
+    
+    int c; // `int` umesto `char` zbog EOF
     int broj_karaktera = 0;
     while(broj_karaktera < sizeof(stmt))
     {
-        c = getchar();
+        c = fgetc(ulaz);
         
-        if (c == ';')
+        if (c == ';' || c == EOF)
         {
             break;
         }
@@ -125,8 +131,10 @@ int main()
         stmt[broj_karaktera++] = c;
     }
 
+    fclose(ulaz);
+
     // Ispisujemo korisniku sta je uneo
-    printf("\nUneli ste naredbu:\n");
+    printf("\nIzvrsavam naredbu:\n");
     printf("***************************\n");
     printf("%s\n", stmt);
     printf("***************************\n");
@@ -191,12 +199,9 @@ Takođe, parametarske oznake imaju i dva tipa:
 - *Netipizirana* parametarska oznaka se navodi bez tipa njenog rezultata i ima neimenovanu formu. Sam tip vrednosti netipizirane parametarske oznake se izvodi iz konteksta u kojem se upotrebljava. Na primer, u SQL naredbi
 
 ```sql
-UPDATE
-    ISPIT
-SET
-    NAPOMENA = 'Ovaj student je polozio sve ispite'
-WHERE 
-    INDEKS = ?
+UPDATE  ISPIT
+SET     NAPOMENA = 'Ovaj student je polozio sve ispite'
+WHERE   INDEKS = ?
 ```
 
 koristi se netipizirana parametarska oznaka kao predikat restrikcije, čiji će tip biti implicitno postavljen na onaj tip kojim je definisana kolona `INDEKS`. Netipizirane parametarske oznake se mogu koristiti u dinamičkim SQL naredbama sve dok se tip parametarske oznake može izvesti iz konteksta upotrebe. U suprotnom, SUBP prijavljuje `SQLSTATE` vrednost `42610` (`SQLCODE -418`).
@@ -210,12 +215,9 @@ CAST(? AS <TIP_PODATAKA>)
 gde je `<TIP_PODATAKA>` odgovarajući tip. Ova notacija ne predstavlja poziv funkcije ili eksplicitnu konverziju, već tek "obećanje" da će tip vrednosti, koja će se koristiti umesto navedene tipizirane parametarske oznake, odgovarati tipu koji je naveden ili da se makar može konvertovati u njega. Na primer, u SQL naredbi
 
 ```sql
-UPDATE
-    DOSIJE
-SET 
-    PREZIME = TRANSLATE(CAST(? AS VARCHAR(50)))
-WHERE
-    INDEKS = 20100050
+UPDATE  DOSIJE
+SET     PREZIME = TRANSLATE(CAST(? AS VARCHAR(50)))
+WHERE   INDEKS = 20100050
 ```
 
 vrednost argumenta funkcije `TRANSLATE` biće navedena tokom faze izvršavanja. Očekuje se da je tip te vrednosti bilo `VARCHAR(50)` ili tip koji se može konvertovati u
@@ -292,23 +294,21 @@ int main()
     EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
 
-    // Kreiramo dinamicku SQL naredbu sa netipiziranim i neimenovanim parametarskim oznakama
+    // Kreiramo dinamicku SQL naredbu sa netipiziranim i neimenovanim parametarskim oznakama.
+    // Primetimo po jedan karakter razmaka na kraju svake niske!!!
+    // Ovo je vazna napomena, zato sto ce pretprocesor programskog jezika C
+    // jednostavno konkatenirati date doslovne niske u jednu nisku,
+    // tako da je neophodno da ostavimo karakter razmaka
+    // kako ne bismo kreirali neispravnu SQL naredbu.
     sprintf(stmt, 
-        // Primetimo po jedan karakter razmaka na kraju svake niske!!!
-        // Ovo je vazna napomena, zato sto ce programski jezik C
-        // samo "slepiti" ove niske u jednu,
-        // tako da je neophodno da ostavimo karakter razmaka.
-        "INSERT INTO "
-            "ISPITNI_ROK "
-        "VALUES "
-            "(?, ?, ?, ?, ?, ?)");
+        "INSERT "
+        "INTO   ISPITNI_ROK "
+        "VALUES (?, ?, ?, ?, ?, ?)");
 
     // Pripremamo naredbu za izvrsavanje
     EXEC SQL 
-        PREPARE 
-            prep_stmt 
-        FROM 
-            :stmt;
+        PREPARE PREP_NAREDBA 
+        FROM    :stmt;
     is_error("PREPARE");
     
     // Ucitavamo podatke za unosenje u tabelu ispitni_rok
@@ -337,15 +337,13 @@ int main()
     // Izvrsavamo prethodno pripremljenu naredbu 
     // koriscenjem maticnih promenljivih
     EXEC SQL 
-        EXECUTE 
-            prep_stmt 
-        USING 
-            :godina, 
-            :sifra, 
-            :naziv, 
-            :pocetak_prijave, 
-            :kraj_prijave, 
-            :tip;
+        EXECUTE PREP_NAREDBA 
+        USING   :godina, 
+                :sifra, 
+                :naziv, 
+                :pocetak_prijave, 
+                :kraj_prijave, 
+                :tip;
     is_error("Execute");
     
     printf("Novi ispitni rok je uspesno unet!\n");
@@ -401,32 +399,27 @@ int main()
     
     // Kreiranje niske naredbe sa netipiziranom parametarskom oznakom
     sprintf(naredba, 
-        "SELECT "
-            "ID_SMERA, "
-            "OZNAKA, "
-            "RTRIM(NAZIV), "
-            "SEMESTARA, "
-            "BODOVI "
-        "FROM "
-            "SMER "
-        "WHERE "
-            "SEMESTARA = ?");
+        "SELECT ID_SMERA, "
+        "       OZNAKA, "
+        "       RTRIM(NAZIV), "
+        "       SEMESTARA, "
+        "       BODOVI "
+        "FROM   SMER "
+        "WHERE  SEMESTARA = ?");
     
     // Prevodjenje niske naredbe u pripremljenu naredbu 
-    // sa nazivom prep_naredba
+    // sa nazivom PREP_NAREDBA
     EXEC SQL 
-        PREPARE 
-            prep_naredba 
-        FROM 
-            :naredba;
+        PREPARE PREP_NAREDBA 
+        FROM    :naredba;
     is_error("Prepare");
 
     // Deklaracija kursora na osnovu pripremljene naredbe.
-    // Ne navodimo dvotacku ispred prep_naredba jer je to identifikator,
+    // Ne navodimo dvotacku ispred PREP_NAREDBA jer je to identifikator,
     // a ne maticna promenljiva.
     EXEC SQL 
-        DECLARE C1 CURSOR FOR 
-            prep_naredba;
+        DECLARE SMEROVI CURSOR FOR 
+        PREP_NAREDBA;
     is_error("Declare cursor");
 
     printf("Unesite broj semestara: ");
@@ -434,23 +427,19 @@ int main()
 
     // Otvaranje kursora i navodjenje vrednosti parametarske oznake
     EXEC SQL 
-        OPEN 
-            C1 
-        USING 
-            :uneseno_semestara;
+        OPEN    SMEROVI 
+        USING   :uneseno_semestara;
     is_error("Open cursor");
 
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                C1
-            INTO 
-                :d_id, 
-                :d_oznaka, 
-                :d_naziv, 
-                :d_semestara, 
-                :d_bodovi;
+            FETCH   SMEROVI
+            INTO    :d_id, 
+                    :d_oznaka, 
+                    :d_naziv, 
+                    :d_semestara, 
+                    :d_bodovi;
         is_error("Fetch cursor");
 
         if (SQLCODE == 100)
@@ -462,7 +451,7 @@ int main()
             d_id, d_oznaka, d_naziv, d_semestara, d_bodovi);
     }
 
-    EXEC SQL CLOSE C1;
+    EXEC SQL CLOSE SMEROVI;
     is_error("Close cursor");
 
     EXEC SQL COMMIT;
@@ -764,7 +753,7 @@ int main()
 
 void unesi_i_pripremi_naredbu()
 {
-    printf("Unesite SQL naredbu do 512 karaktera:\n");
+    printf("Unesite SQL naredbu do %d karaktera:\n", (int)(sizeof(stmt)));
 
     char c;
     int broj_karaktera = 0;
@@ -781,7 +770,7 @@ void unesi_i_pripremi_naredbu()
         ++broj_karaktera;
     }
     
-    EXEC SQL PREPARE prep_stmt FROM :stmt;
+    EXEC SQL PREPARE PREPARED_STATEMENT FROM :stmt;
     IS_ERROR_WITH_LINE("Prepare");
 }
 
@@ -803,7 +792,7 @@ void pripremi_sqlda(int bDebug)
     sqldaptr->sqln = 0;
 
     // Izvrsiti prvi put naredbu DESCRIBE OUTPUT
-    EXEC SQL DESCRIBE prep_stmt 
+    EXEC SQL DESCRIBE PREPARED_STATEMENT 
         INTO :*sqldaptr;
     
     // Dodajemo ovu proveru ispred provere greske
@@ -848,7 +837,7 @@ void pripremi_sqlda(int bDebug)
     sqldaptr->sqln = numcols;
 
     // Izvrsavamo finalnu naredbu DESCRIBE OUTPUT
-    EXEC SQL DESCRIBE prep_stmt 
+    EXEC SQL DESCRIBE PREPARED_STATEMENT 
         INTO :*sqldaptr;
     
     if (SQLCODE < 0)
@@ -1010,17 +999,17 @@ void oslobodi_prvih_i_SQLVAR_u_sqlda(int i)
 
 void ispisi_podatke(int bDebug)
 {
-    EXEC SQL DECLARE c CURSOR FOR prep_stmt;
+    EXEC SQL DECLARE KURSOR CURSOR FOR PREPARED_STATEMENT;
     IS_ERROR_WITH_LINE("Declare");
 
-    EXEC SQL OPEN c;
+    EXEC SQL OPEN KURSOR;
     IS_ERROR_WITH_LINE("Open");
 
     int broj_reda = 1;
     
     for(;;)
     {
-        EXEC SQL FETCH c 
+        EXEC SQL FETCH KURSOR 
             USING DESCRIPTOR :*sqldaptr;
         IS_ERROR_WITH_LINE("Fetch");
 

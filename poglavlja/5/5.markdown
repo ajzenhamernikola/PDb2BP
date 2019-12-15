@@ -164,8 +164,7 @@ Rešenje: Pre početka izvršavanja, kreirati tabelu `OBRADJENI_PREDMETI` koja s
 CREATE TABLE OBRADJENI_PREDMETI (
     ID_PREDMETA INTEGER NOT NULL,
     PRIMARY KEY (ID_PREDMETA),
-    FOREIGN KEY (ID_PREDMETA)
-        REFERENCES PREDMET
+    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
 )
 ```
 
@@ -213,25 +212,20 @@ int main()
     EXEC SQL SET CURRENT LOCK TIMEOUT 10;
     is_error("Set current lock timeout 10");
     
-    EXEC SQL DECLARE predmeti CURSOR WITH HOLD FOR 
-        SELECT 
-            ID_PREDMETA, 
-            SIFRA, 
-            NAZIV, 
-            BROJ_SEMESTARA, 
-            BODOVI
-        FROM 
-            PREDMET P
-          WHERE NOT EXISTS (
-            SELECT 
-                * 
-            FROM 
-                OBRADJENI_PREDMETI
-            WHERE 
-                ID_PREDMETA = P.ID_PREDMETA
-        )
-        FOR UPDATE OF 
-            BROJ_SEMESTARA;
+    EXEC SQL 
+        DECLARE predmeti CURSOR WITH HOLD FOR 
+        SELECT  ID_PREDMETA, 
+                SIFRA, 
+                NAZIV, 
+                BROJ_SEMESTARA, 
+                BODOVI
+        FROM    PREDMET P
+        WHERE   NOT EXISTS (
+                    SELECT  * 
+                    FROM    OBRADJENI_PREDMETI
+                    WHERE   ID_PREDMETA = P.ID_PREDMETA
+                )
+        FOR     UPDATE OF BROJ_SEMESTARA;
     is_error("Declare predmeti");
     
     EXEC SQL OPEN predmeti;
@@ -243,14 +237,12 @@ int main()
         // Bilo da li se informacije koriste za citanje ili za eventualnu izmenu,
         // SUBP mora da dodeli aplikaciji odgovarajuci katanac.
         EXEC SQL 
-            FETCH 
-                predmeti 
-            INTO 
-                :d_id, 
-                :d_sifra, 
-                :d_naziv, 
-                :d_broj_semestara, 
-                :d_bodovi;
+            FETCH   predmeti 
+            INTO    :d_id, 
+                    :d_sifra, 
+                    :d_naziv, 
+                    :d_broj_semestara, 
+                    :d_bodovi;
     
         // U slucaju da dodela katanca ne uspe, 
         // SUBP ce prijaviti jednu od gresaka -911 ili -913.
@@ -285,11 +277,9 @@ int main()
         {
             // Izvrsavanje naredbe UPDATE uvek trazi katanac za azuriranje podataka...
             EXEC SQL 
-                UPDATE 
-                    PREDMET
-                SET 
-                    BROJ_SEMESTARA = :d_broj_semestara + 1
-                WHERE CURRENT OF predmeti;
+                UPDATE  PREDMET
+                SET     BROJ_SEMESTARA = :d_broj_semestara + 1
+                WHERE   CURRENT OF predmeti;
 
             // ... sto znaci da moramo i nakon nje da vrsimo obradu greske za visekorisnicko okruzenje.
             if (SQLCODE == -911 || SQLCODE == -913)
@@ -301,14 +291,10 @@ int main()
 
             // Slicno kao i FETCH, naredba SELECT INTO zahteva katanac za citanje...
             EXEC SQL 
-                SELECT 
-                    BROJ_SEMESTARA
-                INTO 
-                    :d_broj_semestara 
-                FROM 
-                    PREDMET
-                WHERE 
-                    ID_PREDMETA = :d_id;
+                SELECT  BROJ_SEMESTARA
+                INTO    :d_broj_semestara 
+                FROM    PREDMET
+                WHERE   ID_PREDMETA = :d_id;
 
             // ... sto znaci da moramo i nakon nje da vrsimo obradu greske za visekorisnicko okruzenje.
             if (SQLCODE == -911 || SQLCODE == -913)
@@ -325,10 +311,9 @@ int main()
         // predmet se smatra za obradjen,
         // te ga je potrebno evidentirati.
         EXEC SQL 
-            INSERT INTO 
-                OBRADJENI_PREDMETI
-            VALUES
-                (:d_id);
+            INSERT 
+            INTO    OBRADJENI_PREDMETI
+            VALUES  (:d_id);
         
         // INSERT naredba takodje zahteva postavljanje odgovarajuceg katanca.
         if (SQLCODE == -911 || SQLCODE == -913)
@@ -417,12 +402,9 @@ Međutim, za razliku od RR, na ovom nivou izolacije proces koji izvršava isti u
 Osim ekskluzivnih katanaca, proces na RS nivou izolovanosti dobija bar deljive katance na svim podacima koji su prihvaćeni. Na primer, neka se u procesu P izvršava naredni upit:
 
 ```sql
-SELECT 
-    ∗
-FROM 
-    SMER
-WHERE 
-    ID_NIVOA = 10
+SELECT  ∗
+FROM    SMER
+WHERE   ID_NIVOA = 10
 ```
 
 U slučaju RR nivoa izolovanosti izvršavanje ovog upita izazvaće zaključavanje svih redova tabele `SMER`, a u slučaju RS nivoa izolovanosti zaključavanje se vrši samo nad onim redovima koji ispunjavaju uslov restrikcije `ID_NIVOA = 10`. Zbog toga, ako neki drugi proces unese novi red koji zadovoljava datu restrikciju, u slučaju RR nivoa izolovanosti to neće biti moguće, dok će ponovo izvršavanje upita u slučaju RS nivoa izolovanosti proizvesti prikazivanje i tih novih redova.
@@ -509,16 +491,14 @@ db2 connect reset
 a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu skripta `pripremaBaze.sql` čiji je sadržaj:
 
 ```sql
-DELETE FROM 
-    ISPITNI_ROK
-WHERE 
-    GODINA = 2016;
+DELETE 
+FROM    ISPITNI_ROK
+WHERE   GODINA = 2016;
 
-INSERT INTO 
-    ISPITNI_ROK 
-VALUES
-    (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
-    (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
+INSERT 
+INTO    ISPITNI_ROK 
+VALUES  (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
+        (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
 ```
 
 Pokrenuti program `repeatableRead` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti program `insertIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
@@ -552,14 +532,17 @@ void is_error(char *err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
 
-    EXEC SQL DECLARE ispitniRok CURSOR FOR
-        select godina, oznaka, naziv
-        from ispitni_rok
-        where godina = 2016
-        WITH RR;
+    EXEC SQL 
+        DECLARE ispitniRok CURSOR FOR
+        SELECT  GODINA, 
+                OZNAKA, 
+                NAZIV
+        FROM    ISPITNI_ROK
+        WHERE   GODINA = 2016
+        WITH    RR;
     is_error("Declare cursor");
 
     int i = 1;
@@ -574,8 +557,11 @@ int main()
         
         for(;;)
         {
-            EXEC SQL FETCH ispitniRok 
-                INTO :godina, :oznaka, :naziv;
+            EXEC SQL 
+                FETCH   ispitniRok 
+                INTO    :godina, 
+                        :oznaka, 
+                        :naziv;
             is_error("Fetch");
 
             if(SQLCODE == 100)
@@ -633,7 +619,7 @@ void obradi_cekanje()
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     EXEC SQL SET CURRENT LOCK TIMEOUT 5;
@@ -641,8 +627,10 @@ int main()
     
     for(;;)
     {
-        EXEC SQL INSERT INTO ispitni_rok
-            values (2016, 'mar', 'Mart 2016', current_date - 1 month, current_date - 1 month + 20 days, 1);    
+        EXEC SQL 
+            INSERT 
+            INTO    ISPITNI_ROK
+            VALUES  (2016, 'mar', 'Mart 2016', CURRENT_DATE - 1 MONTH, CURRENT_DATE - 1 MONTH + 20 DAYS, 1);
       
         if (SQLCODE == 0)
         {
@@ -687,16 +675,14 @@ db2 connect reset
 a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu skripta `pripremaBaze.sql` čiji je sadržaj:
 
 ```sql
-DELETE FROM 
-    ISPITNI_ROK
-WHERE 
-    GODINA = 2016;
+DELETE 
+FROM    ISPITNI_ROK
+WHERE   GODINA = 2016;
 
-INSERT INTO 
-    ISPITNI_ROK 
-VALUES
-    (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
-    (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
+INSERT 
+INTO    ISPITNI_ROK 
+VALUES  (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
+        (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
 ```
 
 Pokrenuti program `readStability` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti programe `insertIspitniRok` i `updateIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
@@ -732,14 +718,17 @@ void is_error(char *err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
 
-    EXEC SQL DECLARE ispitniRok CURSOR FOR
-        select godina, oznaka, naziv
-        from ispitni_rok
-        where godina = 2016
-        WITH RS;
+    EXEC SQL 
+        DECLARE ispitniRok CURSOR FOR
+        SELECT  GODINA, 
+                OZNAKA, 
+                NAZIV
+        FROM    ISPITNI_ROK
+        WHERE   GODINA = 2016
+        WITH    RS;
     is_error("Declare cursor");
 
     int i = 1;
@@ -754,8 +743,11 @@ int main()
         
         for(;;)
         {
-            EXEC SQL FETCH ispitniRok 
-                INTO :godina, :oznaka, :naziv;
+            EXEC SQL 
+                FETCH   ispitniRok 
+                INTO    :godina, 
+                        :oznaka, 
+                        :naziv;
             is_error("Fetch");
 
             if(SQLCODE == 100)
@@ -813,7 +805,7 @@ void obradi_cekanje()
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     EXEC SQL SET CURRENT LOCK TIMEOUT 5;
@@ -821,8 +813,10 @@ int main()
     
     for(;;)
     {
-        EXEC SQL INSERT INTO ispitni_rok
-            values (2016, 'mar', 'Mart 2016', current_date - 1 month, current_date - 1 month + 20 days, 1);    
+        EXEC SQL 
+            INSERT 
+            INTO    ISPITNI_ROK
+            VALUES  (2016, 'mar', 'Mart 2016', CURRENT_DATE - 1 MONTH, CURRENT_DATE - 1 MONTH + 20 DAYS, 1);
       
         if (SQLCODE == 0)
         {
@@ -880,7 +874,7 @@ void obradi_cekanje()
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     EXEC SQL SET CURRENT LOCK TIMEOUT 5;
@@ -888,9 +882,10 @@ int main()
     
     for(;;)
     {
-        EXEC SQL UPDATE ispitni_rok
-            SET kraj_prijavljivanja = kraj_prijavljivanja + 3 days
-            WHERE godina = 2016;    
+        EXEC SQL 
+            UPDATE  ISPITNI_ROK
+            SET     KRAJ_PRIJAVLJIVANJA = KRAJ_PRIJAVLJIVANJA + 3 DAYS
+            WHERE   GODINA = 2016;
       
         if (SQLCODE == 0)
         {
@@ -935,16 +930,14 @@ db2 connect reset
 a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu skripta `pripremaBaze.sql` čiji je sadržaj:
 
 ```sql
-DELETE FROM 
-    ISPITNI_ROK
-WHERE 
-    GODINA = 2016;
+DELETE 
+FROM    ISPITNI_ROK
+WHERE   GODINA = 2016;
 
-INSERT INTO 
-    ISPITNI_ROK 
-VALUES
-    (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
-    (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
+INSERT 
+INTO    ISPITNI_ROK 
+VALUES  (2016, 'Jan2016', 'Januar 2016', '01/01/2016', '01/12/2016', '1'),
+        (2016, 'Feb2016', 'Februar 2016', '02/01/2016', '02/12/2016', '1');
 ```
 
 Pokrenuti program `cursorStability` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti programe `insertIspitniRok` i `updateIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova. 
@@ -982,14 +975,19 @@ void is_error(char *err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
 
-    EXEC SQL DECLARE ispitniRok CURSOR FOR
-        SELECT godina, oznaka, naziv, pocetak_prijavljivanja, kraj_prijavljivanja
-        FROM ispitni_rok
-        WHERE godina = 2016
-        WITH CS;
+    EXEC SQL 
+        DECLARE ispitniRok CURSOR FOR
+        SELECT  GODINA, 
+                OZNAKA, 
+                NAZIV, 
+                POCETAK_PRIJAVLJIVANJA, 
+                KRAJ_PRIJAVLJIVANJA
+        FROM    ISPITNI_ROK
+        WHERE   GODINA = 2016
+        WITH    CS;
     is_error("Declare cursor");
 
     int i = 1;
@@ -1004,8 +1002,13 @@ int main()
         
         for(;;)
         {
-            EXEC SQL FETCH ispitniRok 
-                INTO :godina, :oznaka, :naziv, :pocetak, :kraj;
+            EXEC SQL 
+                FETCH   ispitniRok 
+                INTO    :godina, 
+                        :oznaka, 
+                        :naziv, 
+                        :pocetak, 
+                        :kraj;
             is_error("Fetch");
 
             if(SQLCODE == 100)
@@ -1065,7 +1068,7 @@ void obradi_cekanje()
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     EXEC SQL SET CURRENT LOCK TIMEOUT 5;
@@ -1073,8 +1076,10 @@ int main()
     
     for(;;)
     {
-        EXEC SQL INSERT INTO ispitni_rok
-            values (2016, 'mar', 'Mart 2016', current_date - 1 month, current_date - 1 month + 20 days, 1);    
+        EXEC SQL 
+            INSERT 
+            INTO    ISPITNI_ROK
+            VALUES  (2016, 'mar', 'Mart 2016', CURRENT_DATE - 1 MONTH, CURRENT_DATE - 1 MONTH + 20 DAYS, 1);
       
         if (SQLCODE == 0)
         {
@@ -1132,7 +1137,7 @@ void obradi_cekanje()
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     EXEC SQL SET CURRENT LOCK TIMEOUT 5;
@@ -1140,9 +1145,10 @@ int main()
     
     for(;;)
     {
-        EXEC SQL UPDATE ispitni_rok
-            SET kraj_prijavljivanja = kraj_prijavljivanja + 3 days
-            WHERE godina = 2016;    
+        EXEC SQL 
+            UPDATE  ISPITNI_ROK
+            SET     KRAJ_PRIJAVLJIVANJA = KRAJ_PRIJAVLJIVANJA + 3 DAYS
+            WHERE   GODINA = 2016;
       
         if (SQLCODE == 0)
         {
@@ -1227,16 +1233,21 @@ void is_error(char *err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     // Zakljucavamo tabelu SMER u deljenom rezimu
-    EXEC SQL LOCK TABLE smer IN SHARE MODE;
+    EXEC SQL LOCK TABLE SMER IN SHARE MODE;
     is_error("Lock table");
     
-    EXEC SQL DECLARE c_smer CURSOR FOR 
-        SELECT id_smera, oznaka, naziv, semestara, bodovi 
-        FROM smer;
+    EXEC SQL 
+        DECLARE c_smer CURSOR FOR 
+        SELECT  ID_SMERA, 
+                OZNAKA, 
+                NAZIV, 
+                SEMESTARA, 
+                BODOVI 
+        FROM    SMER;
     is_error("Declare cursor");
     
     EXEC SQL OPEN c_smer;
@@ -1244,8 +1255,13 @@ int main()
     
     for(;;)
     {
-        EXEC SQL FETCH c_smer
-            INTO :d_id, :d_oznaka, :d_naziv, :d_semestara, :d_bodovi;
+        EXEC SQL 
+            FETCH   c_smer
+            INTO    :d_id, 
+                    :d_oznaka, 
+                    :d_naziv, 
+                    :d_semestara, 
+                    :d_bodovi;
         is_error("Fetch cursor");
     
         if (SQLCODE == 100)
@@ -1302,16 +1318,21 @@ void is_error(char *err)
 
 int main()
 {
-    EXEC SQL CONNECT TO vstud user student using abcdef;
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
     // Zakljucavamo tabelu SMER u privatnom rezimu
-    EXEC SQL LOCK TABLE smer IN EXCLUSIVE MODE;
+    EXEC SQL LOCK TABLE SMER IN EXCLUSIVE MODE;
     is_error("Lock table");
     
-    EXEC SQL DECLARE c_smer CURSOR FOR 
-        SELECT id_smera, oznaka, naziv, semestara, bodovi 
-        FROM smer;
+    EXEC SQL 
+        DECLARE c_smer CURSOR FOR 
+        SELECT  ID_SMERA, 
+                OZNAKA, 
+                NAZIV, 
+                SEMESTARA, 
+                BODOVI 
+        FROM    SMER;
     is_error("Declare cursor");
     
     EXEC SQL OPEN c_smer;
@@ -1319,8 +1340,13 @@ int main()
     
     for(;;)
     {
-        EXEC SQL FETCH c_smer
-            INTO :d_id, :d_oznaka, :d_naziv, :d_semestara, :d_bodovi;
+        EXEC SQL 
+            FETCH   c_smer
+            INTO    :d_id, 
+                    :d_oznaka, 
+                    :d_naziv, 
+                    :d_semestara, 
+                    :d_bodovi;
         is_error("Fetch cursor");
     
         if (SQLCODE == 100)
@@ -1347,5 +1373,9 @@ int main()
     return 0;
 }
 ```
+
+## 5.5 Zadaci za vežbu
+
+
 
 -----

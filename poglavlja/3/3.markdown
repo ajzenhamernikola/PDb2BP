@@ -145,15 +145,14 @@ int main()
     is_error("Connect");
     
     // Deklarisemo kursor koji prolazi tabelom smer
-    EXEC SQL DECLARE c_smer CURSOR FOR 
-        SELECT 
-            id_smera, 
-            oznaka, 
-            naziv, 
-            semestara, 
-            bodovi 
-        FROM 
-            smer;
+    EXEC SQL 
+        DECLARE c_smer CURSOR FOR 
+        SELECT  ID_SMERA, 
+                OZNAKA, 
+                NAZIV, 
+                SEMESTARA, 
+                BODOVI 
+        FROM    SMER;
     is_error("Declare cursor");
     
     // Otvaramo kursor, cime se izvrsava upit naveden u deklaraciji
@@ -165,14 +164,12 @@ int main()
     {
         // Citamo red po red
         EXEC SQL 
-            FETCH 
-                c_smer
-            INTO 
-                :d_id, 
-                :d_oznaka, 
-                :d_naziv, 
-                :d_semestara, 
-                :d_bodovi;
+            FETCH   c_smer
+            INTO    :d_id, 
+                    :d_oznaka, 
+                    :d_naziv, 
+                    :d_semestara, 
+                    :d_bodovi;
         is_error("Fetch cursor");
 
         // Ako smo stigli do kraja rezultujuce tabele, 
@@ -207,13 +204,11 @@ int main()
 Kao što smo napomenuli, moguće je korišćenje kursora za ažuriranje ili brisanje redova iz tabela. U slučaju ažuriranja redova, potrebno je deklarisati koje kolone se mogu menjati pri deklaraciji kursora, a zatim koristiti `UPDATE` naredbu oblika:
 
 ```sql
-UPDATE 
-    <TABELA>
-SET 
-    <KOLONA_1> = <VREDNOST_1>,
-    -- ...
-    <KOLONA_N> = <VREDNOST_N>
-WHERE CURRENT OF <IME_KURSORA>
+UPDATE  <TABELA>
+SET     <KOLONA_1> = <VREDNOST_1>,
+        -- ...
+        <KOLONA_N> = <VREDNOST_N>
+WHERE   CURRENT OF <IME_KURSORA>
 ```
 
 {% include definicija.html def="SQL naredba `UPDATE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `UPDATE` naredba. " %}
@@ -255,17 +250,16 @@ int main()
     
     // Deklarisemo kursor koji prolazi tabelom smer, 
     // kojim zelimo da menjamo atribut bodovi
-    EXEC SQL DECLARE c_smer CURSOR FOR 
-        SELECT 
-            id_smera, 
-            oznaka, 
-            naziv, 
-            semestara, 
-            bodovi 
-        FROM 
-            smer
-        FOR UPDATE OF bodovi; // Na ovaj nacin najavljujemo 
-                              // da cemo vrsiti promenu kolone "bodovi"
+    EXEC SQL 
+        DECLARE c_smer CURSOR FOR 
+        SELECT ID_SMERA, 
+                OZNAKA, 
+                NAZIV, 
+                SEMESTARA, 
+                BODOVI 
+        FROM    SMER
+        FOR     UPDATE OF bodovi; // Na ovaj nacin najavljujemo 
+                                  // da cemo vrsiti promenu kolone "bodovi"
     is_error("Declare cursor");
     
     EXEC SQL OPEN c_smer;
@@ -274,14 +268,12 @@ int main()
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                c_smer
-            INTO 
-                :d_id, 
-                :d_oznaka, 
-                :d_naziv, 
-                :d_semestara, 
-                :d_bodovi;
+            FETCH   c_smer
+            INTO    :d_id, 
+                    :d_oznaka, 
+                    :d_naziv, 
+                    :d_semestara, 
+                    :d_bodovi;
         is_error("Fetch cursor");
 
         if (SQLCODE == 100)
@@ -300,23 +292,17 @@ int main()
         if (c == 'd' || c == 'D')
         {
             EXEC SQL 
-                UPDATE 
-                    smer
-                SET 
-                    bodovi = bodovi + 10
-                WHERE CURRENT OF c_smer; // Na ovaj nacin kazemo da zelimo izmenu 
-                                         // nad trenutnim redom u kursoru c_smer
+                UPDATE  SMER
+                SET     BODOVI = BODOVI + 10
+                WHERE   CURRENT OF c_smer;  // Na ovaj nacin kazemo da zelimo izmenu 
+                                            // nad trenutnim redom u kursoru c_smer
             is_error("Update");
             
             EXEC SQL 
-                SELECT 
-                    bodovi 
-                INTO 
-                    :d_bodovi
-                FROM 
-                    smer
-                WHERE 
-                    id_smera = :d_id;
+                SELECT  BODOVI
+                INTO    :d_bodovi
+                FROM    SMER
+                WHERE   ID_SMERA = :d_id;
             is_error("Select into");
             
             printf("Broj bodova je sada %hd\n", d_bodovi);
@@ -336,8 +322,9 @@ int main()
 U slučaju brisanja redova pomoću kursora, nije potrebno deklarisati koje kolone se mogu brisati kao što je to bio slučaj sa ažuriranjem. Potrebno je samo da tabela `<TABELA>` bude jedina tabela koja se nalazi u `FROM` klauzi upita kursora naziva `<IME_KURSORA>`, da bi se mogla koristiti `DELETE` naredba oblika:
 
 ```sql
-DELETE FROM <IME_TABELE>
-WHERE CURRENT OF <IME_KURSORA>
+DELETE 
+FROM    <IME_TABELE>
+WHERE   CURRENT OF <IME_KURSORA>
 ```
 
 {% include definicija.html def="SQL naredba `DELETE` koja ažurira podatke u tabeli na osnovu pozicije nekog kursora naziva se *pozicionirajuća* `DELETE` naredba." %}
@@ -372,37 +359,29 @@ int main()
     EXEC SQL CONNECT TO vstud USER student USING abcdef;
     is_error("Connect");
     
-    EXEC SQL DECLARE prvi_ispit CURSOR FOR 
-        WITH pomocna AS (
-            SELECT
-                i.indeks, 
-                min(coalesce(datum_usmenog, datum_pismenog)) datum_prvog
-            FROM
-                ispit i JOIN
-                dosije d ON d.indeks = i.indeks join
-                smer s ON s.id_smera = d.id_smera
-            WHERE
-                s.oznaka = 'I' AND
-                ocena > 5 AND
-                status_prijave = 'o'
-            GROUP BY
-                i.indeks
+    EXEC SQL 
+        DECLARE prvi_ispit CURSOR FOR 
+        WITH POMOCNA AS (
+            SELECT      I.INDEKS, 
+                        MIN(COALESCE(DATUM_USMENOG, DATUM_PISMENOG)) AS DATUM_PRVOG
+            FROM        ISPIT I JOIN
+                        DOSIJE D ON D.INDEKS = I.INDEKS JOIN
+                        SMER S ON S.ID_SMERA = D.ID_SMERA
+            WHERE       S.OZNAKA = 'I' AND
+                        OCENA > 5 AND
+                        STATUS_PRIJAVE = 'o'
+            GROUP BY    I.INDEKS
         )
 
-        SELECT 
-            i.indeks, 
-            coalesce(datum_usmenog, datum_pismenog)
-        FROM 
-            ispit i
-        WHERE EXISTS (
-            SELECT 
-                *
-            FROM 
-                pomocna po 
-            WHERE 
-                po.indeks = i.indeks AND
-                po.datum_prvog = coalesce(i.datum_usmenog, i.datum_pismenog)
-            );
+        SELECT  I.INDEKS, 
+                COALESCE(DATUM_USMENOG, DATUM_PISMENOG) AS DATUM_ISPITA
+        FROM    ISPIT I
+        WHERE   EXISTS (
+                    SELECT  *
+                    FROM    POMOCNA PO 
+                    WHERE   PO.INDEKS = I.INDEKS AND
+                            PO.DATUM_PRVOG = COALESCE(I.DATUM_USMENOG, I.DATUM_PISMENOG)
+                );
     is_error("Declare cursor");
     
     EXEC SQL OPEN prvi_ispit;
@@ -411,11 +390,9 @@ int main()
     for(;;)
     {
         EXEC SQL 
-            FETCH 
-                prvi_ispit
-            INTO 
-                :indeks, 
-                :datum;
+            FETCH   prvi_ispit
+            INTO    :indeks, 
+                    :datum;
         is_error("Fetch cursor");
 
         if (SQLCODE == 100) 
@@ -430,9 +407,10 @@ int main()
         ++i;
 
         EXEC SQL 
-            DELETE FROM ispit 
-            WHERE CURRENT OF prvi_ispit; // Na ovaj nacin kazemo da zelimo da obrisemo 
-                                         // trenutni red u kursoru prvi_ispit
+            DELETE 
+            FROM    ispit 
+            WHERE   CURRENT OF prvi_ispit;  // Na ovaj nacin kazemo da zelimo da obrisemo 
+                                            // trenutni red u kursoru prvi_ispit
         is_error("Delete");
     }
 
@@ -506,37 +484,29 @@ int main()
     EXEC SQL CONNECT TO vstud USER student USING abcdef;  
     is_error("Konekcija na bazu");
     
-    EXEC SQL DECLARE smerovi CURSOR FOR 
-        SELECT 
-            id_smera, 
-            naziv
-        FROM 
-            smer
-        ORDER BY 
-            id_smera;
+    EXEC SQL 
+        DECLARE smerovi CURSOR FOR 
+        SELECT      ID_SMERA, 
+                    NAZIV
+        FROM        SMER
+        ORDER BY    ID_SMERA;
     is_error("Deklaracija kursora - smerovi");
     
-    EXEC SQL DECLARE padaliIspit CURSOR FOR 
-        SELECT 
-            indeks, 
-            ime, 
-            prezime
-        FROM 
-            dosije d 
-        WHERE 
-            d.id_smera = :id_smera AND
-            EXISTS (
-                SELECT 
-                    * 
-                FROM 
-                    ispit
-                WHERE 
-                    indeks = d.indeks AND
-                    ocena = 5 AND
-                    status_prijave = 'o'
-            )
-        ORDER BY 
-            indeks;
+    EXEC SQL 
+        DECLARE padaliIspit CURSOR FOR 
+        SELECT      INDEKS, 
+                    IME, 
+                    PREZIME
+        FROM        DOSIJE D 
+        WHERE       D.ID_SMERA = :ID_SMERA AND
+                    EXISTS (
+                        SELECT  * 
+                        FROM    ISPIT
+                        WHERE   INDEKS = D.INDEKS AND
+                                OCENA = 5 AND
+                                STATUS_PRIJAVE = 'o'
+                    )
+        ORDER BY    INDEKS;
     is_error("Deklaracija kursora - padaliIspit");
     
     /////////////////////////////////////
@@ -548,11 +518,9 @@ int main()
     while(1)
     {
         EXEC SQL 
-            FETCH 
-                smerovi
-            INTO 
-                :id_smera, 
-                :naziv;
+            FETCH   smerovi
+            INTO    :id_smera, 
+                    :naziv;
         is_error("Dohvatanje podataka iz kursora - smerovi");
 
         if(SQLCODE == 100)
@@ -573,12 +541,10 @@ int main()
         while(1)
         {
             EXEC SQL 
-                FETCH 
-                    padaliIspit
-                INTO 
-                    :indeks, 
-                    :ime, 
-                    :prezime;
+                FETCH   padaliIspit
+                INTO    :indeks, 
+                        :ime, 
+                        :prezime;
             is_error("Dohvatanje podataka iz kursora - padaliIspit");
 
             if(SQLCODE == 100)
@@ -639,75 +605,54 @@ int main()
     EXEC SQL CONNECT TO vstud USER student USING abcdef;  
     is_error("Konekcija na bazu");
     
-    EXEC SQL DECLARE najvisePolozenih CURSOR FOR 
-        WITH pomocna AS (
-            SELECT 
-                d.id_smera, 
-                d.indeks, 
-                sum(p.bodovi) suma
-            FROM 
-                dosije d JOIN
-                ispit i ON i.indeks = d.indeks JOIN
-                predmet p ON p.id_predmeta = i.id_predmeta
-            WHERE 
-                ocena > 5 AND
-                status_prijave='o'
-            GROUP BY 
-                d.id_smera, 
-                d.indeks
+    EXEC SQL 
+        DECLARE najvisePolozenih CURSOR FOR 
+        WITH POMOCNA AS (
+            SELECT      D.ID_SMERA, 
+                        D.INDEKS, 
+                        SUM(P.BODOVI) SUMA
+            FROM        DOSIJE D JOIN
+                        ISPIT I ON I.INDEKS = D.INDEKS JOIN
+                        PREDMET P ON P.ID_PREDMETA = I.ID_PREDMETA
+            WHERE       OCENA > 5 AND
+                        STATUS_PRIJAVE = 'o'
+            GROUP BY    D.ID_SMERA, 
+                        D.INDEKS
         )
-            
-        SELECT 
-            pom.suma, 
-            d.indeks, 
-            pom.id_smera    
-        FROM 
-            pomocna pom JOIN
-            dosije d ON d.indeks = pom.indeks 
-        WHERE 
-            pom.suma IN (
-                SELECT 
-                    max(suma) 
-                FROM 
-                    pomocna pom1 
-                WHERE 
-                    pom1.id_smera = pom.id_smera
-            )
-        ORDER BY 
-            id_smera;
+        SELECT      POM.SUMA, 
+                    D.INDEKS, 
+                    POM.ID_SMERA    
+        FROM        POMOCNA POM JOIN
+                    DOSIJE D ON D.INDEKS = POM.INDEKS 
+        WHERE       POM.SUMA IN (
+                        SELECT  MAX(SUMA) 
+                        FROM    POMOCNA POM1 
+                        WHERE   POM1.ID_SMERA = POM.ID_SMERA
+                    )
+        ORDER BY    ID_SMERA;
     is_error("Deklaracija kursora - najvisePolozenih");
     
-    EXEC SQL DECLARE poslednji_ispit CURSOR FOR 
-        WITH pomocna AS (
-            SELECT 
-                i.indeks, 
-                max(coalesce(datum_usmenog, datum_pismenog)) datum_prvog
-            FROM 
-                ispit i JOIN
-                dosije d ON d.indeks = i.indeks
-            WHERE 
-                ocena > 5 AND
-                status_prijave = 'o'
-            GROUP BY
-                i.indeks
+    EXEC SQL 
+        DECLARE poslednji_ispit CURSOR FOR 
+        WITH POMOCNA AS (
+            SELECT      I.INDEKS, 
+                        MAX(COALESCE(DATUM_USMENOG, DATUM_PISMENOG)) DATUM_PRVOG
+            FROM        ISPIT I JOIN
+                        DOSIJE D ON D.INDEKS = I.INDEKS
+            WHERE       OCENA > 5 AND
+                        STATUS_PRIJAVE = 'o'
+            GROUP BY    I.INDEKS
         )
-
-        SELECT
-            i.indeks
-        FROM
-            ispit i
-        WHERE 
-            i.indeks = :indeks AND
-            EXISTS (
-                SELECT 
-                    * 
-                FROM 
-                    pomocna po 
-                WHERE 
-                    po.indeks = i.indeks AND
-                    po.datum_prvog = coalesce(i.datum_usmenog, i.datum_pismenog)
-            )
-        FOR UPDATE OF napomena;
+        SELECT  I.INDEKS
+        FROM    ISPIT I
+        WHERE   I.INDEKS = :indeks AND
+                EXISTS (
+                    SELECT  * 
+                    FROM    POMOCNA PO 
+                    WHERE   PO.INDEKS = I.INDEKS AND
+                            PO.DATUM_PRVOG = COALESCE(I.DATUM_USMENOG, I.DATUM_PISMENOG)
+                )
+        FOR     UPDATE OF NAPOMENA;
     is_error("Deklaracija kursora - poslednji_ispit");
     
     EXEC SQL OPEN najvisePolozenih;
@@ -716,12 +661,10 @@ int main()
     while(1)
     {
         EXEC SQL 
-            FETCH 
-                najvisePolozenih                
-            INTO 
-                :suma, 
-                :indeks, 
-                :id_smera;
+            FETCH   najvisePolozenih                
+            INTO    :suma, 
+                    :indeks, 
+                    :id_smera;
         is_error("Dohvatanje podataka iz kursora - najvisePolozenih");
 
         if(SQLCODE == 100)
@@ -739,11 +682,9 @@ int main()
         while(1)
         {
             EXEC SQL 
-                FETCH 
-                    poslednji_ispit
-                INTO 
-                    :indeks, 
-                    :datum;
+                FETCH   poslednji_ispit
+                INTO    :indeks, 
+                        :datum;
             is_error("Dohvatanje podataka iz kursora - poslednji_ispit");
 
             if(SQLCODE == 100)
@@ -752,11 +693,9 @@ int main()
             }
             
             EXEC SQL 
-                UPDATE 
-                    ispit
-                SET 
-                    napomena = 'Ovo je student koji ima najvise polozenih kredita na svom smeru'
-                WHERE CURRENT OF poslednji_ispit;
+                UPDATE  ISPIT
+                SET     NAPOMENA = 'Ovo je student koji ima najvise polozenih kredita na svom smeru'
+                WHERE   CURRENT OF poslednji_ispit;
             is_error("Azuriranje tabele ispit");
         }
         
