@@ -248,7 +248,7 @@ need to perform these steps:
 4. Invoke the ResultSet.close method to close the ResultSet object.
 5. Invoke the Statement.close method to close the Statement object when you have finished using that object.
 
-{% include zadatak.html broj="8.1" tekst="Napisati Java/SQL program koji izlistava šifre i nazive svih predmeta koji imaju više od 20 ESPB bodova." %}
+{% include zadatak.html broj="8.1" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izlistava šifre i nazive svih predmeta koji imaju više od 20 ESPB bodova." %}
 
 Rešenje:
 
@@ -268,7 +268,7 @@ To execute these SQL statements, you need to perform these steps:
 
 Method Statement.executeUpdate returns an integer which represents the number of updated rows
 
-{% include zadatak.html broj="8.2" tekst="Napisati Java/SQL program koji u tabelu `PREDMET` unosi podatak o predmetu čiji je identifikator 2001, šifra Pred1, naziv Predmet 1, koji se sluša u prvom semestru i nosi `5` ESPB bodova." %}
+{% include zadatak.html broj="8.2" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji u tabelu `PREDMET` unosi podatak o predmetu čiji je identifikator 2001, šifra Pred1, naziv Predmet 1, koji se sluša u prvom semestru i nosi `5` ESPB bodova." %}
 
 Rešenje:
 
@@ -298,13 +298,13 @@ The following are the examples of setXXX methods:
 After setting the parameter values, the SQL statement can be executed using any of the
 executeQuery, executeUpdate, or execute method based on the SQL type.
 
-{% include zadatak.html broj="8.3" tekst="Napisati Java/SQL program koji svim predmetima koji imaju X ESPB bodova, postavlja broj bodova na Y. Nakon toga ispisati broj ažuriranih redova. Brojevi X i Y se učitavaju sa standardnog ulaza." %}
+{% include zadatak.html broj="8.3" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji svim predmetima koji imaju X ESPB bodova, postavlja broj bodova na Y. Nakon toga ispisati broj ažuriranih redova. Brojevi X i Y se učitavaju sa standardnog ulaza." %}
 
 Rešenje:
 
 include_source(primeri/poglavlje_8/src/zadatak_8_3/Main.java, java)
 
-{% include zadatak.html broj="8.4" tekst="Napisati Java/SQL program koji izdvaja indeks, ime,
+{% include zadatak.html broj="8.4" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izdvaja indeks, ime,
 prezime i naziv smera svih studenata koji su položili tačno N predmeta, kao i spisak tih
 predmeta (naziv i ocena). Broj N se učitava sa standardnog ulaza." %}
 
@@ -347,7 +347,7 @@ while (res.next()) {
 }
 ```
 
-{% include zadatak.html broj="8.5" tekst="Napisati Java/SQL program koji izdvaja ime, prezime i datum rođenja za sve studentkinje (pol = 'z') iz tabele `DOSIJE`. Ukoliko datum rođenja nije poznat, ispisati `Nepoznat`." %}
+{% include zadatak.html broj="8.5" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izdvaja ime, prezime i datum rođenja za sve studentkinje (pol = 'z') iz tabele `DOSIJE`. Ukoliko datum rođenja nije poznat, ispisati `Nepoznat`." %}
 
 Rešenje:
 
@@ -443,7 +443,7 @@ nula ili više parametarskih oznaka.
    - int resultSetConcurrency
    - int resultSetHoldability
 
-{% include zadatak.html broj="8.?" tekst="Napisati Java/SQL program koji ispisuje podatke o ispitnim rokovima koristeći kursor kome je omogućeno kretanje i unazad kroz podatke. Podatke urediti po nazivu rastuće, ali ih ispisivati opadajuće." %}
+{% include zadatak.html broj="8.?" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke o ispitnim rokovima koristeći kursor kome je omogućeno kretanje i unazad kroz podatke. Podatke urediti po nazivu rastuće, ali ih ispisivati opadajuće." %}
 
 Rešenje:
 
@@ -514,7 +514,7 @@ refreshRow() method after calling updateXxx(), but before calling updateRow(),
 your changes will be lost because the JDBC driver will refresh the row’s data from
 the database.
 
-{% include zadatak.html broj="8.7" tekst="Napisati Java/SQL program koji ispisuje sadržaj tabele
+{% include zadatak.html broj="8.7" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje sadržaj tabele
 `PREDMET` i, u istoj iteraciji, ukoliko je broj bodova jednak X, postavlja se broj bodova na
 Y i ispisuje se poruka da je promena izvršena, zajedno sa ispisom novih podataka o
 tom predmetu. Brojevi X i Y se učitavaju sa standardnog ulaza." %}
@@ -569,7 +569,7 @@ deletes the row from the database. There is no way to cancel the delete operatio
 by rolling back the transaction. If the auto-commit mode is enabled on the Connection,
 deleteRow() will permanently delete the row from the database.
 
-{% include zadatak.html broj="8.8" tekst="Napisati Java/SQL program koji briše sve nepoložene ispite u godini koja se zadaje sa standarnog ulaza. Nakon svakog brisanja ispita, ispisati naredne informacije o njemu na standardni izlaz: indeks, oznaku roka, godinu roka i identifikator predmeta." %}
+{% include zadatak.html broj="8.8" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji briše sve nepoložene ispite u godini koja se zadaje sa standarnog ulaza. Nakon svakog brisanja ispita, ispisati naredne informacije o njemu na standardni izlaz: indeks, oznaku roka, godinu roka i identifikator predmeta." %}
 
 Rešenje:
 
@@ -581,7 +581,7 @@ U JDBC aplikacijama se kursori jednostavno ugnežđuju: potrebno je celokupnu ob
 unutrašnjeg kursora smestiti u okviru obrade jednog reda iz spoljašnjeg kursora. Naredni
 primer ilustruje upotrebu ugnežđenih kursora.
 
-{% include zadatak.html broj="8.9" tekst="Napisati Java/SQL program koji izdvaja indeks, ime, prezime i naziv smera svih studenata koji su položili tačno N predmeta, kao i spisak tih predmeta (naziv i ocena). Broj N se učitava sa standardnog ulaza. Za svakog studenta napraviti posebnu sekciju izveštaja." %}
+{% include zadatak.html broj="8.9" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izdvaja indeks, ime, prezime i naziv smera svih studenata koji su položili tačno N predmeta, kao i spisak tih predmeta (naziv i ocena). Broj N se učitava sa standardnog ulaza. Za svakog studenta napraviti posebnu sekciju izveštaja." %}
 
 Rešenje:
 
@@ -591,4 +591,22 @@ include_source(primeri/poglavlje_8/src/zadatak_8_9/Main.java, java)
 
 ## 8.4 Zadaci za vežbu
 
-{% include zadatak.html broj="8.10" tekst="Napisati Java/SQL program koji iz tabele `PREDMET` briše podatak o predmetu čija se šifra unosi sa standardnog ulaza. " %}
+{% include zadatak.html broj="8.10" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke za predmet čiji je identifikator `640`." %}
+
+{% include zadatak.html broj="8.11" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza." %}
+
+{% include zadatak.html broj="8.12" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom `LIMIT 1` naredbe `SELECT INTO` se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti `for` petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)" %}
+
+{% include zadatak.html broj="8.13" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se dodaje da je za polaganje predmeta čiji je identifikator `720` uslov da se položi predmet čiji je identifikator `655`." %}
+
+{% include zadatak.html broj="8.14" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabelu `NIVO_KVALIFIKACIJE` dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza." %}
+
+{% include zadatak.html broj="8.15" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se svim obaveznim predmetima na smeru `'Informatika'` povećava broj semestra za 1." %}
+
+{% include zadatak.html broj="8.16" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1." %}
+
+{% include zadatak.html broj="8.17" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabeli `USLOVNI_PREDMET` brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza." %}
+
+{% include zadatak.html broj="8.18" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza." %}
+
+{% include zadatak.html broj="8.19" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji iz tabele `PREDMET` briše podatak o predmetu čija se šifra unosi sa standardnog ulaza. " %}
