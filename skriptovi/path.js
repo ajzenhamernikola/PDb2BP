@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-module.exports.iterateAndTranslate = function (path, callback) {
+module.exports.iterateOverPathAndExecuteCallback = function (path, callback) {
     const files = fs.readdirSync(path, {withFileTypes: true});
     for (const file of files) {
         const filename = path + '/' + file.name;
@@ -12,7 +12,7 @@ module.exports.iterateAndTranslate = function (path, callback) {
         }
 
         if (file.isDirectory()) {
-            this.iterateAndTranslate(filename, callback);
+            this.iterateOverPathAndExecuteCallback(filename, callback);
         }
     }
 };
