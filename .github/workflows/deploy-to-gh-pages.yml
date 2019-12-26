@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Preprocess, build and deploy to GitHub Pages
 on:
   push:
     branches:
