@@ -17,7 +17,7 @@ jobs:
         cd ..
 
     - name: Run Jekyll
-      uses: theikeofficial/action-jekyll
+      uses: theikeofficial/action-jekyll@master
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
