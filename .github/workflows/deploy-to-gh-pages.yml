@@ -10,11 +10,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Build
+    - name: Preprocess the text
       run: |
         cd skriptovi
         node index.js
         cd ..
+
+    - name: Run Jekyll
+      uses: docker://faph/action-jekyll:1.5
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
