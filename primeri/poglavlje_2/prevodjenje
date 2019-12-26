@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 DB2PATH = /opt/ibm/db2/V10.5
 EXTRA_LFLAG = "-Wl,-rpath,$DB2PATH/lib32"

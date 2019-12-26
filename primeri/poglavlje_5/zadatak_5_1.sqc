@@ -1,0 +1,198 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+sqlint32 d_id;
+char d_sifra[21], 
+     d_naziv[201];
+short d_broj_semestara, 
+      d_bodovi;
+EXEC SQL END DECLARE SECTION;
+
+void is_error(const char* err)
+{
+    if (SQLCODE < 0)
+    {
+        printf("Greska %d: %s\n\n", SQLCODE, err);
+        
+        EXEC SQL ROLLBACK;
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Definisemo funkciju koja ce vrsiti obradu cekanja
+// u slucaju da dodje do problema u visekorisnickom okruzenju.
+// Primetimo da je definicija odvojena od deklaracije,
+// zato sto se u definiciji ove funkcije koristi kursor `predmeti`.
+// Da se definicija nasla ispred `main` funkcije,
+// Db2 pretprocesor bi izdao upozorenje da se kursor koristi pre deklaracije.
+void obradi_cekanje();
+
+int main()
+{
+    char odgovor_od_korisnika;
+    
+    EXEC SQL CONNECT TO vstud USER student USING abcdef;
+    is_error("Connect");
+    
+    // Postavljanje isteka vremena na 10 sekundi
+    EXEC SQL SET CURRENT LOCK TIMEOUT 10;
+    is_error("Set current lock timeout 10");
+    
+    EXEC SQL 
+        DECLARE predmeti CURSOR WITH HOLD FOR 
+        SELECT  ID_PREDMETA, 
+                SIFRA, 
+                NAZIV, 
+                BROJ_SEMESTARA, 
+                BODOVI
+        FROM    PREDMET P
+        WHERE   NOT EXISTS (
+                    SELECT  * 
+                    FROM    OBRADJENI_PREDMETI
+                    WHERE   ID_PREDMETA = P.ID_PREDMETA
+                )
+        FOR     UPDATE OF BROJ_SEMESTARA;
+    is_error("Declare predmeti");
+    
+    EXEC SQL OPEN predmeti;
+    is_error("Open predmeti");
+
+    for(;;)
+    {
+        // Naredba FETCH dohvata jedan red iz rezultata upita.
+        // Bilo da li se informacije koriste za citanje ili za eventualnu izmenu,
+        // SUBP mora da dodeli aplikaciji odgovarajuci katanac.
+        EXEC SQL 
+            FETCH   predmeti 
+            INTO    :d_id, 
+                    :d_sifra, 
+                    :d_naziv, 
+                    :d_broj_semestara, 
+                    :d_bodovi;
+    
+        // U slucaju da dodela katanca ne uspe, 
+        // SUBP ce prijaviti jednu od gresaka -911 ili -913.
+        // S obzirom da u funkciji `is_error` prekidamo program 
+        // u slucaju da je SQLCODE < 0,
+        // obradu katanca moramo vrsiti uvek pre poziva `is_error` funkcije,
+        // i preskociti trenutnu iteraciju.
+        if (SQLCODE == -911 || SQLCODE == -913)
+        {
+            obradi_cekanje();
+            continue;
+        }
+        is_error("Fetch predmeti");
+
+        if (SQLCODE == 100)
+        {
+            printf("Nema vise predmeta za obradjivanje!\n");
+            break;
+        }
+            
+        printf("Predmet - id = %d sifra = %.5s naziv = %.40s "
+            "broj_semestara = %d bodovi = %d\n", 
+            d_id, d_sifra, d_naziv, d_broj_semestara, d_bodovi);
+
+        printf("Da li se zeli promena semestra "
+            "u kome se slusa ovaj predmet? "
+            "Odgovoriti sa d ili n.\n");
+        scanf("%c", &odgovor_od_korisnika);
+        getchar();  // novi red
+
+        if (odgovor_od_korisnika == 'd' || odgovor_od_korisnika == 'D')
+        {
+            // Izvrsavanje naredbe UPDATE uvek trazi katanac za azuriranje podataka...
+            EXEC SQL 
+                UPDATE  PREDMET
+                SET     BROJ_SEMESTARA = :d_broj_semestara + 1
+                WHERE   CURRENT OF predmeti;
+
+            // ... sto znaci da moramo i nakon nje da vrsimo obradu greske za visekorisnicko okruzenje.
+            if (SQLCODE == -911 || SQLCODE == -913)
+            {
+                obradi_cekanje();
+                continue;
+            }
+            is_error("Update");
+
+            // Slicno kao i FETCH, naredba SELECT INTO zahteva katanac za citanje...
+            EXEC SQL 
+                SELECT  BROJ_SEMESTARA
+                INTO    :d_broj_semestara 
+                FROM    PREDMET
+                WHERE   ID_PREDMETA = :d_id;
+
+            // ... sto znaci da moramo i nakon nje da vrsimo obradu greske za visekorisnicko okruzenje.
+            if (SQLCODE == -911 || SQLCODE == -913)
+            {
+                obradi_cekanje();
+                continue;
+            }
+            is_error("Select into");
+
+            printf("Semestar u kome se slusa predmet je sada %d\n\n", d_broj_semestara);
+        }
+        
+        // Bilo da li korisnik zeli izmenu ili ne,
+        // predmet se smatra za obradjen,
+        // te ga je potrebno evidentirati.
+        EXEC SQL 
+            INSERT 
+            INTO    OBRADJENI_PREDMETI
+            VALUES  (:d_id);
+        
+        // INSERT naredba takodje zahteva postavljanje odgovarajuceg katanca.
+        if (SQLCODE == -911 || SQLCODE == -913)
+        {
+            obradi_cekanje();
+            continue;
+        }
+        is_error("Insert into");
+        
+        // Potvrdjivanje izmena u tekucoj transakciji
+        EXEC SQL COMMIT;
+        is_error("Commit");
+    }
+
+    EXEC SQL CLOSE predmeti;
+    is_error("Close predmeti");
+
+    // Vracamo istek vremena na podrazumevanu vrednost
+    EXEC SQL SET CURRENT LOCK TIMEOUT NULL;
+    is_error("Set current lock timeout null");
+
+    EXEC SQL COMMIT;
+    is_error("Potvrdjivanje izmena");
+
+    EXEC SQL CONNECT RESET;
+    is_error("Connect reset");
+
+    return 0;
+}
+
+// Kako se vrsi obrada greske 
+// u slucaju da aplikacija nije dobila neki katanac?
+// S obzirom da se problem visekorisnickog okruzenja moze desiti 
+// u bilo kom trenutku tokom izvrsavanja transakcije...
+void obradi_cekanje()
+{
+    // ... nakon prikaza odgovarajuce poruke korisniku...
+    printf("Objekat je zakljucan od strane druge transakcije.\n"
+        "Sacekati neko vreme.\n");
+
+    // ... neophodno je izvrsiti ponistavanje izmena u tekucoj transakciji.
+    // Da li mozete da konstruisete primer izvrsavanja ovog programa,
+    // tako da ukoliko se ovde ne navede ponistavanje izmene,
+    // baza prelazi u nekonzistentno stanje?
+    EXEC SQL ROLLBACK;
+    is_error("Rollback");
+
+    // Naredba ponistavanja izmena uvek zatvara sve kursore,
+    // te da bi naredna iteracija `for` petlje u `main` funkciji bila uspesna,
+    // moramo otvoriti kursor.
+    EXEC SQL OPEN predmeti;    
+    is_error("Open predmeti - obrada cekanja");
+}
