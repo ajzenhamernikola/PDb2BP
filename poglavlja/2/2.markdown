@@ -60,26 +60,9 @@ cc -I/opt/ibm/db2/V10.5/include -c IMEDATOTEKE.c
 cc -o IMEDATOTEKE IMEDATOTEKE.o -Wl,-rpath,/opt/ibm/db2/V10.5/lib32 -L/ opt/ibm/db2/V10.5/lib32 -ldb2
 ```
 
-S obzirom da je ovaj proces poprilično linearan za svaku aplikaciju koju ćemo pisati (uz jednocifren broj izuzetaka), dobro bi bilo automatizovati ga. U tu svrhu, kreirali smo skript `prevodjenje` čiji je sadržaj:
+S obzirom da je ovaj proces poprilično linearan za svaku aplikaciju koju ćemo pisati (uz jednocifren broj izuzetaka), dobro bi bilo automatizovati ga. U tu svrhu, kreirali smo skript `prevodjenje` čiji je sadržaj dat u nastavku.
 
-```shell
-#!/bin/sh
-
-DB2PATH = /opt/ibm/db2/V10.5
-EXTRA_LFLAG = "-Wl,-rpath,$DB2PATH/lib32"
-
-if (test $# -lt 3)
-then
-    db2 connect to $2
-else
-    db2 connect to $2 user $3 using $4
-fi
-
-db2 precompile $1.sqc bindfile
-db2 bind $1.bnd
-cc -I$DB2PATH/include -c $1.c
-cc -o $1 $1.o $EXTRA_LFLAG -L$DB2PATH/lib32 -ldb2
-```
+include_source(primeri/poglavlje_2/prevodjenje, shell)
 
 Ovaj skript u svojoj osnovnoj varijanti zahteva 4 argumenta:
 
@@ -200,6 +183,7 @@ Indikatorska promenljiva se u SQL naredbi navodi odmah nakon matične promenljiv
 ```sql
 SELECT  NULLKOLONA
 INTO    :maticnaPromenljiva :indikatorskaPromenljiva
+
 ...
 ```
 
@@ -357,189 +341,33 @@ Prekidanje konekcije je vrlo jednostavno. Dovoljno je izvršiti SQL naredbu `CON
 EXEC SQL CONNECT RESET;
 ```
 
-Time smo ispunili zahtev zadatka. U nastavku je dato celokupno rešenje:
+Time smo ispunili zahtev zadatka. U nastavku je dato celokupno rešenje.
 
-```c
-#include <stdio.h>
-#include <stdlib.h>
-
-EXEC SQL INCLUDE SQLCA;
-
-// Deklaracija potrebnih maticnih promenljivih
-EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 maxIndeks;
-EXEC SQL END DECLARE SECTION;
-
-// Definicija funkcije za obradu gresaka
-void is_error(const char∗ str)
-{
-    if(SQLCODE < 0)
-    {
-        fprintf(stderr, "Greska %d: %s\n", SQLCODE, str);
-        exit(EXIT_FAILURE);
-    }
-}
-
-int main()
-{
-    // Konekcija na bazu
-    EXEC SQL CONNECT TO vstud USER student USING abcdef;
-    is_error("Konekcija na bazu podataka");
-
-    // Izdvajamo maksimalni indeks i smestamo u maticnu promenljivu maxIndeks
-    EXEC SQL 
-        SELECT  MAX(INDEKS) 
-        INTO    :maxIndeks 
-        FROM    ISPIT;
-    is_error("Izdvajanje podatka o najvecem indeksu");
-
-    // Ispisujemo podatak koji se sada nalazi u maticnoj promenljivoj maxIndeks
-    printf("\nNajveci indeks je %d\n", maxIndeks);
-
-    // Diskonekcija sa baze
-    EXEC SQL CONNECT RESET;
-    is_error("Prekidanje konekcije sa bazom podataka");
-    
-    return 0;
-}
-```
+include_source(primeri/poglavlje_2/zadatak_2_1.sqc, c)
 
 Prevođenje rešenja zadatka 2.1 se vrši pomoću naredne naredbe koja se poziva u terminalu:
 
 ```shell
-./prevodjenje zadatak-2-1 vstud student abcdef
+./prevodjenje zadatak_2_1 vstud student abcdef
 ```
 
-Tokom ovog procesa možemo videti da li je došlo do nekih grešaka u fazi prevođenja. Ukoliko je sve prošlo kako treba, kreirana je izvršna datoteka `zadatak-2-1` koja se pokreće kao i svaki drugi izvršni C program:
+Tokom ovog procesa možemo videti da li je došlo do nekih grešaka u fazi prevođenja. Ukoliko je sve prošlo kako treba, kreirana je izvršna datoteka `zadatak_2_1` koja se pokreće kao i svaki drugi izvršni C program:
 
 ```shell
-./zadatak-2-1
+./zadatak_2_1
 ```
 
 {% include zadatak.html broj="2.2" tekst="Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta sa maksimalnim indeksom iz tabele `ISPIT`." %}
 
 Rešenje:
 
-```c
-#include <stdio.h>
-#include <stdlib.h>
-
-EXEC SQL INCLUDE SQLCA;
-
-EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 indeks;
-char ime[26];
-char prezime[26];
-char ime_oca[51];
-short ind_ime_oca;
-char datum_rodjenja[11];
-short ind_datum_rodjenja;
-EXEC SQL END DECLARE SECTION;
-
-void is_error(const char∗ str)
-{
-    if(SQLCODE < 0)
-    {
-        fprintf(stderr, "Greska %d: %s\n", SQLCODE, str);
-        exit(EXIT_FAILURE);
-    }
-}
-
-int main()
-{
-    EXEC SQL CONNECT TO vstud USER student USING abcdef;
-    is_error("Konekcija na bazu podataka");
-
-    EXEC SQL 
-        SELECT  INDEKS, 
-                IME, 
-                PREZIME, 
-                IME_OCA, 
-                DATUM_RODJENJA
-        INTO    :indeks, 
-                :ime, 
-                :prezime, 
-                :ime_oca :ind_ime_oca, 
-                :datum_rodjenja :ind_datum_rodjenja
-        FROM    DOSIJE
-        WHERE   INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE);
-    is_error("Izdvajanje podatka o studentu sa najvecim indeksom");
-
-    printf("\nINDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s\n",
-        indeks, ime, prezime,
-        (ind_ime_oca < 0) ? "null" : ime_oca,
-        (ind_datum_rodjenja < 0) ? "null" : datum_rodjenja);
-
-    EXEC SQL CONNECT RESET;
-    is_error("Prekidanje konekcije sa bazom podataka");
-
-    return 0;
-}
-```
+include_source(primeri/poglavlje_2/zadatak_2_2.sqc, c)
 
 {% include zadatak.html broj="2.3" tekst="Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta čiji se broj indeksa učitava sa standardnog ulaza." %}
 
 Rešenje:
 
-```c
-#include <stdio.h>
-#include <stdlib.h>
-
-EXEC SQL INCLUDE SQLCA;
-
-EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 indeks;
-char ime[26];
-char prezime[26];
-char ime_oca[51];
-short ind_ime_oca;
-char datum_rodjenja[11];
-short ind_datum_rodjenja;
-EXEC SQL END DECLARE SECTION;
-
-void is_error(const char∗ str)
-{
-    if(SQLCODE < 0)
-    {
-        fprintf(stderr, "Greska %d: %s\n", SQLCODE, str);
-        exit(EXIT_FAILURE);
-    }
-}
-
-int main()
-{
-    EXEC SQL CONNECT TO vstud USER student USING abcdef;
-    is_error("Konekcija na bazu podataka");
-
-    printf("Unesite broj indeksa: ");
-    scanf("%d", &indeks);
-
-    EXEC SQL 
-        SELECT  INDEKS, 
-                IME, 
-                PREZIME, 
-                IME_OCA, 
-                DATUM_RODJENJA
-        INTO    :indeks, 
-                :ime, 
-                :prezime, 
-                :ime_oca :ind_ime_oca, 
-                :datum_rodjenja :ind_datum_rodjenja
-        FROM    DOSIJE
-        WHERE   INDEKS = :indeks;
-    is_error("Izdvajanje podatka o studentu sa ucitanim indeksom");
-
-    printf("\nINDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s\n",
-        indeks, ime, prezime,
-        (ind_ime_oca < 0) ? "null" : ime_oca,
-        (ind_datum_rodjenja < 0) ? "null" : datum_rodjenja);
-
-    EXEC SQL CONNECT RESET;
-    is_error("Prekidanje konekcije sa bazom podataka");
-
-    return 0;
-}
-```
+include_source(primeri/poglavlje_2/zadatak_2_3.sqc, c)
 
 ### 2.2.8 Naredbe `INSERT`, `UPDATE` i `DELETE`
 
@@ -556,132 +384,7 @@ Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon `EXEC SQL`.
 
 Rešenje:
 
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-EXEC SQL INCLUDE SQLCA;
-
-EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 id_predmeta;
-char sifra[21];
-char naziv[201];
-short broj_semestara;
-short bodovi;
-EXEC SQL END DECLARE SECTION;
-
-void is_error(const char* str)
-{
-    if(SQLCODE < 0)
-    {
-        printf("Greska %d: %s\n", SQLCODE, str);
-        exit(EXIT_FAILURE);
-    }
-}
-
-// Deklaracije funkcija za svaki deo zadatka 
-void unesi_novi_predmet();
-void izmeni_novi_predmet();
-void obrisi_novi_predmet();
-
-// Glavni deo zadatka
-int main()
-{
-    EXEC SQL CONNECT TO vstud USER student USING abcdef;
-    is_error("Konekcija na bazu");
-
-    unesi_novi_predmet();
-    izmeni_novi_predmet();
-    obrisi_novi_predmet();
-
-    EXEC SQL CONNECT RESET;
-    is_error("Diskonekcija sa baze");
-
-    return 0;
-}
-
-// Definicije funkcija za svaki deo zadatka
-void unesi_novi_predmet()
-{
-    printf("Identifikator predmeta:");
-    scanf("%d", &id_predmeta);
-
-    printf("Sifra predmeta:");
-    scanf("%s", sifra);
-
-    printf("Naziv predmeta:");
-    scanf("%s", naziv);
-
-    printf("Semestara slusanja predmeta:");
-    scanf("%hd", &broj_semestara);
-
-    printf("Bodovi predmeta:");
-    scanf("%hd", &bodovi);
-
-    EXEC SQL 
-        INSERT 
-        INTO    PREDMET
-        VALUES  (:id_predmeta, :sifra, :naziv, :broj_semestara, :bodovi);
-    is_error("Unos podataka o predmetu");
-
-    EXEC SQL 
-        SELECT  ID_PREDMETA, 
-                SIFRA, 
-                NAZIV, 
-                BROJ_SEMESTARA, 
-                BODOVI
-        INTO    :id_predmeta, 
-                :sifra, 
-                :naziv, 
-                :broj_semestara, 
-                :bodovi
-        FROM    PREDMET
-        WHERE   ID_PREDMETA = :id_predmeta;
-    is_error("Izlistavanje podataka");
-
-    printf("\nID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd\n",
-        id_predmeta, sifra, naziv, broj_semestara, bodovi);
-}
-
-void izmeni_novi_predmet()
-{
-    EXEC SQL 
-        UPDATE  PREDMET
-        SET     BODOVI = BODOVI * 2
-        WHERE   ID_PREDMETA = :id_predmeta;
-    is_error("Azuriranje podataka o predmetu");
-
-    EXEC SQL 
-        SELECT  ID_PREDMETA, 
-                SIFRA, 
-                NAZIV, 
-                BROJ_SEMESTARA, 
-                BODOVI
-        INTO    :id_predmeta, 
-                :sifra, 
-                :naziv, 
-                :broj_semestara, 
-                :bodovi
-        FROM    PREDMET
-        WHERE   ID_PREDMETA = :id_predmeta;
-    is_error("Izlistavanje podataka");
-
-    printf("\nID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd\n", 
-        id_predmeta, sifra, naziv, broj_semestara, bodovi);
-}
-
-void obrisi_novi_predmet()
-{
-    EXEC SQL 
-        DELETE 
-        FROM    PREDMET
-        WHERE   ID_PREDMETA = :id_predmeta;
-    is_error("Brisanje podataka o predmetu");
-
-    printf("\nUspesno su obrisani podaci o predmetu\n");
-}
-```
+include_source(primeri/poglavlje_2/zadatak_2_4.sqc, c)
 
 ## 2.5 Zadaci za vežbu
 
