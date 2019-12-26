@@ -18,6 +18,8 @@ jobs:
 
     - name: Run Jekyll
       uses: docker://faph/action-jekyll:1.5
+      run: |
+        bundle update --bundler
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
