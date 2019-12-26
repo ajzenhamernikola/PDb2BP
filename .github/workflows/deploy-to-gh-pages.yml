@@ -15,7 +15,6 @@ jobs:
         cd skriptovi
         node index.js
         cd ..
-        bundle exec jekyll build
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
