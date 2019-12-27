@@ -3,3 +3,365 @@ permalink: /poglavlja/9/
 layout: page
 title: 9. Napredne tehnike razvijanja Java/SQL aplikacija
 ---
+
+U ovom poglavlju ćemo demonstrirati rad sa transakcijama, rad u konkurentnom okruženju,
+kao i povezivanje na više baza podataka u JDBC aplikacijama.
+
+## 9.1 Transakcioni rad
+
+JDBC supports the following concepts:
+
+- Setting the Auto-Commit Mode
+- Transaction isolation level
+- Savepoints
+
+### 9.1.1 Auto-Commit Mode
+
+When you connect to a database, the auto-commit property for the Connection object
+is set to true by default. If a connection is in the auto-commit mode, a SQL statement
+is committed automatically after its successful execution. If a connection is not in the
+auto-commit mode, you must call the commit() or rollback() method of the Connection
+object to commit or roll back a transaction. Typically, you disable the auto-commit mode
+for a connection in a JDBC application, so the logic in your application controls the
+final outcome of the transaction. To disable the auto-commit mode, you need to call the
+setAutoCommit(false) on the Connection object after a connection has been established.
+If a connection URL allows you to set the auto-commit mode, you can also specify it as
+part of the connection URL. You set the auto-commit mode of your connection in the
+JDBCUtil.getConnection() method to false after you get a Connection object.
+
+```java
+// Get a connection
+Connection con = DriverManager.getConnection(dbURL, userId, password);
+
+// Set the auto-commit off
+con.setAutoCommit(false);
+```
+
+If you have enabled the auto-commit mode for your connection, you cannot use its commit()
+and rollback() methods. Calling the commit() and rollback() methods on a Connection
+object, which has enabled the auto-commit mode, throws a SQLException.
+
+If the setAutoCommit() method is called to change the auto-commit mode of a connection
+in the middle of a transaction, the transaction is committed at that time. Typically, you
+would set the auto-commit mode of a connection just after connecting to the database.
+
+#### Committing and Rolling Back Transactions
+
+If the auto-commit mode is disabled for a connection, you can use the commit() or rollback()
+method to commit or roll back a transaction. Typical code in a JDBC application
+that performs a database transaction is as shown:
+
+```java
+// Get a connection
+Connection con = DriverManager.getConnection(dbURL, userId, password);
+// Set the auto-commit off
+con.setAutoCommit(false);
+
+try {
+    // Perform database transaction activities here
+    
+    // Successful scenario:
+    con.commit();
+    // Close the connection
+    conn.close();
+}
+catch (SQLException e) {
+    System.out.println("An error occured: " + e.getMessage());
+    System.out.println("Rolling back the transaction");
+
+    try {
+        // Unsuccessful scenario:
+        con.rollback();
+        // Close the connection
+        conn.close();
+    }
+    catch (SQLException e) {
+    }
+
+    System.exit(1);
+}
+```
+
+{% include zadatak.html broj="9.1" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
+\n
+1. Pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
+2. Briše studenta sa pronađenim indeksom iz tabele `ISPIT` i ispisuje poruku korisniku o uspešnosti brisanja.\n
+3. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
+4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.\n
+5. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n" %}
+
+Re\v senje:
+
+include_source(primeri/poglavlje_9/src/zadatak_9_1/Main.java, java)
+
+### 9.1.2 Transaction Isolation Level
+
+The ANSI SQL-92 standard defines four transaction isolation levels in terms of the data
+consistency. Each isolation level defines what kinds of data inconsistencies are allowed, or
+not allowed. The four transaction isolation levels are as follows:
+
+- Read uncommitted
+- Read committed
+- Repeatable read
+- Serializable
+
+Java defines the following four constants in the Connection interface that correspond to
+the four isolation levels defined by the ANSI SQL-92 standard:
+
+- TRANSACTION_READ_UNCOMMITTED
+- TRANSACTION_READ_COMMITTED
+- TRANSACTION_REPEATABLE_READ
+- TRANSACTION_SERIALIZABLE
+
+You can set the isolation level of a transaction for a database connection using the set-
+TransactionIsolation(int level) method of the Connection interface.
+
+```java
+// Get a Connection object
+Connection con = DriverManager.getConnection(dbURL, userId, password);
+
+// Set the transaction isolation level to read committed
+con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+```
+
+TODO: dodati zadatke za ovaj deo gradiva
+
+### 9.1.3 Savepoints in a Transaction
+
+A database transaction consists of one or more changes as a unit of work. A savepoint in
+a transaction is like a marker that marks a point in a transaction so that, if needed, the
+transaction can be rolled back (or undone) up to that point.
+
+An object of the Savepoint interface represents a savepoint in a transaction. To mark a
+savepoint in a transaction, you simply call the setSavepoint() method of the Connection.
+The setSavepoint() method is overloaded. One version accepts no argument and another
+accepts a string, which is the name of the savepoint. The setSavepoint() method returns
+a Savepoint object, which is your marker and you must keep it for future use. Here’s an
+example:
+
+```java
+Connection con = DriverManager.getConnection(dbURL, userId, password);
+con.setAutoCommit(false);
+
+Statement stmt = con.createStatement();
+
+stmt.execute("insert into person values ('John', 'Doe')");
+Savepoint sp1 = con.setSavepoint(); // 1
+
+stmt.execute("insert into person values ('Jane', 'Doe')");
+Savepoint sp2 = con.setSavepoint(); // 2
+
+stmt.execute("insert into person values ('Another', 'Unknown')");
+Savepoint sp3 = con.setSavepoint(); // 3
+```
+
+At this point, you have finer control on the transaction if you want to undo any of these
+three inserts into the person table. Now you can use another version of the rollback()
+method of the Connection, which accepts a Savepoint object. If you want to undo all
+changes that were made after savepoint 1, you can do so as follows:
+
+```java
+// Rolls back inserts 2 and 3
+con.rollback(sp1);
+```
+
+Once you roll back up to a savepoint (say, spx), all savepoints that were created after the
+savepoint spx are released and you cannot refer to them again. If you refer to a released
+savepoint, the JDBC driver will throw a SQLException. The following snippet of code
+will throw a SQLException:
+
+```java
+con.rollback(sp2); // Will release sp3
+con.rollback(sp3); // Will throw an exception: sp3 is already released.
+```
+
+Note that when you roll back a transaction to a savepoint, that savepoint itself is not
+released. When you call, for example, con.rollback(sp2), savepoint sp2 remains valid. You
+can add more savepoints afterward and roll back up to savepoint sp2 again.
+
+TODO: dodati zadatke za ovaj deo gradiva
+
+## 9.2 Rad u višekorisničkom okruženju
+
+U poglavlju 5 smo govorili detaljno o problemima konkurentnog rada sa bazom podataka.
+Aplikacije pisane u programskom jeziku Java, bilo one SQLJ ili JDBC, takođe "boluju" od
+istih problema kao i aplikacije koje smo pisali u programskom jeziku C. Zbog toga ćemo
+imati na umu sve napomene koje smo tada uveli, sa određenim napomenama koje slede u
+daljem tekstu.
+
+S obzirom da se u programskom jeziku Java greške prijavljuju kroz objekte klase SQLException, 
+proveru da li je došlo do nekog problema konkurentnog okruženja možemo izvršiti proverom
+koda greške, pozivom metoda getErrorCode() nad objektom klase SQLException koji
+smo uhvatili. Zašto nam je ova informacija važna? Prisetimo se da, ukoliko dođe do nekog
+problema konkurentnog okruženja, DB2 SUBP šalje grešku 􀀀911 ili 􀀀913. U tom slučaju,
+potrebno je izvršiti obradu isteka vremena ili pojave mrtve petlje, i poništiti eventualne
+izmene. Evo jednog primera:
+
+```java
+// U main funkciji:
+
+Connection con = null;
+String sql = "SELECT ...";
+Statement stmt = con.createStatement(
+    ResultSet.TYPE_FORWARD_ONLY,
+    ResultSet.CONCUR_UPDATABLE,
+    ResultSet.HOLD_CURSORS_OVER_COMMIT
+);
+ResultSet kursor = otvoriKursor(stmt, sql);
+
+// Petlja koja prolazi kroz kursor
+while(true) {
+    try {
+        // Kod koji moze da dovede do problema
+        // u visekorisnickom okruzenju
+    }
+    catch (SQLException e) {
+        // Ako je doslo do izuzetka zbog katanaca...
+        if (e.getErrorCode() == -911 || e.getErrorCode() == -913) {
+            // ... onda ih je potrebno obraditi
+            kursor.close();
+            kursor = obradiCekanje("FETCH, UPDATE, ...", con, stmt, sql);
+            continue;
+        }
+        // Inace, neka druga greska je u pitanju,
+        // pa ju je potrebno proslediti kodu za obradu greske
+        throw e;
+    }
+}
+
+// ∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗
+// Izvan main funkcije:
+private static ResultSet otvoriKursor(Statement stmt, String sql) throws SQLException {
+    ResultSet kursor = stmt.executeQuery(sql);
+    return kursor;
+}
+
+private static ResultSet obradiCekanje(String codeHint, Connection con, Statement stmt, String sql) throws SQLException {
+    System.out.printf("[%s] Objekat je zakljucan od strane druge transakcije!\n" +
+        "Molimo sacekajte!\n", codeHint);
+
+    try {
+        con.rollback();
+    } catch (SQLException e) {
+    }
+
+    return otvoriKursor(stmt, sql);
+}
+```
+
+Naredni primeri ilustruju konstrukciju JDBC aplikacija koje koriste transakcioni rad u
+višekorisničkom okruženju.
+
+{% include zadatak.html broj="9.2" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika ”da”, izvršava se odgovarajuća naredba. Zadatak uraditi tako da aplikacija radi u višekorisničkom okruženju. Obrada jednog predmeta treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi." %}
+
+Re\v senje: Pre početka izvršavanja, kreirati tabelu `OBRADJENI_PREDMETI` koja sadrži identifikatore predmeta koji su do sada obrađeni:
+
+```sql
+CREATE TABLE OBRADJENI_PREDMETI (
+    ID_PREDMETA INTEGER NOT NULL,
+    PRIMARY KEY (ID_PREDMETA),
+    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
+)
+```
+
+include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java, java)
+
+## 9.3 Povezivanje na više baza podataka
+
+Upravljanje podacima nad više baza podataka u JDBC aplikacijama je značajno jednostavnije
+nego u C aplikacijama sa ugnežđenim SQL-om.
+
+U JDBC aplikacijama možemo imati proizvoljan broj objekata klase Connection i svaki
+od njih predstavlja i ostvaruje konekciju ka jednoj bazi podataka. Pretpostavimo da
+imamo dve konekcije ka bazama podataka X i Y ostvarene kroz objekte conX i conY klase
+Connection.
+
+Ukoliko je potrebno da izvršimo naredbu nad bazom podataka X, onda je potrebno da kreiramo
+objekat naredbe (bilo kroz klasu Statement ili PreparedStatement) koristeći objekat
+conX. Za izvršavanje naredbe nad drugom bazom podataka Y, koristićemo objekat conY
+za kreiranje objekta naredbe.
+
+Naredni primer ilustruje korišćenje dve baze podataka: VSTUD i MSTUD.
+
+{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+\n
+1. Zahteva od korisnika da unese broj bodova _B_.\n
+2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od _B_ bodova.\n
+3. Zatim, zahteva od korisnika da unese ocenu _O_ (ceo broj od 6 do 10).\n
+4. Iz baze vstud izlistava indeks, naziv, ocenu, godinu i oznaku ispitnog roka za sve studente koji nikada nisu dobili ocenu manju nego što je ocena _O_.\n
+5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa _I_ iz dosije, i vraća _I_.\n
+6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa _I_, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
+
+Re\v senje:
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/Main.java, java)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajStudenteMstud.sql, sql)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajPolaganjaVstud.sql, sql)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/uvecajBodoveZaPredmeteVstud.sql, sql)
+
+## 9.4 Zadaci za ve\v zbu
+
+{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
+informacije o polaganjima za svaki položeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Kreirati datu tabelu na osnovu SQL koda ispod.\n
+\n
+Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. _batch_ unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
+\n
+SQL naredbe za kreiranje i brisanje tabele sačuvati u datotekama 2a.sql i 2b.sql, redom, a `SELECT` naredbu kojim se izdvajaju potrebni podaci sačuvati u datoteci 2c.sql." %}
+
+```sql
+CREATE TABLE ISPITNI_ROKOVI_POLAGANJA (
+    GODINA SMALLINT NOT NULL,
+    OZNAKA VARCHAR(20) NOT NULL,
+    ID_PREDMETA INTEGER NOT NULL,
+    OCENA SMALLINT NOT NULL,
+    BROJ INTEGER NOT NULL,
+    NAZIV_ROKA VARCHAR(50),
+    NAZIV_PREDMETA VARCHAR(200),
+    PRIMARY KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ)
+)
+```
+
+Pomo\'c pri re\v savanju zadatka: Kreirati tabelu `OBRADJENA_POLAGANJA` na osnovu SQL koda ispod koja \'ce sadr\v zati informacije o ve\'c obra\dj enim polaganjima iz tabele `ISPITNI_ROKOVI_POLAGANJA`. Nakon svake obrade jednog polaganja, uneti novi red u ovu tabelu i potvrditi izmene.
+
+```sql
+CREATE TABLE OBRADJENA_POLAGANJA (
+    GODINA SMALLINT NOT NULL,
+    OZNAKA VARCHAR(20) NOT NULL,
+    ID_PREDMETA INTEGER NOT NULL,
+    OCENA SMALLINT NOT NULL,
+    BROJ INTEGER NOT NULL,
+    PRIMARY KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ),
+    FOREIGN KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ) REFERENCES ISPITNI_ROKOVI_POLAGANJA
+)
+```
+
+{% include zadatak.html broj="9.5" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
+\n
+1. Naredbama `INSERT` unosi podatke o nekoliko stipendija u tabelu `STIPENDIJA`. Izračunati i broj unetih redova. U slučaju da je broj unetih redova jednak nuli, ispisati poruku ”Nijedan red nije dodat”, a inače ispisati poruku u unetom broju redova. Kreirati datu tabelu na osnovu SQL koda ispod.\n
+2. Za svaku stipendiju, pita korisnika da li želi da promeni broj studenata za tu stipendiju i ukoliko je odgovor korinika potvrdan, od korisnika traži da unese novi broj studenata i izvršava odgovarajuću naredbu.\n
+3. Za svaku stipendiju, pita korisnika da li želi da obriše tu stipendiju i ukoliko je odgovor korinika potvrdan, izvršava odgovarajuću naredbu.\n
+\n
+Aplikacija treba da radi u višekorisničkom okruženju. Obrada jedne stipendije u svim zahtevima treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi." %}
+
+```sql
+CREATE TABLE STIPENDIJA (
+    ID_STIPENDIJE INTEGER NOT NULL,
+    NAZIV VARCHAR(100) NOT NULL,
+    GODINA SMALLINT NOT NULL,
+    BROJ_STIPENDISTA SMALLINT NOT NULL,
+    VISINA_STIPENDIJE SMALLINT,
+    MIN PROSEK FLOAT,
+    NAPOMENA VARCHAR(50),
+    PRIMARY KEY (ID_STIPENDIJE)
+)
+```
+
+{% include zadatak.html broj="9.6" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+\n
+1. Iz baze mstud ispisuje naziv predmeta, za svaki predmet koji postoji u toj bazi.\n
+2. Iz baze vstud, za svaki predmet iz prethodnog koraka, ispisuje ime i prezime studenta koji su položili taj predmet, kao i ocenu koju su dobili.\n
+\n
+Napraviti izveštaj tako što se za svaki predmet prvo ispiše njegov naziv, a zatim se ispisuju informacije o studentima koji su ga položili. Predmete iz različitih baza podataka spajati po nazivu predmeta." %}
