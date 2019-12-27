@@ -21,9 +21,9 @@ jobs:
     - name: Run Jekyll
       uses: theikeofficial/action-jekyll@master
 
-    - name: Deploy
-      uses: JamesIves/github-pages-deploy-action@releases/v3
+    - name: GitHub Pages Deploy
+      uses: maxheld83/ghpages@v0.2.1
+      secrets:
+        GH_PAT: ${{ secrets.GH_PAT }}
       with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        BRANCH: gh-pages
-        FOLDER: _site
+        BUILD_DIR: _site
