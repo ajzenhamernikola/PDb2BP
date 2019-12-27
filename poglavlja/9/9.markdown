@@ -181,3 +181,144 @@ can add more savepoints afterward and roll back up to savepoint sp2 again.
 
 TODO: dodati zadatke za ovaj deo gradiva
 
+## 9.2 Rad u višekorisničkom okruženju
+
+U poglavlju 5 smo govorili detaljno o problemima konkurentnog rada sa bazom podataka.
+Aplikacije pisane u programskom jeziku Java, bilo one SQLJ ili JDBC, takođe "boluju" od
+istih problema kao i aplikacije koje smo pisali u programskom jeziku C. Zbog toga ćemo
+imati na umu sve napomene koje smo tada uveli, sa određenim napomenama koje slede u
+daljem tekstu.
+
+S obzirom da se u programskom jeziku Java greške prijavljuju kroz objekte klase SQLException, 
+proveru da li je došlo do nekog problema konkurentnog okruženja možemo izvršiti proverom
+koda greške, pozivom metoda getErrorCode() nad objektom klase SQLException koji
+smo uhvatili. Zašto nam je ova informacija važna? Prisetimo se da, ukoliko dođe do nekog
+problema konkurentnog okruženja, DB2 SUBP šalje grešku 􀀀911 ili 􀀀913. U tom slučaju,
+potrebno je izvršiti obradu isteka vremena ili pojave mrtve petlje, i poništiti eventualne
+izmene. Evo jednog primera:
+
+```java
+// U main funkciji:
+
+Connection con = null;
+String sql = "SELECT ...";
+Statement stmt = con.createStatement(
+    ResultSet.TYPE_FORWARD_ONLY,
+    ResultSet.CONCUR_UPDATABLE,
+    ResultSet.HOLD_CURSORS_OVER_COMMIT
+);
+ResultSet kursor = otvoriKursor(stmt, sql);
+
+// Petlja koja prolazi kroz kursor
+while(true) {
+    try {
+        // Kod koji moze da dovede do problema
+        // u visekorisnickom okruzenju
+    }
+    catch (SQLException e) {
+        // Ako je doslo do izuzetka zbog katanaca...
+        if (e.getErrorCode() == -911 || e.getErrorCode() == -913) {
+            // ... onda ih je potrebno obraditi
+            kursor.close();
+            kursor = obradiCekanje("FETCH, UPDATE, ...", con, stmt, sql);
+            continue;
+        }
+        // Inace, neka druga greska je u pitanju,
+        // pa ju je potrebno proslediti kodu za obradu greske
+        throw e;
+    }
+}
+
+// ∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗
+// Izvan main funkcije:
+private static ResultSet otvoriKursor(Statement stmt, String sql) throws SQLException {
+    ResultSet kursor = stmt.executeQuery(sql);
+    return kursor;
+}
+
+private static ResultSet obradiCekanje(String codeHint, Connection con, Statement stmt, String sql) throws SQLException {
+    System.out.printf("[%s] Objekat je zakljucan od strane druge transakcije!\n" +
+        "Molimo sacekajte!\n", codeHint);
+
+    try {
+        con.rollback();
+    } catch (SQLException e) {
+    }
+
+    return otvoriKursor(stmt, sql);
+}
+```
+
+Naredni primeri ilustruju konstrukciju JDBC aplikacija koje koriste transakcioni rad u
+višekorisničkom okruženju.
+
+{% include zadatak.html broj="9.2" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika ”da”, izvršava se odgovarajuća naredba. Zadatak uraditi tako da aplikacija radi u višekorisničkom okruženju. Obrada jednog predmeta treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi." %}
+
+Re\v senje: Pre početka izvršavanja, kreirati tabelu `OBRADJENI_PREDMETI` koja sadrži identifikatore predmeta koji su do sada obrađeni:
+
+```sql
+CREATE TABLE OBRADJENI_PREDMETI (
+    ID_PREDMETA INTEGER NOT NULL,
+    PRIMARY KEY (ID_PREDMETA),
+    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
+)
+```
+
+include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java)
+
+## 9.? Zadaci za ve\v zbu
+
+{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
+informacije o polaganjima za svaki položeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Kreirati datu tabelu na osnovu SQL koda ispod.\n
+\n
+Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. _batch_ unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
+\n
+SQL naredbe za kreiranje i brisanje tabele sačuvati u datotekama 2a.sql i 2b.sql, redom, a `SELECT` naredbu kojim se izdvajaju potrebni podaci sačuvati u datoteci 2c.sql." %}
+
+```sql
+CREATE TABLE ISPITNI_ROKOVI_POLAGANJA (
+    GODINA SMALLINT NOT NULL,
+    OZNAKA VARCHAR(20) NOT NULL,
+    ID_PREDMETA INTEGER NOT NULL,
+    OCENA SMALLINT NOT NULL,
+    BROJ INTEGER NOT NULL,
+    NAZIV_ROKA VARCHAR(50),
+    NAZIV_PREDMETA VARCHAR(200),
+    PRIMARY KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ)
+)
+```
+
+Pomo\'c pri re\v savanju zadatka: Kreirati tabelu `OBRADJENA_POLAGANJA` na osnovu SQL koda ispod koja \'ce sadr\v zati informacije o ve\'c obra\dj enim polaganjima iz tabele `ISPITNI_ROKOVI_POLAGANJA`. Nakon svake obrade jednog polaganja, uneti novi red u ovu tabelu i potvrditi izmene.
+
+```sql
+CREATE TABLE OBRADJENA_POLAGANJA (
+    GODINA SMALLINT NOT NULL,
+    OZNAKA VARCHAR(20) NOT NULL,
+    ID_PREDMETA INTEGER NOT NULL,
+    OCENA SMALLINT NOT NULL,
+    BROJ INTEGER NOT NULL,
+    PRIMARY KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ),
+    FOREIGN KEY(GODINA, OZNAKA, ID_PREDMETA, OCENA, BROJ) REFERENCES ISPITNI_ROKOVI_POLAGANJA
+)
+```
+
+{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
+\n
+1. Naredbama `INSERT` unosi podatke o nekoliko stipendija u tabelu `STIPENDIJA`. Izračunati i broj unetih redova. U slučaju da je broj unetih redova jednak nuli, ispisati poruku ”Nijedan red nije dodat”, a inače ispisati poruku u unetom broju redova. Kreirati datu tabelu na osnovu SQL koda ispod.\n
+2. Za svaku stipendiju, pita korisnika da li želi da promeni broj studenata za tu stipendiju i ukoliko je odgovor korinika potvrdan, od korisnika traži da unese novi broj studenata i izvršava odgovarajuću naredbu.\n
+3. Za svaku stipendiju, pita korisnika da li želi da obriše tu stipendiju i ukoliko je odgovor korinika potvrdan, izvršava odgovarajuću naredbu.\n
+\n
+Aplikacija treba da radi u višekorisničkom okruženju. Obrada jedne stipendije u svim zahtevima treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi." %}
+
+```sql
+CREATE TABLE STIPENDIJA (
+    ID_STIPENDIJE INTEGER NOT NULL,
+    NAZIV VARCHAR(100) NOT NULL,
+    GODINA SMALLINT NOT NULL,
+    BROJ_STIPENDISTA SMALLINT NOT NULL,
+    VISINA_STIPENDIJE SMALLINT,
+    MIN PROSEK FLOAT,
+    NAPOMENA VARCHAR(50),
+    PRIMARY KEY (ID_STIPENDIJE)
+)
+```
