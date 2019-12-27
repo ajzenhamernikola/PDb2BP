@@ -83,24 +83,22 @@ driver is:
 jdbc:db2://<servername>:<port number>/<database name>
 ```
 
+The connection to a database is closed by calling close method of Connection class.
+
 The code in the following example returns the connection as Connection class object:
 
 ```java
 public static void main(String argv[]) {
     Connection con = null;
     String url = "jdbc:db2://localhost:50001/vstud";
-    if (argv.length == 0) {
-        con = DriverManager.getConnection(url, "student", "abcdef");
-    }
-    else if (argv.length == 2) {
-        String userid = argv[0];
-        String passwd = argv[1];
-        con = DriverManager.getConnection(url, userid, passwd);
-    }
-    else {
-        throw new Exception("\n Usage: java ProgramName[,username,password]\n");
-    }
-    // ...
+    
+    // Open database connection
+    con = DriverManager.getConnection(url, "student", "abcdef");
+
+    // Do something...
+
+    // Close database connection
+    con.close();
 }
 ```
 
@@ -133,28 +131,48 @@ SQLException objects one by one.
 Connection con = null;
 
 try {
+    // Open database connection
     con = DriverManager.getConnection(url, username, password);
 
-    // code which can throw SQLException goes here
+    // Do something...
+
+    // Close database connection
+    con.close();
 }
 catch (SQLException e) {
+    e.printStackTrace();
+
     System.out.println(
         "SQLCODE: " + e.getErrorCode() + "\n" +
         "SQLSTATE: " + e.getSQLState() + "\n" +
         "PORUKA: " + e.getMessage());
 
+    // We need to close the database connection,
+    // even if error occures.
+    // Since the close method can also throw SQLException,
+    // we need to catch it,
+    // but not deal with it.
     try {
         if (null != con) {
-            con.rollback();
+            con.close();
         }
-    } 
-    catch (SQLException e2) {}
+    } catch (SQLException e2) {
+    }
 
     System.exit(1);
 }
 catch (Exception e) {
     e.printStackTrace();
-    System.exit(1);
+
+    // Same as in above catch clause.
+    try {
+        if (null != con) {
+            con.close();
+        }
+    } catch (SQLException e2) {
+    }
+
+    System.exit(2);
 }
 ```
 

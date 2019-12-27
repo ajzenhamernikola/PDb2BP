@@ -20,11 +20,9 @@ public class Main {
 
         try {
             con = DriverManager.getConnection(url, "student", "abcdef");
-            con.setAutoCommit(false);
-
+            
             ispitiStudenteIIspite(con);
 
-            con.commit();
             con.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -34,7 +32,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
@@ -46,7 +43,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
