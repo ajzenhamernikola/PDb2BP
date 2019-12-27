@@ -92,7 +92,7 @@ catch (SQLException e) {
 
 Re\v senje:
 
-include_source(primeri/poglavlje_9/src/zadatak_9_1/Main.java)
+include_source(primeri/poglavlje_9/src/zadatak_9_1/Main.java, java)
 
 ### 9.1.2 Transaction Isolation Level
 
@@ -264,11 +264,47 @@ CREATE TABLE OBRADJENI_PREDMETI (
 )
 ```
 
-include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java)
+include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java, java)
 
-## 9.? Zadaci za ve\v zbu
+## 9.3 Povezivanje na više baza podataka
 
-{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
+Upravljanje podacima nad više baza podataka u JDBC aplikacijama je značajno jednostavnije
+nego u C aplikacijama sa ugnežđenim SQL-om.
+
+U JDBC aplikacijama možemo imati proizvoljan broj objekata klase Connection i svaki
+od njih predstavlja i ostvaruje konekciju ka jednoj bazi podataka. Pretpostavimo da
+imamo dve konekcije ka bazama podataka X i Y ostvarene kroz objekte conX i conY klase
+Connection.
+
+Ukoliko je potrebno da izvršimo naredbu nad bazom podataka X, onda je potrebno da kreiramo
+objekat naredbe (bilo kroz klasu Statement ili PreparedStatement) koristeći objekat
+conX. Za izvršavanje naredbe nad drugom bazom podataka Y, koristićemo objekat conY
+za kreiranje objekta naredbe.
+
+Naredni primer ilustruje korišćenje dve baze podataka: VSTUD i MSTUD.
+
+{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+\n
+1. Zahteva od korisnika da unese broj bodova _B_.\n
+2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od _B_ bodova.\n
+3. Zatim, zahteva od korisnika da unese ocenu _O_ (ceo broj od 6 do 10).\n
+4. Iz baze vstud izlistava indeks, naziv, ocenu, godinu i oznaku ispitnog roka za sve studente koji nikada nisu dobili ocenu manju nego što je ocena _O_.\n
+5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa _I_ iz dosije, i vraća _I_.\n
+6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa _I_, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
+
+Re\v senje:
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/Main.java, java)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajStudenteMstud.sql, sql)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajPolaganjaVstud.sql, sql)
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/uvecajBodoveZaPredmeteVstud.sql, sql)
+
+## 9.4 Zadaci za ve\v zbu
+
+{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
 informacije o polaganjima za svaki položeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Kreirati datu tabelu na osnovu SQL koda ispod.\n
 \n
 Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. _batch_ unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
@@ -302,7 +338,7 @@ CREATE TABLE OBRADJENA_POLAGANJA (
 )
 ```
 
-{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
+{% include zadatak.html broj="9.5" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
 \n
 1. Naredbama `INSERT` unosi podatke o nekoliko stipendija u tabelu `STIPENDIJA`. Izračunati i broj unetih redova. U slučaju da je broj unetih redova jednak nuli, ispisati poruku ”Nijedan red nije dodat”, a inače ispisati poruku u unetom broju redova. Kreirati datu tabelu na osnovu SQL koda ispod.\n
 2. Za svaku stipendiju, pita korisnika da li želi da promeni broj studenata za tu stipendiju i ukoliko je odgovor korinika potvrdan, od korisnika traži da unese novi broj studenata i izvršava odgovarajuću naredbu.\n
@@ -322,3 +358,10 @@ CREATE TABLE STIPENDIJA (
     PRIMARY KEY (ID_STIPENDIJE)
 )
 ```
+
+{% include zadatak.html broj="9.6" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+\n
+1. Iz baze mstud ispisuje naziv predmeta, za svaki predmet koji postoji u toj bazi.\n
+2. Iz baze vstud, za svaki predmet iz prethodnog koraka, ispisuje ime i prezime studenta koji su položili taj predmet, kao i ocenu koju su dobili.\n
+\n
+Napraviti izveštaj tako što se za svaki predmet prvo ispiše njegov naziv, a zatim se ispisuju informacije o studentima koji su ga položili. Predmete iz različitih baza podataka spajati po nazivu predmeta." %}
