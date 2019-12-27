@@ -22,8 +22,9 @@ jobs:
       uses: theikeofficial/action-jekyll@master
 
     - name: GitHub Pages Deploy
-      uses: maxheld83/ghpages@v0.2.1
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
+      uses: crazy-max/ghaction-github-pages@v1.2.5
       with:
-        BUILD_DIR: _site
+        target_branch: gh-pages
+        build_dir: _site
+      env:
+        GITHUB_PAT: ${{ secrets.GH_PAT }}
