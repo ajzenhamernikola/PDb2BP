@@ -17,8 +17,7 @@ public class Main {
 
         try {
             con = DriverManager.getConnection(url, "student", "abcdef");
-            con.setAutoCommit(false);
-
+            
             Statement stmt = con.createStatement();
             String queryStr = 
                 "SELECT IME, " + 
@@ -44,7 +43,6 @@ public class Main {
             rs.close();
             stmt.close();
 
-            con.commit();
             con.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -54,7 +52,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
@@ -66,7 +63,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {

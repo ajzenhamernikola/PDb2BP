@@ -26,9 +26,6 @@ public class Main {
             // Argumenti za korisnicko ime i lozinku su obavezni!
             con = DriverManager.getConnection(url, "student", "abcdef");
 
-            // Iskljucujemo automatsko potvrdjivanje izmena
-            con.setAutoCommit(false);
-
             // Kreiramo objekat naredbe (Statement)
             Statement stmt = con.createStatement();
 
@@ -67,9 +64,7 @@ public class Main {
             // Zatvaramo naredbu
             stmt.close();
 
-            // S obzirom da je sve proslo kako treba ako se doslo do ove tacke,
-            // potvrdjujemo izmene pre raskidanje konekcije
-            con.commit();
+            // Raskidamo konekciju sa bazom podataka
             con.close();
         }
         // Obrada SQL gresaka
@@ -79,15 +74,10 @@ public class Main {
 
             System.out.println("SQLCODE: " + e.getErrorCode() + "\n" + "SQLSTATE: " + e.getSQLState() + "\n"
                     + "PORUKA: " + e.getMessage());
-
-            // U slucaju neuspeha, ponistavamo eventualne izmene i zatvaramo
-            // konekciju.
-            // Pozivi metoda rollback() i close() ispod mogu da izbace
-            // SQLException,
-            // ali njih ignorisemo, te je zato catch blok prazan.
+            
+            // Raskidamo konekciju sa bazom podataka
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
@@ -99,15 +89,10 @@ public class Main {
         // Obrada drugih gresaka
         catch (Exception e) {
             e.printStackTrace();
-
-            // U slucaju neuspeha, ponistavamo eventualne izmene i zatvaramo
-            // konekciju.
-            // Pozivi metoda rollback() i close() ispod mogu da izbace
-            // SQLException,
-            // ali njih ignorisemo, te je zato catch blok prazan.
+            
+            // Isto kao u prethodnoj catch klauzi
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {

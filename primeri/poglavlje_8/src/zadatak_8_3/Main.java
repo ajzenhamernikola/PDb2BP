@@ -18,8 +18,7 @@ public class Main {
 
         try {
             con = DriverManager.getConnection(url, "student", "abcdef");
-            con.setAutoCommit(false);
-
+            
             // JDBC koristi iskljucivo dinamicke SQL naredbe,
             // tako da se u JDBC ne koriste maticne promenljive.
             // S obzirom da su vrednosti za bodove u klauzama SET i WHERE
@@ -54,7 +53,6 @@ public class Main {
 
             pUpd.close();
 
-            con.commit();
             con.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -64,7 +62,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
@@ -76,7 +73,6 @@ public class Main {
 
             try {
                 if (null != con) {
-                    con.rollback();
                     con.close();
                 }
             } catch (SQLException e2) {
