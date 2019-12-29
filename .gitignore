@@ -8,3 +8,9 @@ vendor
 # npm stuff
 node_modules
 package-lock.json
+
+# IBM Data Studio IDE
+.project
+.settings
+.classpath
+bin/
