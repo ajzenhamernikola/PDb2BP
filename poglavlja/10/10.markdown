@@ -25,6 +25,20 @@ koje omogućava Java programerima da u svojim aplikacijama implementiraju poslov
 logiku, dok se operacije niskog nivoa, kao što su čitanje, skladištenje, brisanje i menjanje
 podataka, izvršavaju u pozadini, čime se veliki deo posla olakšava.
 
+In this chapter, we’ll think of the problems of data storage and sharing in the context of
+an object-oriented application that uses a domain model. Instead of directly working
+with the rows and columns of a java.sql.ResultSet, the business logic of an application interacts with the application-specific object-oriented domain model. If the SQL
+database schema of an online auction system has ITEM and BID tables, for example,
+the Java application defines Item and Bid classes. Instead of reading and writing the
+value of a particular row and column with the ResultSet API, the application loads
+and stores instances of Item and Bid classes. 
+
+At runtime, the application therefore operates with instances of these classes.
+Each instance of a Bid has a reference to an auction Item, and each Item may have a
+collection of references to Bid instances. The business logic isn’t executed in the
+database (as an SQL stored procedure); it’s implemented in Java and executed in the
+application tier. This allows business logic to use sophisticated object-oriented concepts such as inheritance and polymorphism. 
+
 Upotreba Hibernate okruženja za razvoj će biti prikazana kroz jedan veći primer, koji će
 biti izrađen deo-po-deo. Ovo znači da, pored toga što će se u projektu povećavati broj
 klasa sa (gotovo) svakim zahtevom, i same klase će biti proširivane kako bi zadovoljile sve
@@ -148,14 +162,12 @@ u bazi podataka i klasa u programskom jeziku Java, pogledajmo kako se može krei
 jednostavan klijent koji \'ce koristiti informacije iz `hibernate.cfg.xml` datoteke
 za kreiranje konekcije ka bazi podataka.
 
-Potrebna nam je instanca klase `SessionFactory` iz koje možemo da kreiramo objekat klase
-`Session`. Tad ovim objektom sesije \'cemo izvr\v savati razne operacije, kao \v sto su: 
-kreiranje novih podataka, u\v citavanje postoje\'cih podatak, i dr. 
-Pogledajmo kako je mogu\'ce dobiti instancu klase `SessionFactory`:
+Hibernate’s native bootstrap API is split into several stages, each giving you access
+to certain configuration aspects. Building a `SessionFactory` looks like this: 
 
 include_source(primeri/poglavlje_10/src/zadatak_10_1/HibernateUtil.java, java)
 
-Da bismo kreirali instancu fabrike sesija, potrebno je da napravimo instancu klase `StandardServiceRegistryBuilder`. Nad tom instancom je potrebno pozvati metod `configure` koji \'ce pro\v citati informacije iz `hibernate.cfg.xml` datoteke, a zatim pozvati metod `build` koji \'ce napraviti registar za povezivanje na bazu podataka:
+First, create a `StandardServiceRegistry`: 
 
 ```java
 StandardServiceRegistry registry = 
@@ -164,15 +176,31 @@ StandardServiceRegistry registry =
             .build();
 ```
 
-Slede\'ci korak je kori\v s\'cenje ovog registra za definisanje metainformacija koje su neophodne Hibernate radnom okviru. To se vr\v si kreiranjem instance klase `MetadataSources` kojoj se prosle\dj uje prethodno kreirani registar. Ukoliko je potrebno dodati neke dodatne podatke, kao \v sto su klase koje \'cemo mi programirati, to je mogu\'ce uraditi pozivom metoda `addAnnotatedClass` kome se prosle\dj uje tip jedne klase. Nakon dodavanja svih potrebnih klasa, pozivom metoda `buildMetadata` \'ce te metainformacije biti iskori\v s\'cene da bi se metodom `buildSessionFactory` kreirala instanca fabrike sesija nad kojom \'ce na\v sa aplikacija raditi:
+`StandardServiceRegistryBuilder` helps you create the immutable service registry with chained method calls. Configure the services registry by calling the method `configure` on it. Finally, call the method `build` to create said service registry.
+
+With the `StandardServiceRegistry` built and immutable, you can move on to the next
+stage: telling Hibernate which persistent classes are part of your mapping metadata.
+Configure the metadata sources as follows:
 
 ```java
-sessionFactory = 
-        new MetadataSources(registry)
-            .addAnnotatedClass(Smer.class)
-            .buildMetadata()
-            .buildSessionFactory();
+MetadataSources metadataSources = new MetadataSources(serviceRegistry);
+metadataSources.addAnnotatedClass(Smer.class);
+MetadataBuilder metadataBuilder = metadataSources.getMetadataBuilder();
 ```
+
+The `MetadataSources` API has many methods for adding mapping sources; check the
+Javadoc for more information. The next stage of the boot procedure is building all
+the metadata needed by Hibernate, with the `MetadataBuilder` you obtained from the
+metadata sources. 
+
+You can then query the metadata to interact with Hibernate’s completed configuration programmatically, or continue and build the final `SessionFactory`: 
+
+```java
+Metadata metadata = metadataBuilder.build();
+SessionFactory sessionFactory = metadata.buildSessionFactory();
+```
+
+This builder helps you create the immutable service registry with chained method calls.
 
 Opisani kod stavljamo u stati\v cki blok klase `HibernateUtil` kako bi se on izvr\v sio prvi put kada se ova klasa bude koristila. U na\v sem slu\v caju, to podrazumeva prvi put kada instanca fabrike sesija bude bila iskori\v s\'cena u `main` funkciji na\v se aplikacije.
 
