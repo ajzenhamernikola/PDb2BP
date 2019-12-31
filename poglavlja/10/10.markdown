@@ -481,7 +481,7 @@ podataka.
 
 Re\v senje: Kako smo ve\'c napisali OR preslikavanje izme\dj u klase `Smer` i tabele `SMER`, sve \v sto je potrebno da uradimo jeste da kreiramo stati\v cki metod `deleteSmer()` u glavnoj klasi `Main.java` i pozovemo ga u metodi `main`. Prikazujemo dopunjenu klasu `Main.java`:
 
-include(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
 
 ## 10.9 Složeni ključ
 
@@ -678,21 +678,21 @@ koristiti ovaj metod nego implementirati svoju heš funkciju.
 
 Cela implementacija je data u nastavku:
 
-include(primeri/poglavlje_10/src/zadatak_10_3/IspitniRokId.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_3/IspitniRokId.java, java)
 
 Zatim je potrebno specifikovati instancu ove klase kao primarni ključ klase `IspitniRok.java`, 
 koju takođe kreiramo:
 
-include(primeri/poglavlje_10/src/zadatak_10_3/IspitniRok.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_3/IspitniRok.java, java)
 
 Definisane klase se sada jednostavno koriste u metodu `insertIspitniRok()` proširene klase
 `Main.java` iz prethodnog primera:
 
-include(primeri/poglavlje_10/src/zadatak_10_3/Main.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_3/Main.java, java)
 
 Ne zaboravimo da dodamo `IspitniRok` kao anotiranu klasu u konfiguraciju:
 
-include(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
 
 {% include zadatak.html broj="10.4" tekst="Dopuniti prethodni zadatak tako da implementira brisanje prethodno unetog ispitnog toka iz tabele `ISPITNI_ROK`." %}
 
@@ -700,4 +700,4 @@ Re\v senje: Sa svim znanjem do sada, ovaj zahtev se trivijalno implementira. Pri
 ažuriranu klasu `Main.java` i skrećemo pažnju na njen metod `deleteIspitniRok()` koji
 ilustruje rešenje ovog zahteva.
 
-include(primeri/poglavlje_10/src/zadatak_10_4/HibernateUtil.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_4/HibernateUtil.java, java)
