@@ -316,7 +316,7 @@ Cela implementacija klase `Smer` data je u nastavku.
 
 include_source(primeri/poglavlje_10/src/zadatak_10_1/Smer.java, java)
 
-## 10.5 Kreiranje novog reda u tabeli
+## 10.5 Unos jednog sloga
 
 Napišimo sada i klasu `Main` koja će sadržati statički metod `main` u kojem ćemo testirati rad naše aplikacije. Trenutno, metod `main` će uraditi dve stvari: prva je pozivanje statičke funkcije za unos novog smera, a druga je zatvaranje fabrike sesija:
 
@@ -407,3 +407,297 @@ We perform the required work in a transaction, then issue a commit on this trans
 Cela implementacija klase `Main` data je u nastavku.
 
 include_source(primeri/poglavlje_10/src/zadatak_10_1/Main.java, java)
+
+## 10.7 Dohvatanje jednog sloga
+
+S obzirom da smo u prethodnom primeru postavili sva preslikavanja i pripremne korake,
+ispostaviće se da se dohvatanje jednog sloga iz baze podataka sastoji u jednostavnom
+pozivanju odgovarajućih metoda. Nakon što dohvatimo jedan slog, možemo ga menjati ili
+obrisati, o čemu će biti reči u narednoj sekciji.
+
+Ukoliko je potrebno da pronađemo (dohvatimo) red iz tabele sa odgovarajućim primarnim
+ključem, na raspolaganju nam je metod `load()` definisan nad objektima klase `Session`.
+Postoji više preopterećenja ovog metoda, a ono koje ćemo mi koristiti jeste potpisa:
+
+```java
+public void load(Object object, Serializable id)
+```
+
+Prvi argument ovog metoda bi trebalo da bude prazna instanca klase reda koji želimo da
+učitamo, a drugi argument je instanca primarnog ključa. Nakon izvršavanja ovog metoda,
+objekat object će biti popunjen vrednostima iz kolona reda čiji je primarni ključ zadat sa
+`id`.
+
+Ukoliko nismo sigurni da slog sa zadatim primarnim ključem postoji u tabeli, nije dobro
+koristiti metod `load()`. U tom slučaju, bolje je koristiti metod `get()`. Razlika je u tome
+što, ukoliko primarni ključ nije pronađen u bazi podataka, metod `load()` će izbaciti izuzetak,
+dok će metod `get()` vratiti null referencu, što je lakše za korišćenje. Ipak, njegova
+upotreba je nešto drugačija jer su nam na raspolaganju naredna dva preopterećenja:
+
+```java
+public <T> T get(Class<T> clazz, Serializable id)
+public Object get(String entityName, Serializable id)
+```
+
+Prvi od njih je šablonskog tipa i koristi klasu da odredi iz koje tabele dohvata slog, a drugi
+koristi naziv entiteta, koji je moguće dobiti poziv metoda `getEntityName()` nad objektom
+klase `Session`:
+
+```java
+public String getEntityName(Object object)
+```
+
+Slede primeri kodova koji koriste metod `get()`:
+
+```java
+// Get an id from some other Java class,
+// for instance, through a web application
+Supplier supplier = session.get(Supplier.class, id);
+if (supplier == null) {
+    System.out.println("Supplier not found for id " + id);
+    return;
+}
+
+// ili...
+
+String entityName = session.getEntityName(supplier);
+Supplier secondarySupplier =
+        (Supplier) session.load(entityName, id);
+```
+
+## 10.8 Brisanje jednog sloga
+
+Brisanje slogova iz baze podataka se jednostavno vrši pozivanjem metoda `delete()` nad
+objektom klase `Session`:
+
+```java
+public void delete(Object object)
+```
+
+Argument ovog metoda je trajni objekat. Naravno, postoje i složeniji metodi brisanja
+podataka.
+
+{% include zadatak.html broj="10.2" tekst="Dopuniti prethodni zadatak tako da implementira brisanje podataka o prethodno unetom smeru iz tabele `SMER`." %}
+
+Re\v senje: Kako smo ve\'c napisali OR preslikavanje izme\dj u klase `Smer` i tabele `SMER`, sve \v sto je potrebno da uradimo jeste da kreiramo stati\v cki metod `deleteSmer()` u glavnoj klasi `Main.java` i pozovemo ga u metodi `main`. Prikazujemo dopunjenu klasu `Main.java`:
+
+include(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
+
+## 10.9 Složeni ključ
+
+Upravljanje tabelama koje imaju jednostavne primarne ključeve, kao što je to tabela `SMER`,
+vrlo je jednostavno. Nešto složenije je rukovati tabelom čiji se primarni ključ sastoji od
+nekoliko kolona. Takvi primarni ključevi se nazivaju _složeni ključevi_ (engl. _compound primary key_).
+
+You must create a class to represent this primary key. It will not require a primary key
+of its own, of course, but it must be visible to entity class, must have a default constructor,
+must be serializable, and must implement `hashCode()` and `equals()` methods to allow the
+Hibernate code to test for primary key collisions (i.e., they must be implemented with the
+appropriate database semantics for the primary key values).
+
+Your three strategies for using this primary key class once it has been created are as
+follows:
+
+1. Mark it as `@Embeddable` and add to your entity class a normal property for it, marked
+with `@Id`.
+
+2. Add to your entity class a normal property for it, marked with `@EmbeddableId`.
+
+3. Add properties to your entity class for all of its fields, mark them with `@Id`, and
+mark your entity class with `@IdClass`, supplying the class of your primary key class.
+
+Hajde da pro\dj emo kroz svaku od opisanih strategija i prika\v zemo njihove primere.
+
+### 10.9.1 Prva strategija - `@Embeddable` i `@Id`
+
+The use of `@Id` with a class marked as `@Embeddable`, as shown in the following example, is
+the most natural approach. The `@Embeddable` annotation allows you to treat the compound
+primary key as a single property, and it permits the reuse of the `@Embeddable` class in other
+tables.
+
+Iz `CPKBook.java` datoteke:
+
+```java
+// Ovo je klasa koja ima slozeni kljuc ISBN
+@Entity
+public class CPKBook {
+	@Id
+	ISBN id;
+	
+	...
+	
+}
+```
+
+Iz `ISBN.java` datoteke:
+
+```java
+// Ovo je klasa koja predstavlja slozeni kljuc:
+// 1. Anotiramo je anotacijom @Embeddable
+@Embeddable
+// 2. Implementira interfejs java.io.Serializable
+public class ISBN implements Serializable {
+	// Naziv "group" je nevalidan naziv kolone u SQL-u
+	@Column(name="group_number") 
+	int group;
+	int publisher;
+	int title;
+	int checkdigit;
+	
+	// 3. Ima podrazumevani konstruktor
+	public ISBN() {
+	}
+	
+	// Get i set metodi
+	...
+    
+    // 4. Prevazilazi metode equals i hashCode
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof ISBN)) return false;
+		
+		ISBN isbn = (ISBN) o;
+	
+		if (checkdigit != isbn.checkdigit) return false;
+		if (group != isbn.group) return false;
+		if (publisher != isbn.publisher) return false;
+		if (title != isbn.title) return false;
+	
+		return true;
+	}
+	
+	@Override
+	public int hashCode() {
+        return Objects.hash(this.group, this.publisher, this.title, this.checkdigit);
+	}
+}
+```
+
+### 10.9.2 Druga strategija - `@EmbeddedId`
+
+The next most natural approach is the use of the `@EmbeddedId` annotation. Here, the primary key
+class cannot be used in other tables since it is not an `@Embeddable` entity, but it does allow
+us to treat the key as a single attribute of the "table class".
+
+\v Cesto se ovakva klasa implementira kao deo klase koja preslikava tabelu, upravo iz razloga \v sto 
+predstavlja njen deo, tj. ne\'ce se koristiti kao primarni klju\v c neke druge klase.
+
+```java
+@Entity
+public class EmbeddedPKBook {
+	@EmbeddedId
+	EmbeddedISBN id;
+
+	@Column
+	String name;
+	
+	// Get/set metodi
+
+	static class EmbeddedISBN implements Serializable {
+		@Column(name="group_number")
+		int group;
+		int publisher;
+		int title;
+		int checkdigit;
+		
+		public ISBN() {
+		}
+		
+		// Get/set metodi, equals, hashCode...
+	}
+}
+```
+
+### 10.9.3 Tre\'ca strategija - `@IdClass` i `@Id`
+
+Finally, the use of the `@IdClass` and `@Id` annotations allows us to map the compound
+primary key class using properties of the entity itself corresponding to the names of the
+properties in the primary key class. The names must correspond (there is no mechanism
+for overriding this), and the primary key class must honor the same obligations as with
+the other two techniques. The only advantage to this approach is its ability to "hide" the
+use of the primary key class from the interface of the enclosing entity.
+
+The `@IdClass` annotation takes a value parameter of `Class` type, which must be the class
+to be used as the compound primary key. The fields that correspond to the properties of
+the primary key class to be used must all be annotated with `@Id` — note in the following
+code example that the class properties `group`, `publisher`, `title` and `checkdigit` are so
+annotated, and the `EmbeddedISBN` class is not mapped as `@Embeddable`, but it is supplied as
+the value of the `@IdClass` annotation.
+
+```java
+@Entity
+@IdClass(IdClassBook.EmbeddedISBN.class)
+public class IdClassBook {
+	@Id
+	int group;
+	@Id
+	int publisher;
+	@Id
+	int title;
+	@Id
+	int checkdigit;
+	String name;
+	
+	public IdClassBook() {
+	}
+	
+	// Get/set metodi
+	
+	static class EmbeddedISBN implements Serializable {
+		@Column(name="group_number")
+		int group;
+		int publisher;
+		int title;
+		int checkdigit;
+		
+		public ISBN() {
+		}
+		
+		// Get/set metodi, equals, hashCode...
+	}
+}
+```
+
+{% include zadatak.html broj="10.3" tekst="Dopuniti prethodni zadatak tako da implementira unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`." %}
+
+Re\v senje: Potrebno je da prvo napravimo klasu
+koja će predstavljati složeni ključ. Nazovimo je `IspitniRokId`. U nastavku je data njena
+implementacija. Obratiti pažnju na metode `equals()` i `hashCode()`. Definicije ovih metoda
+će biti gotovo identične za sve klase koje ih prevazilaze iz klase `Object`:
+
+- Metod `equals()` prvo ispituje da li je reference objekata `this` i `o` (koji se prosleđuje
+kao argument metoda) poklapaju. Zatim proverava da li drugi objekat (`o`) predstavlja referencu 
+iste klase kao objekat sa kojim se poredi (`this`). Zatim proverava da
+li se svi atributi objekata poklapaju pozivajući metod `Objects.equals` za svaki par
+atributa.
+
+- Metod `hashCode()` jednostavno poziva metod `Objects.hash` koja prima proizvoljni
+broj argumenata i vraća heš vrednost na osnovu njihovih vrednosti. Obično je bolje
+koristiti ovaj metod nego implementirati svoju heš funkciju.
+
+Cela implementacija je data u nastavku:
+
+include(primeri/poglavlje_10/src/zadatak_10_3/IspitniRokId.java, java)
+
+Zatim je potrebno specifikovati instancu ove klase kao primarni ključ klase `IspitniRok.java`, 
+koju takođe kreiramo:
+
+include(primeri/poglavlje_10/src/zadatak_10_3/IspitniRok.java, java)
+
+Definisane klase se sada jednostavno koriste u metodu `insertIspitniRok()` proširene klase
+`Main.java` iz prethodnog primera:
+
+include(primeri/poglavlje_10/src/zadatak_10_3/Main.java, java)
+
+Ne zaboravimo da dodamo `IspitniRok` kao anotiranu klasu u konfiguraciju:
+
+include(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
+
+{% include zadatak.html broj="10.4" tekst="Dopuniti prethodni zadatak tako da implementira brisanje prethodno unetog ispitnog toka iz tabele `ISPITNI_ROK`." %}
+
+Re\v senje: Sa svim znanjem do sada, ovaj zahtev se trivijalno implementira. Prikazujemo samo
+ažuriranu klasu `Main.java` i skrećemo pažnju na njen metod `deleteIspitniRok()` koji
+ilustruje rešenje ovog zahteva.
+
+include(primeri/poglavlje_10/src/zadatak_10_4/HibernateUtil.java, java)
