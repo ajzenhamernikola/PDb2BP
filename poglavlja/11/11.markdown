@@ -3,3 +3,284 @@ permalink: /poglavlja/11/
 layout: page
 title: 11. Napredna objektno-relaciona preslikavanja
 ---
+
+U prethodnom poglavlju smo se upoznali sa osnovama objektno-relacionih preslikavanja. Ovo poglavlje \'ce biti posve\'ceno naprednijim konceptima. Upozna\'cemo se sa jezikom HQL, koja predstavlja pandan jeziku SQL, samo u radu sa Java klasama i objektima. Dodatno, obrati\'cemo veliku pa\v znju problemu objektno-relacionih preslikavanja stranih klju\v ceva i na\v cinima za njihovu implementaciju.
+
+## 11.1 Rad sa skupovima slogova
+
+Za rad sa potencijalno većim brojem slogova u tabeli, na raspolaganju su nam stoji _HQL_ (_Hibernate Query Language_). While most ORM tools and object databases offer an object query language, Hibernate’s HQL stands out as complete and easy to use. HQL was inspired by SQL and is a major inspiration for the Java Persistence Query Language (JPQL).
+
+### 11.1.1 Menjanje
+
+`UPDATE` alters the details of existing objects in the database. In-memory entities, managed
+or not, will not be updated to reflect changes resulting from issuing `UPDATE` statements.
+Here’s the syntax of the `UPDATE` statement:
+
+```sql
+UPDATE [VERSIONED]
+	[FROM] path [[AS] alias] [, ...]
+	SET property = value [, ...]
+	[WHERE logicalExpression]
+```
+
+The fully qualified name of the entity or entities is `path`. The `alias` names may be used
+to abbreviate references to specific entities or their properties, and must be used when
+property names in the query would otherwise be ambiguous. `VERSIONED` means that the
+update will update timestamps, if any, that are part of the entity being updated. The
+`property` names are the names of properties of entities listed in the `FROM` path.
+
+An example of the update in action might look like this:
+
+```java
+Query query = session.createQuery(
+        "UPDATE Person SET creditscore = :score WHERE firstname = :name");
+query.setInteger("score", 612);
+query.setString("name", "John Q. Public");
+int modifications = query.executeUpdate();
+```
+
+### 11.1.2 Brisanje
+
+`DELETE` removes the details of existing objects from the database. In-memory entities will
+not be updated to reflect changes resulting from `DELETE` statements. This also means
+that Hibernate’s cascade rules will not be followed for deletions carried out using HQL.
+However, if you have specified cascading deletes at the database level (either directly or
+through Hibernate, using the `@OnDelete` annotation), the database will still remove the
+child rows. This approach to deletion is commonly referred to as ”bulk deletion”, since it
+is the most efficient way to remove large numbers of entities from the database. Here’s
+the syntax of the `DELETE` statement:
+
+```sql
+DELETE
+    [FROM] path [[AS] alias]
+    [WHERE logicalExpression]
+```
+
+The fully qualified name of the entity or entities is `path`. The `alias` names may be used
+to abbreviate references to specific entities or their properties, and must be used when
+property names in the query would otherwise be ambiguous.
+
+In practice, deletes might look like this:
+
+```java
+Query query = session.createQuery(
+	    "DELETE FROM Person WHERE accountstatus = :status");
+query.setString("status", "purged");
+int rowsDeleted = query.executeUpdate();
+```
+
+### 11.1.3 Unošenje
+
+A HQL `INSERT` cannot be used to directly insert arbitrary entities — it can only be used to
+insert entities constructed from information obtained from `SELECT` queries (unlike ordinary
+SQL, in which an `INSERT` command can be used to insert arbitrary data into a table, as
+well as insert values selected from other tables). Here’s the syntax of the `INSERT` statement:
+
+```java
+INSERT
+    INTO path ( property [, ...])
+    select
+```
+
+The name of an entity is `path`. The `property` names are the names of properties of entities
+listed in the `FROM` path of the incorporated `SELECT` query. The select query is a HQL
+`SELECT` query (as described in the next section). As this HQL statement can only use data
+provided by a HQL select, its application can be limited. An example of copying users to
+a purged table before actually purging them might look like this:
+
+```java
+Query query = session.createQuery(
+	    "INSERT INTO PURGED_USERS(id, name, status) " +
+	    "SELECT id, name, status FROM User WHERE status = :status");
+query.setString("status", "purged");
+int rowsCopied = query.executeUpdate();
+```
+
+### 11.1.4 \v Citanje
+
+A HQL `SELECT` is used to query the database for classes and their properties. As noted
+previously, this is very much a summary of the full expressive power of HQL `SELECT` queries;
+however, for more complex joins and the like, you may find that using the Criteria API is
+more appropriate. Here’s the syntax of the `SELECT` statement:
+
+```sql
+[SELECT [DISTINCT] property [, ...]]
+    FROM path [[AS] alias] [, ...] [FETCH ALL PROPERTIES]
+    WHERE logicalExpression
+    GROUP BY property [, ...]
+    HAVING logicalExpression
+    ORDER BY property [ASC | DESC] [, ...]
+```
+
+The fully qualified name of the entity or entities is `path`. The `alias` names may be used
+to abbreviate references to specific entities or their properties, and must be used when
+property names in the query would otherwise be ambiguous. The property names are the
+names of properties of entities listed in the `FROM` path.
+
+If `FETCH ALL PROPERTIES` is used, then lazy loading semantics will be ignored, and all the
+immediate properties of the retrieved object(s) will be actively loaded (this does not apply
+recursively).
+
+When the properties listed consist only of the names of aliases in the `FROM` clause, the
+`SELECT` clause can be omitted in HQL.
+
+#### The FROM Clause and Aliases
+
+We have already discussed the basics of the from clause in HQL. The most important
+feature to note is the _alias_. Hibernate allows you to assign aliases to the classes in your
+query with the as clause. Use the aliases to refer back to the class inside the query. For
+instance, instead of a simple HQL query
+
+```sql
+FROM Supplier
+```
+
+the example could be the following:
+
+```sql
+FROM Product AS p
+```
+
+The `AS` keyword is optional — you can also specify the alias directly after the class name,
+as follows:
+
+```sql
+FROM Product p
+```
+
+If you need to fully qualify a class name in HQL, just specify the package and class name.
+Hibernate will take care of most of this behind the scenes, so you really need this only
+if you have classes with duplicate names in your application. If you have to do this in
+Hibernate, use syntax such as the following:
+
+```sql
+FROM businessapp.model.Product
+```
+
+#### The SELECT Clause and Projection
+
+The select clause provides more control over the result set than the from clause. If you
+want to obtain the properties of objects in the result set, use the select clause. For instance,
+we could run a projection query on the products in the database that only returned the
+names, instead of loading the full object into memory, as follows:
+
+```sql
+SELECT product.name FROM Product product
+```
+
+The result set for this query will contain a `List` of Java `String` objects. Additionally, we
+can retrieve the prices and the names for each product in the database, like so:
+
+```sql
+SELECT product.name, product.price FROM Product product
+```
+
+This result set contains a `List` of `Object` arrays (therefore, `List<Object[]>`) — each array
+represents one tuple of properties (in this case, a pair that represents name and price).
+
+If you’re only interested in a few properties, this approach can allow you to reduce network
+traffic to the database server and save memory on the application’s machine.
+
+#### Using Named Parameters
+
+Hibernate supports named parameters in its HQL queries. The simplest example of named
+parameters uses regular SQL types for the parameters:
+
+```java
+String hql = "FROM Product WHERE price > :price";
+Query query = session.createQuery(hql);
+query.setParameter("price", 25.0);
+List results = query.list();
+```
+
+Metod `setParameter()` uzima naziv parametarske oznake kao prvi argument i vrednost
+kojom ona treba biti zamenjena kao drugi argument. Hibernate će automatski pokušati da dedukuje
+tip na osnovu pozicije imenovane parametarske oznake u upitu. Alternativno, postoji preoptere\'cenje
+ovog metoda koje prihvata dodatni argument kojim se navodi tip te parametarske oznake.
+Naredni kod navodimo tek radi kompletnosti, bez ula\v zenja u detalje. Jedino na \v sta \'cemo
+skrenuti pa\v znju jeste metod `getSingleResult` klase `org.hibernate.query.Query`
+koji dohvata ta\v cno jedan rezultat iz tabele koji zadovoljava HQL upit.
+
+```java
+// Dohvatamo model koji sadrzi meta-informacije.
+MetamodelImplementor metamodelImplementor = 
+        (MetamodelImplementor) HibernateUtil.getSessionFactory().getMetamodel();
+
+// Izracunavamo tip atributa `caption` u klasi `Photo`.
+Type captionType = metamodelImplementor
+		.entityPersister( Photo.class.getName() )
+		.getPropertyType( "caption" );
+
+// HQL upit kojim dohvatamo sve slike koje imaju odgovarajuci naziv.
+String hql = 
+        "select p " +
+        "from Photo p " +
+        "where upper(caption) = upper(:caption) ";
+// Koristimo varijantu metoda `setParameter()` sa tri argumenta
+// kako bismo nagovestili Hibernate-u koji je tip parametarske oznake sa nazivom "caption".
+Photo photo = (Photo) session.createQuery(hql, Photo.class )
+        .setParameter("caption", new Caption("Moja prva fotografija u novoj godini"), captionType)
+        .getSingleResult();
+```
+
+Normally, you do not know the values that are to be substituted for the named parameters;
+if you did, you would probably encode them directly into the query string. When the value
+to be provided will be known only at run time, you can use some of HQL’s object-oriented
+features to provide objects as values for named parameters. The Query interface has a
+`setEntity()` method that takes the name of a parameter and an object.
+
+Using this functionality, we could retrieve all the products that have a supplier whose
+object we already have:
+
+```java
+String supplierHQL = "FROM Supplier WHERE name = 'MegaInc'";
+Query supplierQuery = session.createQuery(supplierHQL);
+Supplier supplier = (Supplier) supplierQuery.list().get(0);
+
+String hql = "FROM Product AS product WHERE product.supplier = :supplier";
+Query query = session.createQuery(hql);
+query.setEntity("supplier", supplier);
+List results = query.list();
+```
+
+#### Associations
+
+Associations allow you to use more than one class in HQL query, just as SQL allows you
+to use joins between tables in a relational database. You add an association to a HQL
+query with the `JOIN` clause.
+
+Hibernate supports five different types of joins: `INNER JOIN`, `CROSS JOIN`, `LEFT OUTER JOIN`,
+`RIGHT OUTER JOIN`, and `FULL OUTER JOIN`. If you use `CROSS JOIN`, just specify both classes
+in the `FROM` clause (`FROM Product p, Supplier s`). For the other joins, use a `JOIN` clause
+after the `FROM` clause. Specify the type of join, the object property to join on, and an alias
+for the other class.
+
+For example, you can use `INNER JOIN` to obtain the supplier for each product, and then retrieve the
+supplier name, product name, and product price, as so:
+
+```sql
+SELECT s.name, p.name, p.price FROM Product p INNER JOIN p.supplier AS s
+```
+
+You can retrieve the objects using similar syntax:
+
+```sql
+FROM Product p INNER JOIN p.supplier AS s
+```
+
+Notice that Hibernate does not return `Object` objects in the result set; instead, Hibernate
+returns `Object` arrays in the results. This join results in a projection, thus the use of
+the `Object` arrays. You will have to access the contents of the `Object` arrays to get the
+`Supplier` and the `Product` objects.
+
+{% include zadatak.html broj="11.1" tekst="Dopuniti zadatak 10.4 tako da implementira ispisivanje podataka o svim ispitnim rokovima." %}
+
+Re\v senje: Zahtev je implementiran u metodu `readispitniRokovi()` klase `Main.java`:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_1/Main.java, java)
+
+{% include zadatak.html broj="11.2" tekst="Dopuniti prethodni zadatak tako da implementira ispisivanje podataka o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
+
+Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_2/Main.java, java)
