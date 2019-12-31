@@ -18,6 +18,11 @@ jobs:
         node index.js
         cd ..
 
+    - name: Archive the examples
+      run: |
+        tar -czvf primeri.tar.gz primeri
+        cp primeri.tar.gz resources/
+
     - name: Run Jekyll
       uses: theikeofficial/action-jekyll@master
 
