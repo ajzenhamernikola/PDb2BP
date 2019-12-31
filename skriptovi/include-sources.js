@@ -6,7 +6,7 @@ const fs = require('fs');
 module.exports.includeSourceFromFile = (text) => {
     const regex = /include_source\((?<path>[^,]+?),\s*?(?<lang>[a-z]+?)\)/gm;
     let m;
-    let newText = text;
+    let newText = text.replace(/\t/gm, '    ');
 
     while ((m = regex.exec(text)) !== null) {
         // This is necessary to avoid infinite loops with zero-width matches
