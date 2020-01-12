@@ -27,6 +27,23 @@
                 <br>
                 <br>
                 <a href="{{site.baseurl}}/resources/primeri.tar.gz" role="button" class="btn btn-secondary btn-lg btn-block">Preuzmite kodove</a>
+                <br>
+                Poslednja izmena: <span id="poslednja-izmena">N/A</span>
+                <script>
+                    (function() {
+                        try {
+                            const datum = new Date().toString().substr(4, 20);
+                            const tekst = document.createTextNode(datum);
+                            const izmena = document.getElementById('poslednja-izmena');
+                            for (let i = izmena.childNodes.length-1; i >= 0; --i) {
+                                izmena.removeChild(izmena.childNodes[i]);
+                            }
+                            izmena.appendChild(tekst);
+                        } catch (err) {
+                            console.error('Caught error: ' + err);
+                        }
+                    })();
+                </script>
             </div>
             <div class="col-md-8 col-lg-6 mt-5">
                 <main class="page-content" aria-label="Content">
