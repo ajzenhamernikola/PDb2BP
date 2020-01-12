@@ -3,6 +3,11 @@
 
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<style>
+    #poslednja-izmena {
+        font-style: italic;
+    }
+</style>
 
 {%- include head.html -%}
 
@@ -28,22 +33,7 @@
                 <br>
                 <a href="{{site.baseurl}}/resources/primeri.tar.gz" role="button" class="btn btn-secondary btn-lg btn-block">Preuzmite kodove</a>
                 <br>
-                Poslednja izmena: <span id="poslednja-izmena">N/A</span>
-                <script>
-                    (function() {
-                        try {
-                            const datum = new Date().toString().substr(4, 20);
-                            const tekst = document.createTextNode(datum);
-                            const izmena = document.getElementById('poslednja-izmena');
-                            for (let i = izmena.childNodes.length-1; i >= 0; --i) {
-                                izmena.removeChild(izmena.childNodes[i]);
-                            }
-                            izmena.appendChild(tekst);
-                        } catch (err) {
-                            console.error('Caught error: ' + err);
-                        }
-                    })();
-                </script>
+                {%- include datum_poslednje_izmene.html -%}
             </div>
             <div class="col-md-8 col-lg-6 mt-5">
                 <main class="page-content" aria-label="Content">
