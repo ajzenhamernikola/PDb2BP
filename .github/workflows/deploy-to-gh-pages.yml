@@ -17,6 +17,15 @@ jobs:
         cd skriptovi
         node index.js
         cd ..
+    
+    - name: Set the change date
+      run: |
+        cd _includes
+        rm datum_poslednje_izmene.html
+        touch datum_poslednje_izmene.html
+        datum=$(date +"%d. %b %Y. %H:%M:%S")
+        echo "Poslednja izmena: <span id='poslednja-izmena'>$datum</span>" > datum_poslednje_izmene.html
+        cd ..
 
     - name: Archive the examples
       run: |
