@@ -42,7 +42,7 @@ title: Programiranje Db2 baza podataka
 
 #### [11. Napredna objektno-relaciona preslikavanja]({{site.baseurl}}/poglavlja/11/)
 
-#### [12. Napredno kreiranje upita pomoću Hibernate Criteria API]({{site.baseurl}}/poglavlja/12/)
+#### [12. Napredno kreiranje upita pomoću JPA Criteria API]({{site.baseurl}}/poglavlja/12/)
 
 ### Deo 5 - Programiranje na Db2 serveru baze podataka
 
