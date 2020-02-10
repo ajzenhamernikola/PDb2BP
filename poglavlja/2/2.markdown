@@ -12,7 +12,7 @@ Pre nego što započnemo diskusiju o načinu konstrukcije C/SQL aplikacija, neop
 
 {% include definicija.html def="Za aplikaciju kažemo da je *SQL-ugnežđena* (engl. *SQL-embedded*) ukoliko postoji barem jedna SQL naredba koja je ugnežđena u matični jezik, kao što su C, C++, Java, i dr." %}
 
-Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva naredne korake:
+Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva korake koji su dati u nastavku. Ovi koraci pretpostavljaju da u terminalu iz kojeg se pozivaju postoji definisana _promenljiva okru\v zenja_ (engl. _environment variable_) \v ciji je identifikator `DB2PATH`, a \v cija je vrednost putanja na kojoj je instaliran Db2 SUBP. Pretpostavimo da je na na\v sem operativnom sistemu ova lokacija `/opt/ibm/db2/V11.5/`. Dodatno, pretpostavimo da je na\v s sistem 64-bitni. U slu\v caju da nije, onda je potrebno zameniti sva pojavljivanja niske `lib64` niskom `lib32` u koracima ispod:
 
 1. Ostvarivanje konekcije na bazu podataka. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
@@ -50,14 +50,14 @@ db2 BIND IMEDATOTEKE.bnd
 4. Kompiliranje modifikovanog aplikacionog izvornog koda i izvornih datoteka koji ne sadrže ugnežđeni SQL da bi se kreirale objektne datoteke (jedna ili više njih, zavisno od modularnosti koda; kod nas će uglavnom biti jedna objektna datoteka po primeru). Potrebno je kompilatoru specifikovati gde se nalaze zaglavlja koje nam Db2 sistem nudi. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
 ```shell
-cc -I/opt/ibm/db2/V10.5/include -c IMEDATOTEKE.c
+cc -I$DB2PATH/include -c IMEDATOTEKE.c
 ```
 
 {:start="5"}
 5. Linkovanje aplikacionih objektnih datoteka sa Db2 bibliotekama i bibliotekama matičnog jezika da bi se kreirao izvršni program. Ovo podrazumeva pokretanje naredne naredbe iz terminala:
 
 ```shell
-cc -o IMEDATOTEKE IMEDATOTEKE.o -Wl,-rpath,/opt/ibm/db2/V10.5/lib32 -L/ opt/ibm/db2/V10.5/lib32 -ldb2
+cc -o IMEDATOTEKE IMEDATOTEKE.o -Wl,-rpath,$DB2PATH/lib64 -L$DB2PATH/lib64 -ldb2
 ```
 
 S obzirom da je ovaj proces poprilično linearan za svaku aplikaciju koju ćemo pisati (uz jednocifren broj izuzetaka), dobro bi bilo automatizovati ga. U tu svrhu, kreirali smo skript `prevodjenje` čiji je sadržaj dat u nastavku.
