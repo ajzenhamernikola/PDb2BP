@@ -124,7 +124,7 @@ Ukoliko želimo da iskoristimo matičnu promenljivu u SQL naredbi, onda ispred i
 ```c
 EXEC SQL 
     SELECT  AVG(CAST(OCENA AS DOUBLE)) 
-    INTO    :ukupnaZarada 
+    INTO    :prosek 
     FROM    ISPIT;
 ```
 
