@@ -156,8 +156,8 @@ U ovom poglavlju ćemo demonstrirati najjednostavniji slučaj dohvatanja podatak
 
 ```c
 EXEC SQL BEGIN DECLARE SECTION;
-sqlint32 prviIspit;
-sqlint32 poslednjiIspit;
+char prviIspit[11];
+char poslednjiIspit[11];
 EXEC SQL END DECLARE SECTION;
 ```
 
