@@ -309,7 +309,7 @@ CREATE TABLE OBRADJENI_PREDMETI (
 
 include_source(primeri/poglavlje_4/zadatak_4_4.sqc, c)
 
-Naredni zadatak ilustruje rad sa tačkama čuvanja u okviru transakcija.
+Naredni zadatak ilustruje jednostavan rad sa tačkama čuvanja u okviru transakcija.
 
 {% include zadatak.html broj="4.5" tekst="Napisati C/SQL program koji redom:\n
 \n
@@ -323,29 +323,79 @@ Rešenje:
 
 include_source(primeri/poglavlje_4/zadatak_4_5.sqc, c)
 
-## 4.6 Zadaci za vežbu
+Naredni zadatak ilustruje kompleksniji rad sa ta\v ckama \v cuvanja u okviru transakcija.
 
-{% include zadatak.html broj="4.6" tekst="Napisati C/SQL program koji redom:\n
+{% include zadatak.html broj="4.6" tekst="Napisati C/SQL program kojim se omogu\'cuje da radnik u studentskoj slu\v zbi poni\v stava studentske ispite. Obrada jednog studenta u jednoj godini roka, koja je opisana u nastavku, mora da predstavlja zasebnu transakciju. Transakcija se sastoji od narednih koraka:\n
 \n
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
-2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
+1. Aplikacija zahteva od korisnika da unese indeks studenta.\n
+2. Aplikacija na osnovu unetog indeksa ispisuje godine rokova u kojima student ima neke polo\v zene ispite, ali samo ukoliko ve\'c nije prethodno ta godina roka obra\dj ena za tog studenta (ova informacija se \v cuva u tabeli `OBRADJENA_POLAGANJA`).\n
+3. Korisnik bira jednu od ispisanih godina.\n
+4. Aplikacija pronalazi sve polo\v zene ispite za datog studenta u odabranoj godini studija. Za svaki ispit, aplikacija ispisuje naziv polo\v zenog predmeta i ocenu koju je student ostvario. Tako\dj e, aplikacija pita korisnika da li \v zeli da poni\v sti teku\'ci ispit \v cije su informacije ispisane. Ukoliko korisnik odgovori potvrdno, aplikacija poni\v stava teku\'ci ispit. U svakom slu\v caju, aplikacija prelazi na naredni ispit sve do ispisivanja svih ispita.\n
+5. Kada se svi ispiti obrade, aplikacija pita korisnika da potvrdi sve izmene u teku\'coj transakciji. Ukoliko korisnik odgovori odri\v cno, onda je potrebno poni\v stiti sve izmene koje se ti\v cu poni\v stavanja ispita iz koraka 4. Me\dj utim, potrebno je omogu\'citi da, u svakom slu\v caju, teku\'ca godina roka za dati indeks bude obra\dj ena (tj. trajno zapam\'cena u tabeli `OBRADJENA_POLAGANJA`).\n
 \n
-Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
+Na kraju svake transakcije, aplikacija pita korisnika da li \v zeli da zavr\v si sa radom. Ukoliko korisnik odgovori potvrdno, aplikacija se zavr\v sava. U suprotnom, zapo\v cinje se nova transakcija sa prethodno opisanim koracima." %}
+
+Pre pokretanja programa, izvr\v siti naredne SQL naredbe:
+
+```sql
+DROP TABLE OBRADJENA_POLAGANJA;
+
+CREATE TABLE OBRADJENA_POLAGANJA (
+    INDEKS INTEGER NOT NULL,
+    GODINA SMALLINT NOT NULL,
+    PRIMARY KEY (INDEKS, GODINA),
+    FOREIGN KEY (INDEKS)
+        REFERENCES DOSIJE
+);
+
+INSERT INTO OBRADJENA_POLAGANJA
+VALUES (20100050, 2011);
+```
+
+{% include izlaz.html datoteka="4.6.txt" %}
+
+Rešenje: Da bismo lak\v se modulirali na\v se re\v senje, implementirajmo naredne funkcije:
+
+1. Funkcija `void deklarisi_kursor_za_godine(sqlint32 indeks)` vr\v si deklaraciju \v citaju\'ceg kursora sa nazivom `c_godine` koji pronalazi godine onih ispitnih rokova u kojem student, \v ciji je indeks jednak vrednosti parametra `indeks` (koja predstavlja mati\v cnu promenljivu koja je globalno deklarisana), ima polo\v zene ispite.
+
+2. Funkcija `unsigned godine_polozenih_ispita()` ispisuje sve godine iz kursora `c_godine`. Funkcija tako\dj e i vra\'ca broj prona\dj enih godina.
+
+3. Funkcija `void deklarisi_kursor_za_polaganja(sqlint32 indeks, short godina)` vr\v si deklaraciju a\v zuriraju\'ceg kursora sa nazivom `c_polozeni` kojim se mo\v ze a\v zurirati vrednost kolone `STATUS_PRIJAVE` u tabeli `ISPIT` i koji pronalazi naziv predmeta i ocenu za sve polo\v zene ispite za studenta sa indeksom `indeks` u godini roka `godina` (oba parametra predstavljaju mati\v cne promenljive). Ovaj kursor mora biti deklarisan klauzom `WITH HOLD` zato \v sto se koristi kao deo transakcije.
+
+4. Funkcija `void polaganja_za_studenta_u_godini(sqlint32 indeks, short godina)` implementira neophodne operacije koje \v cine deo transakcije za jednog studenta. Funkcija redom:
+
+- Unosi informacije (`INSERT`) o indeksu i godini roka u tabelu `OBRADJENA_POLAGANJA`.
+- Kreira ta\v cku \v cuvanja, kako bismo mogli da eventualno poni\v stimo sve izmene, osim unosa u tabelu iz prethodne ta\v cke.
+- Prolazi kroz kursor `c_polozeni`. Za svaki red ispisuje informacije iz kursora i ukoliko korisnik potvrdi poni\v stavanje ispita, izvr\v sava odgovaraju\'ce a\v zuriranje (`UPDATE`).
+- Postavlja pitanje korisniku da li \v zeli da potvrdi izmene. Ukoliko je odgovor negativan, funkcija poni\v stava sve izmene, ali ne i izmenu koja je u\v cinjena u prvoj ta\v cki (tj. naredbu `INSERT` iznad), po\v sto bez obzira na poni\v stavanje a\v zuriranja, \v zelimo da informacija o obra\dj ivanju bude trajno upisana.
+
+Funkcija `int main()` je sada poprili\v cno jednostavna. Nakon povezivanja na bazu podataka i deklarisanja kursora (pozivom funkcija pod 1 i 3 iznad), zapo\v cinje se iterativni proces koji predstavlja jednu transakciju. Svaka transakcija se sastoji od opisanih operacija iz teksta zadatka, tako \v sto se pozivaju odgovaraju\'ce funkcije (pod 2 i 4 iznad). Naravno, da bi svaka iteracija predstavljala jednu transakciju, potrebno je da se na kraju iteracije izvr\v si naredba `COMMIT`.
+
+include_source(primeri/poglavlje_4/zadatak_4_6.sqc, c)
+
+## 4.6 Zadaci za vežbu
 
 {% include zadatak.html broj="4.7" tekst="Napisati C/SQL program koji redom:\n
 \n
 1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
 2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
 \n
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
+
+{% include zadatak.html broj="4.8" tekst="Napisati C/SQL program koji redom:\n
+\n
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
+2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
+\n
 Obezbediti da se navedene operacije izvrše zasebno." %}
 
-{% include zadatak.html broj="4.8" tekst="Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.\n
+{% include zadatak.html broj="4.9" tekst="Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.\n
 \n
 Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. \n
 \n
 Obezbediti da se navedene operacije izvrše zasebno." %}
 
-{% include zadatak.html broj="4.9" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
+{% include zadatak.html broj="4.10" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
 1. Izvršavanje potvrđivanja\n
 2. Izvršavanje poništavanja\n
 3. Bez akcije\n
