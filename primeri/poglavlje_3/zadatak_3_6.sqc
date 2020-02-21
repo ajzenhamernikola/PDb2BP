@@ -10,20 +10,34 @@ sqlint32 indeks;
 char datum[11];
 EXEC SQL END DECLARE SECTION;
 
-void is_error(const char* err)
-{
-    if (SQLCODE < 0)
-    {
+void is_error(const char* err) {
+    if (SQLCODE < 0) {
         printf("SQLCODE %d: %s\n\n", SQLCODE, err);
         exit(EXIT_FAILURE);
     }
 }
 
-int main()
-{
+void deklarisi_najvise_polozenih();
+void deklarisi_poslednje_ispite();
+void obradi_smerove();
+void azuriraj_napomene_za_ispite();
+
+int main() {
     EXEC SQL CONNECT TO vstud USER student USING abcdef;  
     is_error("Konekcija na bazu");
     
+    deklarisi_najvise_polozenih();
+    deklarisi_poslednje_ispite();    
+    
+    obradi_smerove();
+
+    EXEC SQL CONNECT RESET;
+    is_error("Diskonekcija sa baze");
+    
+    return 0;
+}
+
+void deklarisi_najvise_polozenih() {
     EXEC SQL 
         DECLARE najvisePolozenih CURSOR FOR 
         WITH POMOCNA AS (
@@ -50,7 +64,9 @@ int main()
                     )
         ORDER BY    ID_SMERA;
     is_error("Deklaracija kursora - najvisePolozenih");
-    
+}
+
+void deklarisi_poslednje_ispite() {
     EXEC SQL 
         DECLARE poslednji_ispit CURSOR FOR 
         WITH POMOCNA AS (
@@ -73,12 +89,13 @@ int main()
                 )
         FOR     UPDATE OF NAPOMENA;
     is_error("Deklaracija kursora - poslednji_ispit");
-    
+}
+
+void obradi_smerove() {
     EXEC SQL OPEN najvisePolozenih;
     is_error("Otvaranje kursora - najvisePolozenih");
 
-    while(1)
-    {
+    for(;;) {
         EXEC SQL 
             FETCH   najvisePolozenih                
             INTO    :suma, 
@@ -86,8 +103,7 @@ int main()
                     :id_smera;
         is_error("Dohvatanje podataka iz kursora - najvisePolozenih");
 
-        if(SQLCODE == 100)
-        {
+        if(SQLCODE == 100) {
             break;
         }
         
@@ -95,38 +111,35 @@ int main()
         printf("Student sa brojem indeksa %d na smeru %d ima polozeno %d bodova!\n", 
             indeks, id_smera, suma);
         
-        EXEC SQL OPEN poslednji_ispit;
-        is_error("Otvaranje kursora - poslednji_ispit");
-        
-        while(1)
-        {
-            EXEC SQL 
-                FETCH   poslednji_ispit
-                INTO    :indeks, 
-                        :datum;
-            is_error("Dohvatanje podataka iz kursora - poslednji_ispit");
-
-            if(SQLCODE == 100)
-            {
-                break;
-            }
-            
-            EXEC SQL 
-                UPDATE  ISPIT
-                SET     NAPOMENA = 'Ovo je student koji ima najvise polozenih kredita na svom smeru'
-                WHERE   CURRENT OF poslednji_ispit;
-            is_error("Azuriranje tabele ispit");
-        }
-        
-        EXEC SQL CLOSE poslednji_ispit;
-        is_error("Zatvaranje kursora - poslednji_ispit");
+        azuriraj_napomene_za_ispite();
     }
 
     EXEC SQL CLOSE najvisePolozenih;
     is_error("Zatvaranje kursora - najvisePolozenih");
+}
 
-    EXEC SQL CONNECT RESET;
-    is_error("Diskonekcija sa baze");
+void azuriraj_napomene_za_ispite() {
+    EXEC SQL OPEN poslednji_ispit;
+    is_error("Otvaranje kursora - poslednji_ispit");
     
-    return 0;
+    for(;;) {
+        EXEC SQL 
+            FETCH   poslednji_ispit
+            INTO    :indeks, 
+                    :datum;
+        is_error("Dohvatanje podataka iz kursora - poslednji_ispit");
+
+        if(SQLCODE == 100) {
+            break;
+        }
+        
+        EXEC SQL 
+            UPDATE  ISPIT
+            SET     NAPOMENA = 'Ovo je student koji ima najvise polozenih kredita na svom smeru'
+            WHERE   CURRENT OF poslednji_ispit;
+        is_error("Azuriranje tabele ispit");
+    }
+    
+    EXEC SQL CLOSE poslednji_ispit;
+    is_error("Zatvaranje kursora - poslednji_ispit");
 }

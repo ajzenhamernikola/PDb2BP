@@ -56,7 +56,7 @@ int main()
     EXEC SQL OPEN smerovi;
     is_error("Otvaranje kursora - smerovi");
 
-    while(1)
+    for(;;)
     {
         EXEC SQL 
             FETCH   smerovi
@@ -79,7 +79,7 @@ int main()
         EXEC SQL OPEN padaliIspit;
         is_error("Otvaranje kursora - padaliIspit");
         
-        while(1)
+        for(;;)
         {
             EXEC SQL 
                 FETCH   padaliIspit
