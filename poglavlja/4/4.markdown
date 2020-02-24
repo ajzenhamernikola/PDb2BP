@@ -25,6 +25,7 @@ Premeštaj novca sa jednog računa na drugi se može implementirati narednim niz
 
 Pretpostavimo da SUBP operacije iz ovih koraka implementira na takav način da se neposredno nakon njihovog izvršavanja sve izmene trajno upisuju u bazu podataka. Naredna slika ilustruje jedno moguće izvršavanje programa koji implementira ove korake. U tom izvršavanju, program prvo naredbom `SELECT` dohvata red u tabeli koji predstavlja prvi račun (koji je na početku imao 100 000 jedinica valute). Zatim, u drugom koraku, naredbom `UPDATE` umanjuje iznos u tom redu za traženu sumu (10 000 jedinica valute). Iz nekog razloga (nestanak struje, prekid mrežne komunikacije, itd.), nakon 2. koraka, program prijavljuje grešku i operativni sistem ga prekida. Međutim, kao što je prikazano na slici, stanje baze je takvo da je prvom računu umanjen iznos i informacija o tome da novac nije uspešno prebačen na drugi račun se izgubila. Drugim rečima, baza se nalazi u *nekonzistentnom* stanju. Zbog toga, važno je zapamtiti da **SUBP nikada ne implementira operacije izmena tako da njihovi efekti budu trajno upisani u bazu podataka neposredno nakon njihovog izvršavanja**.
 
+{:style="max-width: 500px; display: block; margin: auto;"}
 ![Nepravilna implementacija transakcija može dovesti do kršenja pravila u poslovnom domenu](./Slike/CitanjePrePotvrdjivanja.png)
 
 Sada je validno postaviti pitanje - u kom trenutku se informacije o izmenama zaista upisuju u bazu podataka? Db2 baza podataka definiše naredne dve operacije za rad sa izmenama u bazi podataka.
@@ -41,11 +42,11 @@ Jedinica posla se inicijalizuje prilikom pokretanja aplikacionog procesa ili kad
 
 Inicijalizacija i završetak jedinice posla definišu tačke konzistentnosti u okviru aplikacionog procesa. Razmotrimo prethodni primer bankarske transakcije u kojoj se vrši premeštaj sredstava sa jednog računa na drugi račun. Kao što smo rekli, nakon drugog koraka (oduzimanja sredstava) podaci su nekonzistentni. Tek nakon izvršavanja četvrtog koraka (uvećavanje sredstava) konzistentnost je obnovljena, što je prikazano na narednoj slici:
 
-!["Grafički prikaz jedne jedinice posla tokom vremena. Ova jedinica posla se uspešno izvršila i sve izmene koje predstavljaju deo te jedinice posla se uspešno potvrđuju u bazi podataka."](./Slike/uow1.png)
+!["Grafički prikaz jedne jedinice posla tokom vremena. Ova jedinica posla se uspešno izvršila i sve izmene koje predstavljaju deo te jedinice posla se uspešno potvrđuju u bazi podataka."](./Slike/uow1.png){:style="display: block; margin: auto;"}
 
 Kada se oba koraka izvrše, može se iskoristiti operacija potvrđivanja izmena da bi se završila jedinica posla. Ako dođe do greške pre nego što se jedinica posla uspešno završi, SUBP će poništiti sve nepotvrđene izmene da bi vratio stanje baze podataka u konzistentno, što je prikazano na narednoj slici:
 
-!["Grafički prikaz jedne jedinice posla tokom vremena. U ovoj jedinici posla je došlo do greške, čime je neophodno da se izmene koje su načinjene u bazi podataka ponište."](./Slike/uow2.png)
+!["Grafički prikaz jedne jedinice posla tokom vremena. U ovoj jedinici posla je došlo do greške, čime je neophodno da se izmene koje su načinjene u bazi podataka ponište."](./Slike/uow2.png){:style="display: block; margin: auto;"}
 
 Dakle, rešenje problema prenosa novca bismo implementirali narednim koracima:
 
