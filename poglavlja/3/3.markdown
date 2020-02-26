@@ -32,17 +32,28 @@ Promenljiva `<IME_KURSORA>` mora biti jedinstvena u programu. Vrednost `<UPIT>` 
 
 Ukoliko navedemo klauzu `FOR READ ONLY`, time definišemo kursor koji služi samo za čitanje podataka. Ukoliko želimo da se podaci menjaju pomoću kursora, tada se nakon `<UPIT>` navodi klauza `FOR UPDATE OF` za kojom sledi lista imena kolona u rezultatu upita koji se mogu menjati kursorom, odvojeni zapetama.
 
-Kursor se implicitno ograničava samo za čitanje (kažemo da je kursor *čitajući*) ako je ispunjen barem jedan od sledećih uslova:
+Postoje tri tipa kursora:
 
-- Bilo koja `FROM` klauza koja se nalazi u `<UPIT>` sadrži više od jedne tabele ili sadrži pogled koji služi samo za čitanje.
+- *\v Citaju\'ci*, koji podr\v zava samo operaciju \v citanja podataka. Ovim kursorom nije mogu\'ce vr\v siti operacije brisanja ili a\v zuriranja.
+- *Bri\v su\'ci*, koji podr\v zava operacije \v citanja i brisanja podataka. Ovim kursorom nije mogu\'ce vr\v siti operaciju a\v zuriranja.
+- *A\v zuriraju\'ci*, koji podr\v zava sve tri operacije nad podacima.
+- *Dvosmisleni*, ukoliko Db2 nije u stanju da na osnovu upita zaklju\v ci da li \'ce se kursor koristiti za \v citanje ili menjanje podataka.
 
-- `<UPIT>` sadrži neku od klauza `DISTINCT`, `VALUES` ili `ORDER BY`.
+U nastavku slede njihove definicije:
 
-- `<UPIT>` sadrži agregatne funkcije ili neku od klauza `GROUP BY` ili `HAVING`.
+- Za kursor kažemo da je *brišući* ako je svaki od narednih uslova ispunjen:
+    - Klauza `FROM` u glavnom delu `<UPIT>` sadrži ta\v cno jednu tabelu ili pogled nad jednom tabelom koji služi za brisanje.
+    - `<UPIT>` ne sadrži neku od klauza `DISTINCT` ili `VALUES`.
+    - `<UPIT>` ne sadrži `ORDER BY` i klauzu `FOR UPDATE OF` (zajedno).
+    - `<UPIT>` ne sadrži agregatne funkcije ili neku od klauza `GROUP BY` ili `HAVING`.
+    - `<UPIT>` ne sadrži neki skupovni operator, kao što su `UNION`, `INTERSECT` ili `EXCEPT` sa izuzetkom `UNION ALL`.
+    - `<UPIT>` ne sadrži klauzu `FOR READ ONLY`.
 
-- `<UPIT>` sadrži neki skupovni operator, kao što su `UNION`, `INTERSECT` ili `EXCEPT` sa izuzetkom `UNION ALL`.
+- Za kursor kažemo da je *\v citaju\'ci* ukoliko nije bri\v su\'ci. 
 
-Za kursor kažemo da je *brišući* ukoliko nije čitajući. Za kursor kažemo da je *ažurirajući* ukoliko je brišući i kolone koje su proglašene za ažuriranje u klauzi `FOR UPDATE OF` predstavljaju neke od kolona u baznoj tabeli. Za kursor kažemo da je *dvosmisleni* ukoliko je upit dinamički pripremljen i nije navedena nijedna od klauza `FOR READ ONLY` ili `FOR UPDATE OF`.
+- Za kursor kažemo da je *ažurirajući* ukoliko je brišući i kolone koje su proglašene za ažuriranje u klauzi `FOR UPDATE OF` predstavljaju neke od kolona u baznoj tabeli. 
+
+- Za kursor kažemo da je *dvosmisleni* ukoliko je upit dinamički pripremljen i nije navedena nijedna od klauza `FOR READ ONLY` ili `FOR UPDATE OF` i kursor zadovoljava uslove bri\v su\'ceg kursora.
 
 Navođenjem neke od opcionih klauza `WITHOUT HOLD` ili `WITH HOLD` možemo specifikovati da li će se kursor zatvarati ili ne kao posledica operacije *pohranjivanja* (engl. *commit*). Navođenjem klauze `WITHOUT HOLD` kursor se ne sprečava da bude zatvoren, što je podrazumevano ponašanje. Navođenjem klauze `WITH HOLD` kursor održava resurse kroz različite jedinice posla. Kada budemo diskutovali o transakcijama, definisaćemo preciznije ovo ponašanje.
 
