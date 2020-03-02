@@ -22,11 +22,11 @@ title: Programiranje Db2 baza podataka
 
 #### [3. Programiranje korišćenjem kursora]({{site.baseurl}}/poglavlja/3/)
 
-#### [4. Implementiranje transakcija]({{site.baseurl}}/poglavlja/4/)
+#### [4. Aplikacije sa dinamičkim SQL naredbama]({{site.baseurl}}/poglavlja/4/)
 
-#### [5. Aplikacije u višekorisničkom okruženju]({{site.baseurl}}/poglavlja/5/)
+#### [5. Implementiranje transakcija]({{site.baseurl}}/poglavlja/5/)
 
-#### [6. Aplikacije sa dinamičkim SQL naredbama]({{site.baseurl}}/poglavlja/6/)
+#### [6. Aplikacije u višekorisničkom okruženju]({{site.baseurl}}/poglavlja/6/)
 
 #### [7. Povezivanje aplikacija na više baza podataka]({{site.baseurl}}/poglavlja/7/)
 
