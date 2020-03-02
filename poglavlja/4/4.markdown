@@ -1,406 +1,421 @@
 ---
-permalink: /poglavlja/4/
+permalink: /poglavlja/6/
 layout: page
-title: 4. Implementiranje transakcija
+title: 4. Aplikacije sa dinamičkim SQL naredbama
 ---
 
-Transakcije predstavljaju izuzetno važan alat za svakog programera koji koristi baze podataka u svojim aplikacijama. Svaka iole kompleksnija operacija nad podacima zahteva korišćenje transakcija da bi se takva operacija uspešno implementirala. Pritom, postoji veliki broj pitanja i potencijalnih problema koji se otvaraju prilikom korišćenja  transakcija. U ovoj sekciji ćemo se upoznati sa različitim naredbama za rad sa transakcijama u DB2 sistemu za upravljanje relacionim bazama podataka. Započnimo ovaj deo teksta narednom definicijom.
+Do sada smo konstruisali aplikacije sa ugnežđenim SQL-om koje su koristile statičke SQL naredbe. Da se podsetimo, u pitanju su bile naredbe čiji je plan izvršavanja moguće izračunati u fazi pretprocesiranja. Ipak, kreiranje statičkih SQL aplikacija nam nije dovoljno ukoliko su nam neki elementi SQL naredbi nepoznati u fazi prevođenja programa. Štaviše, nekada je potrebno konstruisati aplikaciju u kojoj nijedna SQL naredba nije unapred poznata (sa izuzetkom naredba povezivanja na bazu podataka, prekidanja konekcije i sl.). 
 
-{% include definicija.html def="*Transakcija* (engl. *transaction*) predstavlja logičku jedinicu posla pri radu sa podacima." %}
+Dizajniranje složenijih SQL aplikacija zahteva nešto moćnije alate za rad koji se oslanjaju na rad sa dinamičkim SQL naredbama, čime se kreiraju dinamičke SQL aplikacije. Samim tim što je programiranje dinamičkih SQL aplikacija moćnije, to je i složenije jer, pored velikog broja novih načina za pisanje aplikacija, otvara i nove teme, pre svega poređenje složenosti, performansi i upotrebljivosti u odnosu na statičke SQL aplikacije. Međutim, u ovom poglavlju, mi ćemo se baviti isključivo programiranjem dinamičkih SQL aplikacija, ne i pitanjima njihovog razvoja.
 
-Transakcija predstavlja niz radnji koji ne narušava uslove integriteta. Sa stanovišta korisnika, izvršavanje transakcije je atomično. Po izvršenju kompletne transakcije stanje baze treba da bude konzistentno, tj. da su ispunjeni uslovi integriteta. Dakle, posmatrana kao jedinica posla, transakcija prevodi jedno konzistentno stanje baze u drugo takvo stanje baze, dok u međukoracima transakcije konzistentnost podataka može biti i narušena. Transakcija na taj način predstavlja i bezbedno sredstvo za interakciju korisnika sa bazom.
+Pre nego što započnemo sa poglavljem, napomenimo da ukoliko se koriste struktuirani podaci ili podaci koji su nekog od tipa `LOB` (`BLOB`, `CLOB`, `DBLOB`, itd.), onda je za neke od naredbi potrebno izvršiti dodatna procesiranja. Zbog toga ćemo pretpostaviti da naše aplikacije neće baratati takvim podacima.
 
-## 4.1 Operacije potvrđivanja i poništavanja izmena u bazi podataka
+## 4.1 Naredbe za ugnežđavanje dinamičkih SQL naredbi
 
-Pre nego što započnemo detaljnu diskusiju o implementaciji transakcija, obratićemo pažnju na jedan realan primer izvršavanja programa koji implementira prebacivanje novca sa jednog računa na drugi. Ovaj primer će nam služiti kao glavna motivacija zašto je potrebno da razumemo rad sa transakcijama. Pre nego što demonstriramo primer, dajmo narednu definiciju.
+Da bismo mogli da izvršimo SQL naredbu dinamički, prvo je neophodno skladištiti je u matičnu promenljivu čiji je tip niska. Dinamička SQL naredba podrazumeva da matična
+promenljiva-niska sadrži tekstualnu formu SQL naredbe. Ova naredba, koja je zadata kao tekst, biće procesirana dinamički, odnosno, tek u fazi izvršavanja programa.
 
-{% include definicija.html def="*Atomična* (engl. *atomic*) operacija je ona operacija koju nije moguće podeliti na više manjih operacija (tj. u pitanju je nedeljiva operacija)." %}
+Naredna slika prikazuje deo programskog koda koji procesira dinamičku SQL naredbu `SELECT`. Na početku, dinamička SQL naredba je zadata kao niska. Prvi korak se sastoji u procesiranju tog tekstualnog oblika SQL naredbe. Rezultat ove naredbe je pripremljena SQL naredba, odnosno, njen izvršivi oblik. Dodatno, moguće je ovom naredbom upisati informacije o samoj dinamičkoj SQL naredbi u odgovarajuće strukture podataka. Nakon toga, drugi korak se sastoji u samom izvršavanju pripremljene naredbe. Prilikom izvršavanja se informacije koje su bile nepoznate zamenjuju konkretnim vrednostima, naravno, ako je dinamička SQL naredba imala nepoznate informacije.
 
-Premeštaj novca sa jednog računa na drugi se može implementirati narednim nizom atomičnih operacija (radi čuvanja prostora, iz narednog niza eliminišemo razne provere, kao što su provera da li korisnik može da prebaci novac između računa, provera da li ima dovoljno sredstava na prvom računu, itd.):
+!["Proces izvršavanja dinamičkih SQL naredbi u dva koraka"](./Slike/dinamicke_naredbe.png)
 
-1. Dohvati red u tabeli koji predstavlja prvi račun.
-2. Umanji iznos u tom redu za traženu sumu.
-3. Dohvati red u tabeli koji predstavlja drugi račun.
-3. Uvećaj iznos u tom redu za traženu sumu.
+Tekstualni oblik naredbe neće biti procesiran prilikom prekompilacije aplikacije. Zapravo, sam tekstualni sadrži ne mora ni da postoji u fazi pretprocesiranja. Umesto toga, o dinamičkoj SQL naredbi možemo razmišljati kao matičnoj promenljivoj tokom faze prekompilacije na koju će se referisati prilikom faze izvršavanja.
 
-Pretpostavimo da SUBP operacije iz ovih koraka implementira na takav način da se neposredno nakon njihovog izvršavanja sve izmene trajno upisuju u bazu podataka. Naredna slika ilustruje jedno moguće izvršavanje programa koji implementira ove korake. U tom izvršavanju, program prvo naredbom `SELECT` dohvata red u tabeli koji predstavlja prvi račun (koji je na početku imao 100 000 jedinica valute). Zatim, u drugom koraku, naredbom `UPDATE` umanjuje iznos u tom redu za traženu sumu (10 000 jedinica valute). Iz nekog razloga (nestanak struje, prekid mrežne komunikacije, itd.), nakon 2. koraka, program prijavljuje grešku i operativni sistem ga prekida. Međutim, kao što je prikazano na slici, stanje baze je takvo da je prvom računu umanjen iznos i informacija o tome da novac nije uspešno prebačen na drugi račun se izgubila. Drugim rečima, baza se nalazi u *nekonzistentnom* stanju. Zbog toga, važno je zapamtiti da **SUBP nikada ne implementira operacije izmena tako da njihovi efekti budu trajno upisani u bazu podataka neposredno nakon njihovog izvršavanja**.
+Sadržaj dinamičkih SQL naredbi odgovara istoj sintaksi kao i za statičke SQL naredbe. Ipak, postoje neki izuzeci nametnuti od strane DB2 SUBP:
 
-{:style="max-width: 500px; display: block; margin: auto;"}
-![Nepravilna implementacija transakcija može dovesti do kršenja pravila u poslovnom domenu](./Slike/CitanjePrePotvrdjivanja.png)
+- Tekstualni oblik naredbe ne sme počinjati ključnim rečima `EXEC SQL`.
+- Tekstualni oblik naredbe se ne sme završavati karakterom za označavanje kraja naredbe (karakter tačka-zapeta (`;`)). Jedini izuzetak od ovog pravila jeste naredba `CREATE TRIGGER`.
 
-Sada je validno postaviti pitanje - u kom trenutku se informacije o izmenama zaista upisuju u bazu podataka? Db2 baza podataka definiše naredne dve operacije za rad sa izmenama u bazi podataka.
+Da bismo tekstualni oblik SQL naredbe transformisali u njegov izvršivi oblik, potrebno je izvršiti odgovarajuće korake, odnosno, naredbe za podršku dinamičkom SQL-u. Ove naredbe operišu nad matičnim promenljivama tako što procesiraju tekstualni oblik naredbe, proveravajući sintaksu naredbe i druga pravila koja ta naredba mora da zadovolji. Ovih naredbi ima više, a mi ćemo prikazati svaku od njih u nastavku poglavlja. Za sada, dajmo kratak opis naredbi kako bismo ih imali na umu tokom njihove detaljnije diskusije:
 
-{% include definicija.html def="*Potvrđivanje* (engl *commit*) predstavlja trajno upisivanje izmena u bazu podataka koje su do tada bile izvršene nad tom bazom podataka. Sve načinjene izmene se trajno pamte u bazi podataka i svi ostali procesi dobijaju mogućnost da vide načinjene izmene." %}
+- Naredba `EXECUTE IMMEDIATE` vrši pripremu i izvršavanje dinamičkih SQL naredbi u jednom koraku.
 
-{% include definicija.html def="*Poništavanje* (engl *rollback*) predstavlja vraćanje stanje baze podataka u ono u kojem se baza podataka našla pre izvršavanja izmena koje su do tada bile izvršene nad tom bazom podataka. Izvršavanjem ove naredbe možemo poništiti sve one akcije koje do trenutka poništavanja nisu prethodno bile potvrđene." %}
+- Naredba `PREPARE` vrši prvu fazu izvršavanja dinamičke SQL naredbe: od tekstualnog oblika naredbe kreira njen izvršivi oblik, dodaje joj naziv i, opciono, upisuje informacije o dinamičkoj SQL naredbi u specijalnim SQLDA strukturama.
 
-Da bismo dodatno razumeli koje su to izmene u bazi podataka koje se potvrđuju, odnosno, poništavaju ovim operacijama, potrebno je da definišemo pojam jedinice posla.
+- Naredba `EXECUTE` vrši drugu fazu izvršavanja dinamičke SQL naredbe: izvršava prethodno pripremljenu dinamičku SQL naredbu.
 
-{% include definicija.html def="*Jedinica posla* (engl. *unit of work*, skr. *UOW*) predstavlja nadoknadivu sekvencu operacija u okviru aplikacionog procesa." %}
+- Naredba `DESCRIBE` upisuje informacije o dinamičkoj SQL naredbi u specijalnim SQLDA strukturama.
 
-Jedinica posla se inicijalizuje prilikom pokretanja aplikacionog procesa ili kada se prethodna jedinica posla završila posledicom operacije koja nije prekid aplikacionog procesa. Jedinica posla se završava operacijom potvrđivanja ili poništavanja izmena ili završetkom aplikacionog procesa. Operacije potvrđivanja i poništavanja izmena utiču samo da one promene u bazi podataka koje su izvršene tokom te jedinice posla koja se završava.
+## 4.2 Naredba `EXECUTE IMMEDIATE`
 
-Inicijalizacija i završetak jedinice posla definišu tačke konzistentnosti u okviru aplikacionog procesa. Razmotrimo prethodni primer bankarske transakcije u kojoj se vrši premeštaj sredstava sa jednog računa na drugi račun. Kao što smo rekli, nakon drugog koraka (oduzimanja sredstava) podaci su nekonzistentni. Tek nakon izvršavanja četvrtog koraka (uvećavanje sredstava) konzistentnost je obnovljena, što je prikazano na narednoj slici:
+Naredba `EXECUTE IMMEDIATE` priprema izvršivi oblik dinamičke SQL naredbe od njegovog tekstualnog oblika i odmah zatim ga i izvršava. Može biti korišćena za pripremu i izvršavanje SQL naredbi koje ne sadrže ni matične promenljive ni parametarske oznake.
 
-!["Grafički prikaz jedne jedinice posla tokom vremena. Ova jedinica posla se uspešno izvršila i sve izmene koje predstavljaju deo te jedinice posla se uspešno potvrđuju u bazi podataka."](./Slike/uow1.png){:style="display: block; margin: auto;"}
+Sintaksa ove naredbe je data u nastavku:
 
-Kada se oba koraka izvrše, može se iskoristiti operacija potvrđivanja izmena da bi se završila jedinica posla. Ako dođe do greške pre nego što se jedinica posla uspešno završi, SUBP će poništiti sve nepotvrđene izmene da bi vratio stanje baze podataka u konzistentno, što je prikazano na narednoj slici:
+```sql
+EXECUTE IMMEDIATE <IZRAZ>
+```
 
-!["Grafički prikaz jedne jedinice posla tokom vremena. U ovoj jedinici posla je došlo do greške, čime je neophodno da se izmene koje su načinjene u bazi podataka ponište."](./Slike/uow2.png){:style="display: block; margin: auto;"}
+Vrednost `<IZRAZ>` predstavlja izraz koji sadrži naredbu koja će se izvršiti. Izraz mora izračunavati nisku čija je najveća veličina 2 MB. Deo spiska naredbi koje mogu biti dinamički izvršene korišćenjem ove SQL naredbe je dat u nastavku:
 
-Dakle, rešenje problema prenosa novca bismo implementirali narednim koracima:
+- `ALTER`
+- `CALL`
+- `COMMIT`
+- Složena SQL naredba (linijska)
+- Složena SQL naredba (kompilirana)
+- `CREATE`
+- `DELETE`
+- `DROP`
+- `GRANT`
+- `INSERT`
+- `LOCK TABLE`
+- `MERGE`
+- `ROLLBACK`
+- `SAVEPOINT`
+- `SET CURRENT LOCK TIMEOUT`
+- `SET <PROMENLJIVA>`
+- `UPDATE`
 
-1. (Implicitno) Započni novu jedinicu posla (bilo započinjanjem novog procesa, prethodnim izvršavanjem naredba potvrđivanja ili poništavanja, itd.).
-2. Dohvati red u tabeli koji predstavlja prvi račun.
-3. Umanji iznos u tom redu za traženu sumu.
-4. Dohvati red u tabeli koji predstavlja drugi račun.
-5. Uvećaj iznos u tom redu za traženu sumu.
-6. Potvrdi izmene u bazi podataka.
+Niska koja sadrži naredbu ne sme imati parametarske oznake ili reference na matične promenljive i ne sme počinjati ključnim rečima `EXEC SQL`. Takođe, onda ne sme sadržati operator završavanja naredbe sa izuzetkom složenih SQL naredbi koje mogu sadržati tačku-zapetu (`;`) za razdvajanje naredbi u bloku izvršavanja.
 
-Naravno, nakon svakog koraka je neophodno izvršiti proveru grešaka. U slučaju greške u bilo kom trenutku, program mora da izvrši poništavanje izmena, čime se stanje baze vraća u ono koje je bilo pre 1. koraka, dakle, u konzistentno stanje.
+Kada se naredba `EXECUTE IMMEDIATE` izvrši, specifikovana naredba se parsira i proveravaju se greške. Ako SQL naredba nije validna, ona se neće izvršiti i uslov koji je doveo do greške se izveštava kroz SQLCA. Ako je SQL naredba validna, ali njeno izvršavanje dovodi do greške, onda se ta greška takođe izveštava kroz SQLCA.
 
-SQL jezik definiše dve naredbe koje odgovaraju opisanim operacijama:
-
-- Naredba `COMMIT` implementira operaciju potvrđivanja izmena.
-
-- Naredba `ROLLBACK` implementira operaciju poništavanja izmena.
-
-O ovim naredbama i njihovim bočnim efektima ćemo detaljnije govoriti u sekcijama [4.4](#44-potvrđivanje-izmena) i [4.5](#45-poništavanje-izmena). Međutim, diskusija koju smo izložili do sada je dovoljna za demonstraciju najosnovnijeg efekta ovih naredbi.
-
-{% include zadatak.html broj="4.1" tekst="Napisati C/SQL program koji redom:\n
-\n
-1. Pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
-2. Briše studenta sa pronađenim indeksom iz tabele `ISPIT` i ispisuje poruku korisniku o uspešnosti brisanja.\n
-3. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n
-4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.\n
-5. Ponovo pronalazi i ispisuje najveći indeks iz tabele `ISPIT`.\n" %}
+{% include zadatak.html broj="4.1" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički koji čita SQL naredbu iz datoteke čiji se naziv zadaje kao prvi argument komandne linije. SQL naredba se čita do pojave karaktera `;` ili do kraja datoteke, ispisuje se korisniku, a potom se izvršava. Pretpostaviti da korisnik neće uneti naredbu `SELECT`, kao ni da neće sadržati parametarske oznake. Pretpostaviti da upit koji se čita iz datoteke nije duži od 255 karaktera." %}
 
 Rešenje:
 
 include_source(primeri/poglavlje_4/zadatak_4_1.sqc, c)
 
-Vrlo je bitno primetiti naredne dve stvari u kodu:
+## 4.3 Naredba `PREPARE`
 
-- U slučaju uspešnog izvršavanja programa, pre nego što zatvorimo konekciju sa bazom podataka, izvršavamo SQL naredbu `COMMIT` kako bismo potvrdili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.
+Naredba `PREPARE` se koristi od strane aplikativnog programa da dinamički pripremi SQL naredbu za izvršenje. Ova naredba kreira izvršivu SQL naredbu koja se naziva *pripremljena naredba* (engl. *prepared statement*) na osnovu tekstualnog oblika naredbe koji se naziva *niska naredbe* (engl. *statement string*).
 
-- U slučaju da dođe do greške prilikom izvršavanja programa, pre nego što izađemo iz programa i prijavimo neuspeh, u funkciji `is_error` izvršavamo naredbu `ROLLBACK` kako bismo poništili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.
-
-Ovo je dobra praksa i mi ćemo usvojiti ovaj način rada u našim C/SQL programima.
-
-## 4.2 Složena SQL naredba
-
-U ovoj sekciji ćemo diskutovati o načinima za izvršavanje više SQL naredbi kao jedne naredbe, tzv. složene SQL naredbe. Složene SQL naredbe predstavljaju osnovu rada sa transakcijama, o čemu će biti detaljnije reči u nastavku teksta.
-
-{% include definicija.html def="*Složena SQL naredba* (engl. *compound SQL*) predstavlja sekvencu SQL naredbi ograđenu odgovarajućim ključnim rečima kojim se definiše jedan blok izvršavanja." %}
-
-Postoje tri tipa složenih SQL naredbi:
-
-1. *Linijske* (engl. *inline*) - Složena SQL linijska naredba je složena SQL naredba koja je umetnuta linijski tokom faze izvršavanja u okviru druge SQL naredbe. Složene SQL linijske naredbe imaju svojstvo atomičnosti; ako izvršavanje bilo koje pojedinačne SQL naredbe podigne grešku, cela naredba se poništava.
-
-2. *Ugnežđene* (engl. *embedded*) - Ovaj tip naredbi kombinuje jednu ili više SQL naredbi (odnosno, podnaredbi) u jedan izvršivi blok. 
-
-3. *Kompilirane* (engl. *compiled*) - Predstavlja sekvencu SQL naredbi koje se izvršavaju sa lokalnim opsegom za promenljive, uslove, kursore i pokazivače na slogove (engl. *handle*).
-
-Mi ćemo u daljem tekstu razmatrati isključivo složene SQL ugnežđene naredbe, tako da podrazumevamo ovaj tip kada kažemo "složena SQL naredba". Sintaksa ovih naredbi je data u nastavku:
+Sintaksa ove naredbe data je u nastavku:
 
 ```sql
-BEGIN COMPOUND (ATOMIC|NOT ATOMIC) STATIC
-[STOP AFTER FIRST <MATICNA_PROMENLJIVA> STATEMENTS]
-
-<SQL_NAREDBA>;
-<SQL_NAREDBA>;
--- ...
-<SQL_NAREDBA>;
-
-END COMPOUND
+PREPARE <NAZIV_NAREDBE>
+[[OUTPUT] INTO <NAZIV_OPISIVAČA_IZLAZA>]
+[INPUT INTO <NAZIV_OPISIVAČA_ULAZA>]
+FROM (<MATIČNA_PROMENLJIVA>|<IZRAZ>)
 ```
 
-U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije složene SQL naredbe, ta naredba može imati različite varijante koji utiču na način izvršavanja:
+Specifikovanjem vrednosti za `<NAZIV_NAREDBE>` se imenuje pripremljena naredba. Ako se isti naziv koristi za identifikaciju već postojeće pripremljene naredbe, onda se ta, prethodno pripremljena naredba, uništava. Ipak, postoji izuzetak od ovog pravila: `<NAZIV_NAREDBE>` ne sme već idenfitikovati pripremljenu naredbu koja predstavlja `SELECT` naredbu u otvorenom kursoru.
 
-- Atomičnost - tačno jedna od naredne dve opcije se navode
-   
-   - ATOMIC - Specifikuje da, ako bilo koja od podnaredbi u okviru složene SQL naredbe bude izvršena neuspešno, onda se sve izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe, bilo one uspešne izvršene ili ne, poništavaju.
-   
-   - NOT ATOMIC - Specifikuje da, bez obzira na neuspešno izvršavanje podnaredbi, složena SQL naredba neće poništiti izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe.
+Pripremljena naredba se izračunava na osnovu niske naredbe koja se nalazi u vrednosti u `FROM` klauzi. Može se navesti bilo matična promenljiva čiji je identifikator `<MATIČNA_PROMENLJIVA>` i tip niska ili izraz `<IZRAZ>` koji vraća nisku.
 
-- Statičnost - navodi se naredna naredba
-   
-   - STATIC - Specifikuje da će sve matične promenljive za sve podnaredbe zadržati njihove originalne vrednosti. Na primer, ukoliko se u SQL složenoj naredbi nađe naredba:
+U zavisnosti od korišćenja narednih klauza, ova naredba ima sledeće efekte:
+
+- Klauzom `OUTPUT INTO` se informacije o izlaznim parametarskim oznakama u pripremljenoj naredbi upisuju u SQLDA promenljivu koja se specifikuje kao `<NAZIV_OPISIVAČA_IZLAZA>`.
+
+- Klauzom `INPUT INTO` se informacije o ulaznim parametarskim oznakama u pripremljenoj naredbi upisuju u SQLDA promenljivu koja se specifikuje kao `<NAZIV_OPISIVAČA_ULAZA>`. Ulazne parametarske oznake se uvek smatraju za *potencijalno nedostajuće* (engl. *nullable*), bez obzira na njihovo korišćenje.
+
+Umesto ovih klauza se može koristiti naredba `DESCRIBE` o kojoj će biti reči u kasnijem tekstu.
+
+Naredbe koje se mogu pripremiti na ovaj način su iste one naredbe kao za naredbu `EXECUTE IMMEDIATE`, uz dodatak `SELECT` naredbe.
+
+### 4.3.1 Parametarske oznake
+
+Iako dinamička SQL naredba koja se priprema ne može da sadrži reference na matične promenljive, ona ipak može da koristi *parametarske oznake* (engl. *parameter marker*). Parametarske oznake mogu biti zamenjene vrednostima iz matičnih promenljivih u trenutku izvršavanja pripremljene naredbe.
+
+Postoje dva načina za specifikovanje parametarskih oznaka:
+
+- *Neimenovana* parametarska oznaka se navodi korišćenjem karaktera upitnika (`?`).
+
+- *Imenovana* parametarska oznaka se navodi karakterom dvotačke (`:`) iza koje sledi identifikator parametarske oznake. Na primer, `:GODINA_UPISA`.
+
+Oba opisana načina se koriste na istom mestu gde bi se koristile matične promenljive u slučaju da je SQL naredba statička. Iako imenovane parametarske oznake imaju istu sintaksu kao i matične promenljive, njihova upotrebna vrednost je svakako drugačija. Matična promenljiva sadrži vrednost u memoriji i koristi se direktno u statičkoj SQL naredbi. Imenovana parametarska oznaka predstavlja tek *mesto za zamenu* (engl. *placeholder*) za vrednost u dinamičkoj SQL naredbi i njena vrednost se navodi prilikom  izvršavanja pripremljene naredbe.
+
+Takođe, parametarske oznake imaju i dva tipa:
+
+- *Netipizirana* parametarska oznaka se navodi bez tipa njenog rezultata i ima neimenovanu formu. Sam tip vrednosti netipizirane parametarske oznake se izvodi iz konteksta u kojem se upotrebljava. Na primer, u SQL naredbi
 
 ```sql
-SELECT  MAX(OCENA) 
-INTO    :ocena 
-FROM    ISPIT
+UPDATE  ISPIT
+SET     NAPOMENA = 'Ovaj student je polozio sve ispite'
+WHERE   INDEKS = ?
 ```
 
-koja je praćena naredbom
+koristi se netipizirana parametarska oznaka kao predikat restrikcije, čiji će tip biti implicitno postavljen na onaj tip kojim je definisana kolona `INDEKS`. Netipizirane parametarske oznake se mogu koristiti u dinamičkim SQL naredbama sve dok se tip parametarske oznake može izvesti iz konteksta upotrebe. U suprotnom, SUBP prijavljuje `SQLSTATE` vrednost `42610` (`SQLCODE -418`).
+
+- *Tipizirana* parametarska oznaka se navodi zajedno sa tipom rezultata. Sintaksa koja se koristi u ovom slučaju je
 
 ```sql
-UPDATE  ISPIT 
-SET     NAPOMENA = 'Ovo je najveca ocena medju ispitima'
-WHERE   OCENA = :ocena
+CAST(? AS <TIP_PODATAKA>)
 ```
 
-onda će naredba `UPDATE` koristiti vrednost matične promenljive `ocena` koju je ta promenljiva imala na početku bloka koji je definisan složenom SQL naredbom, a ne vrednost koja je dobijena naredbom `SELECT INTO`. Time je transakcija koja se ostvaruje tom SQL složenom naredbom, za koju bismo možda očekivali da bude korektna, zapravo neispravno implementirana, zato što se oslanja na međuvrednost koju dobija promenljiva `ocena` naredbom `SELECT INTO`. Dodatno, ako se vrednost iste promenljive postavlja od strane više SQL podnaredbi, onda će na kraju bloka ta promenljiva sadržati vrednost koju je postavila poslednja SQL podnaredba.
+gde je `<TIP_PODATAKA>` odgovarajući tip. Ova notacija ne predstavlja poziv funkcije ili eksplicitnu konverziju, već tek "obećanje" da će tip vrednosti, koja će se koristiti umesto navedene tipizirane parametarske oznake, odgovarati tipu koji je naveden ili da se makar može konvertovati u njega. Na primer, u SQL naredbi
 
-Napomenimo da u DB2 sistemu nestatičko ponašanje nije podržano. To znači da bi trebalo posmatrati kao da se podnaredbe izvršavaju nesekvencijalno i podnaredbe ne bi trebalo da imaju međuzavisnosti.
+```sql
+UPDATE  DOSIJE
+SET     PREZIME = TRANSLATE(CAST(? AS VARCHAR(50)))
+WHERE   INDEKS = 20100050
+```
 
-- Opcionom klauzom `STOP AFTER FIRST` specifikujemo da će se izvršiti samo određeni broj podnaredbi. Matična promenljiva `<MATICNA_PROMENLJIVA>` tipa `short` sadrži ceo broj *N* kojim se specifikuje koliko prvih *N* podnaredbi će biti izvršeno.
+vrednost argumenta funkcije `TRANSLATE` biće navedena tokom faze izvršavanja. Očekuje se da je tip te vrednosti bilo `VARCHAR(50)` ili tip koji se može konvertovati u
+njega. Tipizirane parametarske oznake se mogu koristiti u dinamičkim SQL naredbama gde god se očekuje matična promenljiva i tip podataka je kompatibilan sa "obećanjem" navedenim u `CAST` funkciji.
 
-Nakon opisanih opcija, potrebno je navesti nula ili više SQL naredbi `<SQL_NAREDBA>`. SQL naredbe koje je moguće navesti kao deo složenih SQL naredbi su sve izvršive naredbe, osim narednih 14 naredbi:
+Kada se naredba `PREPARE` izvrši, specifikovana naredba se parsira i proveravaju se greške. Ako SQL naredba nije validna, ona se neće izvršiti i uslov koji je doveo do greške se izveštava kroz SQLCA. Svako naredno izvršavanje naredbi `EXECUTE` ili `OPEN` koji referišu na ovu naredbu će takođe dobiti istu grešku, osim ukoliko se prethodno ne ispravi.
 
-1. `CALL`
-2. `CLOSE`
-3. `CONNECT`
-4. Složena SQL naredba
-5. `DESCRIBE`
-6. `DISCONNECT`
-7. `EXECUTE IMMEDIATE`
-8. `FETCH`
-9. `OPEN`
-10. `PREPARE`
-11. `RELEASE (Connection)`
-12. `ROLLBACK`
-13. `SET CONNECTION`
-14. `SET variable`
+Pripremljena naredba može biti referisana u narednim naredbama, sa odgovarajućim ograničenjima navedenim u zagradama:
 
-Važe i neka dodatna pravila. Na primer, ukoliko se naredba `COMMIT` koristi kao jedna od podnaredbi, onda se ona mora naći kao poslednja podnaredba. Ukoliko je `COMMIT` nađe na ovoj poziciji, onda će ona biti izvršena, čak i u situaciji da klauza `STOP AFTER FIRST` indikuje da se neće sve podnaredbe u okviru složene SQL naredbe izvršiti. Na primer, pretpostavimo da je `COMMIT` poslednja podnaredba u okviru složene SQL naredbe koja ima 100 podnaredbi. Ukoliko se klauzom `STOP AFTER FIRST` specifikuje da se izvršava prvih 50 podnaredbi, onda će `COMMIT` podnaredba biti izvršena kao 51. podnaredba.
+- `DESCRIBE` (može biti proizvoljna naredba)
+- `DECLARE CURSOR` (može biti isključivo `SELECT` naredba)
+- `EXECUTE` (ne sme biti `SELECT` naredba)
 
-Neka dodatne napomene koje treba imati u vidu prilikom rada sa složenih SQL naredbama u DB2 sistemu su sledeće:
+Prednost korišćenja pripremljenih naredbi je u činjenici da se one mogu izvršavati više puta. Ipak, ukoliko naredba ne sadrži parametarske oznake i izvršava se samo jednom, onda se preporučuje korišćenje `EXECUTE IMMEDIATE` naredbe umesto korišćenja naredbi `PREPARE` i `EXECUTE`.
 
-- Nije dozvoljeno ugnežđavati kod iz matičnog jezika unutar bloka koji definiše složena SQL naredba.
+## 4.4 Naredba `EXECUTE`
 
-- Nije dozvoljeno ugnežđavati složene SQL naredbe u okviru drugih složenih SQL naredbi.
+Naredba `EXECUTE` izvršava prethodno pripremljenu SQL naredbu. Sintaksa ove naredbe je data u nastavku:
 
-- Pripremljena `COMMIT` naredba nije dozvoljena u `ATOMIC` složenoj SQL naredbi.
+```sql
+EXECUTE <NAZIV_NAREDBE>
+[INTO DESCRIPTOR <NAZIV_OPISIVAČA_IZLAZA>]
+[USING (<LISTA_MATIČNIH_PROMENLJIVIH> | DESCRIPTOR <NAZIV_OPISIVAČA_ULAZA>)]
+```
 
-- Jedna SQLCA struktura se postavlja za celu složenu SQL naredbu. Važe naredna pravila:
+Ova naredba izvršava prethodno pripremljenu naredbu koja se identifikuje pomoću `<NAZIV_NAREDBE>`. Ta vrednost mora odgovarati prethodno pripremljenoj naredbi i ta naredba ne sme biti `SELECT`. Pripremljena naredba se može izvršiti više puta.
 
-   - Vrednosti `SQLCODE` i `SQLSTATE` koje se postavljaju na kraju složene SQL naredbe su podrazumevano postavljene na osnovu poslednje podnaredbe koja se izvršila u okviru složene SQL naredbe, osim u slučaju opisanom narednom tačkom.
+U zavisnosti od korišćenja narednih klauza, ova naredba ima sledeće efekte:
 
-   - Ako je sistem signalizirao upozorenje da "nije pronađen podatak" (`SQLSTATE 02000`, odnosno, `SQLCODE +100`), onda se tom upozorenju daje prednost u odnosu na ostala upozorenja da bi se naredbom `WHENEVER NOT FOUND` moglo dejstvovati. U ovoj situaciji se polja iz `SQLCA` strukture koja se eventualno vraćaju aplikaciji postavljaju na osnovu podnaredbe koja je okinula upozorenje da "nije pronađen podatak". Ukoliko u okviru složene SQL naredbe postoji više podnaredbi koje okidaju ovo upozorenje, onda se polja iz SQLCA strukture postavljaju na osnovu poslednje od tih podnaredbi.
+- Klauzom `INTO DESCRIPTOR` se identifikuje izlazna SQLDA struktura `<NAZIV_OPISIVAČA_IZLAZA>` koja mora sadržati validne opise matičnih promenljivih. Videti sekciju 4.5.1 za dodatne napomene.
 
-Sada slede primeri korišćenja složenih SQL naredbi. Primetimo da smo, kao i u prethodnom zadatku, koristili naredbu `ROLLBACK` u definiciji funkcije `is_error` da poništimo izmene u bazi podataka u slučaju da dođe do greške, odnosno, naredbu `COMMIT` za potvrđivanje izmena pre raskidanja konekcije.
+- Klauzom `USING` se idenfitikuje lista matičnih promenljivih ili izraza koje će se koristiti prilikom zamene vrednosti za ulazne parametarske oznake u pripremljenoj naredbi. Ako se makar jedna ulazna parametarska oznaka nalazi u pripremljenoj naredbi, onda se mora specifikovati klauza `USING`. U suprotnom, SUBP prijavljuje `SQLSTATE` vrednost `07004`. Vrednosti se mogu specifikovati na dva načina:
 
-{% include zadatak.html broj="4.2" tekst="Napisati C/SQL program koji redom:\n
-\n
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u tekućoj godini čija je oznaka `'maj'` i naziv `'Maj GODINA'` u zavisnosti od tekuće godine (na primer, `'Maj 2019'`). Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 20 dana.\n
-2. Ažurira datum kraja prijavljivanja za prethodno uneti ispitni rok tako što smanjuje trajanje prijavljivanja za 10 dana.\n
-\n
-Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
+   - `<LISTA_MATIČNIH_PROMENLJIVIH>` predstavlja listu matičnih promenljivih koje su razdvojene karakterom zapete (`,`). Broj matičnih promenljivih u listi mora biti jednak broju ulaznih parametarskih oznaka u pripremljenoj naredbi. Dodatno, *n*-ta matična promenljiva u listi odgovara *n*-toj parametarskoj oznaci u pripremljenoj naredbi.
+
+   - `DESCRIPTOR <NAZIV_OPISIVAČA_ULAZA>` identifikuje ulaznu SQLDA strukturu koja mora sadržati validne opise matičnih promenljivih. Videti sekciju 4.5.1 za dodatne napomene.
+
+Pre samog izvršavanja pripremljene naredbe, svaka ulazna parametarska oznaka se zamenjuje vrednošću odgovarajuće promenljive ili izraza. Za tipizirane parametarske oznake, atributi ciljne promenljive ili izraza su oni koji su navedeni u `CAST` specifikaciji. Za netipizirane parametarske oznake, atributi ciljne promenljive ili izraza se izvode iz konteksta upotrebe parametarske oznake.
+
+{% include zadatak.html broj="4.2" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički kojim se omogućava da korisnik unese podatke o novom ispitnom roku. Uneti novi ispitni rok u bazu podataka sa unetim podacima. Obratiti pažnju da se naziv roka može sadržati od više reči." %}
 
 Rešenje:
 
 include_source(primeri/poglavlje_4/zadatak_4_2.sqc, c)
 
-## 4.3 Tačke čuvanja u okviru transakcija
+Kao što smo rekli, moguće je pripremiti dinamičku SQL naredbu `SELECT` naredbom `PREPARE`. Međutim, ovakvu naredbu nije moguće izvršiti naredbom `EXECUTE`. Umesto toga, koristimo isti pristup rada sa kursorima, sa razlikom da se prilikom deklaracije kursora koristi pripremljena naredba umesto kursora, kao i da se prilikom otvaranja kursora navode matične promenljive ili izrazi koji će biti zamenjeni umesto parametarskih oznaka u `SELECT` naredbi, ako ih takva naredba sadrži. Naredni zadatak ilustruje rad sa dinamičkom SQL naredbom `SELECT`.
 
-U prethodnim primerima smo videli da možemo da predstavimo transakcije kao složene SQL naredbe, a zatim da koristimo specifičnosti složenih SQL naredbi da bismo preciznije definisali ponašanje u zavisnosti od toga da li se pojavila greška tokom rada transakcije ili ne. Preciznije, videli smo kako je moguće poništiti efekat celog izvršavanja programa kao jedinice posla u slučaju pojave greške u nekoj od podnaredbi.
-
-Vrlo često nam je neophodno da imamo precizniju kontrolu nad time šta se tačno poništava, na primer, ukoliko želimo da samo jedan deo transakcije bude poništen, umesto cele transakcije. Da bismo postigli takav efekat, potrebne su nam sofisticiranije metode upravljanja transakcijama. Jedan od takvih metoda podrazumeva korišćenje tačke čuvanja.
-
-{% include definicija.html def="*Tačka čuvanja* (engl. *savepoint*) predstavlja mehanizam za poništavanje precizno definisanog skupa izvršenih naredbi." %}
-
-Ukoliko se desi neka greška prilikom izvršavanja transakcije, tačka čuvanja se može koristiti da poništi dejstvo naredbi od trenutka kada je tačka čuvanja započeta do trenutka kada je poništenje akcija zahtevano.
-
-Samim tim, tačka čuvanja omogućava konstruisanje grupe od nekoliko SQL naredbi, grupisanih u jedan izvršivi blok, koji se može izvršavati, kao deo jedne transakcije. Ukoliko se neka od podnaredbi izvrši sa greškom, taj definisani blok će biti poništen.
-
-### 4.3.1 Kreiranje tačke čuvanja
-
-Kreiranje tačke čuvanja u izvornom kodu se može izvršiti pozivanjem naredbe `SAVEPOINT`, čija je sintaksa data sa:
-
-```sql
-SAVEPOINT <NAZIV_TACKE_CUVANJA> [UNIQUE]
-ON ROLLBACK RETAIN CURSORS
-[ON ROLLBACK RETAIN LOCKS]
-```
-
-Ovom naredbom se kreira nova tačka čuvanja naziva `<NAZIV_TACKE_CUVANJA>`. Ukoliko specifikujemo opcionu klauzu `UNIQUE`, onda navodimo da aplikacija ne želi da iskoristi ovo ime tačke čuvanja dok je tačka čuvanja aktivna u okviru trenutnog nivoa čuvanja. DB2 sistem će prijaviti grešku ako pokušamo da kreiramo tačku čuvanja kao jedinstvenu ako već postoji tačka čuvanja sa istim imenom, kao i ako pokušamo da kreiramo tačku čuvanja sa imenom koje je prethodno bilo proglašeno za jedinstveno.
-
-Obaveznom klauzom `ON ROLLBACK RETAIN CURSORS` se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na otvorene kursore nakon ove SAVEPOINT naredbe. Ovom klauzom se indikuje da, kada god je to moguće, kursori bivaju van uticaja operacije poništavanja do tačke čuvanja. Za više detalja o tome kako poništavanje izmena utiče na kursore, pogledati [podsekciju 4.5](#45-poništavanje-izmena).
-
-Opcionom klauzom `ON ROLLBACK RETAIN LOCKS` se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na katance koje je aplikacija dobila nakon ove `SAVEPOINT` naredbe. Ukoliko je navedena, katanci koje je aplikacija dobila neće biti oslobođeni prilikom takve operacije poništavanja.
-
-Neka dodatna pravila i napomene koje treba imati u vidu prilikom kreiranja tačaka čuvanja u DB2 sistemu su sledeće:
-
-- Novi nivo čuvanja se kreira kada se naredni događaji okinu:
-
-   - Nova jedinica posla je započela.
-
-   - Pozvana je procedura koja je definisana klauzom `NEW SAVEPOINT LEVEL`.
-
-   - Započeta je atomična složena SQL naredba.
-
-- Nivo čuvanja se završava kada događaj koji je inicirao njegovo kreiranje je završen ili uklonjen. Kada se nivo čuvanja završi, sve tačke čuvanja koje se nalaze na tom nivou se oslobađaju. Svi otvoreni kursori, DDL akcije ili modifikacije podataka su nasleđeni od strane roditeljskog nivoa čuvanja (odnosno, nivoa čuvanja u okviru kojeg se trenutni nivo čuvanja završio) i pod uticajem su bilo koje naredbe koja se tiče nivoa čuvanja i koja važi u okviru roditeljskog nivoa čuvanja.
-
-## 4.4 Potvrđivanje izmena
-
-Kao što smo videli, jedna od dve osnovne operacije za upravljanje izmenama koje je napravila jedna transakcija jeste *potvrđivanje izmena* (engl. *commit*), koja se izvršava naredbom `COMMIT`. Sintaksa ove naredbe je data u nastavku:
-
-```sql
-COMMIT [WORK]
-```
-
-Iako naredba pohranjivanja izmena ima jednostavnu sintaksu, njeni efekti su mnogobrojni. Osnovna upotreba naredbe podrazumeva da se jedinica posla, u kojoj je `COMMIT` naredba izvršena, završava i nova jedinica posla se inicira. Sve izmene koje su izvršene nekom od narednih naredbi se potvrđuju u bazi podataka: `ALTER`, `COMMENT`, `CREATE`, `DROP`, `GRANT`, `LOCK TABLE`, `REVOKE`, `SET INTEGRITY`, `SET Variable`, kao i naredbe za izmenu podataka: `INSERT`, `DELETE`, `MERGE`, `UPDATE`, uključujući i one naredbe koje su  ugnežđene u upitima.
-
-Svi katanci koje je jedinica posla dobila nakon njenog iniciranja se oslobađaju, osim neophodnih katanaca za otvorene kursore koji su deklarisani klauzom `WITH HOLD`. Svi otvoreni kursori koji nisu deklarisani klauzom `WITH HOLD` se zatvaraju. Otvoreni kursori koji jesu deklarisani klauzom `WITH HOLD` ostaju otvoreni, i takvi kursori se pozicioniraju ispred narednog logičkog reda rezultujuće tabele (drugim rečima, naredba `FETCH` se mora izvršiti pre nego što se izvrši pozicionirana naredba `UPDATE` ili `DELETE`).
-
-Sve tačke čuvanja postavljene u okviru transakcije se oslobađaju.
-
-Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:
-
-- Snažno se preporučuje da svaki aplikacioni proces eksplicitno završi svoju jedinicu posla pre nego li se završi. Ako se aplikacioni program završi bez `COMMIT` ili `ROLLBACK` naredbe, onda će SUBP sam pokušati da izvrši operaciju pohranjivanja ili poništavanja u zavisnosti od okruženja aplikacije. Iako su SUBP sistemi napredni, ipak se ne bi trebalo osloniti na njih da rade posao programera.
-
-## 4.5 Poništavanje izmena
-
-Ukoliko želimo da poništimo izmene koje je napravila jedna transakcija, možemo koristiti SQL naredbu `ROLLBACK`. Sintaksa ove naredbe je data u nastavku:
-
-```sql
-ROLLBACK [WORK]
-[TO SAVEPOINT [<IME_TACKE_CUVANJA>]]
-```
-
-Efekat ove naredbe je da se prekida jedinica posla u kojoj je izvršena naredba `ROLLBACK` i nova jedinica posla se inicijalizuje. Sve promene koje su se ostvarile u bazi podataka tokom jedinice posla su poništene. U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije naredbe `ROLLBACK`, ta naredba može imati različite varijante koje utiču na način izvršavanja:
-
-- Navođenjem opcione klauze `TO SAVEPOINT`, poništavanje se izvršava parcijalno, odnosno, do poslednje tačke čuvanja. Ukoliko nijedna tačka čuvanja nije aktivna na trenutnom nivou čuvanja, podiže se greška (`SQLSTATE 3B502`). Nakon uspešnog poništavanja, navedena tačka čuvanja `<IME_TACKE_CUVANJA>` nastavlja da postoji, ali svaka ugnežđena tačka čuvanja se oslobađa i nadalje ne postoji. Ugnežđene tačke čuvanja, ako postoje, smatraju se za poništene i oslobođene kao deo poništavanja do navedene tačke čuvanja. Ukoliko `<IME_TACKE_CUVANJA>` nije navedeno, onda se poništavanje vrši do poslednje postavljene tačke čuvanja na tekućem nivou čuvanja.
-<br>
-Ako se klauza `TO SAVEPOINT` ne postavi, onda naredba `ROLLBACK` poništava čitavu transakciju. Dodatno, sve tačke čuvanja u okviru te transakcije se oslobađaju. Ukoliko se navede `<IME_TACKE_CUVANJA>`, onda će se poništavanje izvršiti do te imenovane tačke čuvanja. Nakon uspešne operacije poništavanja, navedena imenovana tačka čuvanja nastavlja da postoji. Ukoliko ne postoji imenovana tačka čuvanja sa datim nazivom, podiže se greška (`SQLSTATE 3B001`).
-
-Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:
-
-- Svi katanci koji se čuvaju se oslobađaju prilikom izvršavanja naredbe `ROLLBACK` za tu jedinicu posla. Svi otvoreni kursori se zatvaraju.
-
-- Izvršavanje naredbe `ROLLBACK` neće uticati na naredbu `RELEASE`.
-
-- Ukoliko se izvršavanje program ne završi normalno, onda je jedinica posla implicitno poništena.
-
-- Uticaj na kursore koji rezultuje iz naredbe `ROLLBACK TO SAVEPOINT` zavisi od naredbi u okviru tačke čuvanja:
-   
-   - Ako tačka čuvanja sadrži DDL za koji je kursor zavisan, kursor se označava za nevalidan. Pokušaji da se takav kursor koristi rezultuju podizanjem greške (`SQLSTATE 57007`).
-
-   - Inače:
-
-      - Ako je kursor referenciran u tački čuvanja, kursor ostaje otvoren i biva pozicioniran ispred narednog logičkog reda rezultujuće tabele. U tom slučaju je potrebno  izvršiti naredbu `FETCH` pre nego što se izvrši pozicionirajuća naredba `UPDATE` ili `DELETE`.
-
-      - Inače, kursor ne potpada pod uticaj naredbe `ROLLBACK TO SAVEPOINT` (ostaje otvoren i pozicioniran).
-
-- Naredba `ROLLBACK TO SAVEPOINT` će obrisati sve privremeno kreirane ili deklarisane privremene tabele u okviru tačke čuvanja.
-
-- Svi katanci su sadržani nakon `ROLLBACK TO SAVEPOINT` naredbe.
-
-Naredni primeri ilustruju napredno implementiranje transakcija korišćenjem naredbi `COMMIT` i `ROLLBACK`.
-
-{% include zadatak.html broj="4.3" tekst="Napisati C/SQL program kojim se za svaki ispitni rok prvo ispisuju informacije o nazivu i godini roka, a zatim se korisnik pita da li želi da obriše sva polaganja za taj ispitni rok. Ukoliko želi, aplikacija izvršava brisanje i prikazuje poruku korisniku. Obrada jednog ispitnog roka predstavlja jednu transakciju." %}
+{% include zadatak.html broj="4.3" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Izdvojiti naredne podatke o smerovima: identifikator, oznaka, naziv, broj semestara i bodovi, za svaki smer čiji se broj semestara unosi sa standardnog ulaza." %}
 
 Rešenje:
 
 include_source(primeri/poglavlje_4/zadatak_4_3.sqc, c)
 
-{% include zadatak.html broj="4.4" tekst="Napisati C/SQL program koji za svaki predmet koji nije obrađen izlistava njegov naziv i bodove. Korisniku se nudi opcija da poveća broj bodova za 1. Obrada 5 uzastopnih predmeta predstavlja jednu transakciju. Nakon svakog 5. predmeta pitati korisnika da li želi da nastavi sa daljim izmenama. Ukoliko ne želi, program se prekida. U suprotnom, nastaviti sa daljom obradom predmeta." %}
+## 4.5 SQL prostor za opisivanje (SQLDA)
 
-Rešenje: Pre pokretanja programa, potrebno je kreirati tabelu `OBRADJENI_PREDMETI` sa narednom strukturom:
+*SQL prostor za opisivanje* (engl. *SQL Description Area*, skr. *SQLDA*) predstavlja kolekciju promenljivih koje su neophodne za dohvatanje informacija o dinamičkim SQL naredbama. Da bismo mogli da ga koristimo, zaglavlje je potrebno uključiti pomoću naredbe `INCLUDE`:
 
-```sql
-CREATE TABLE OBRADJENI_PREDMETI (
-    ID_PREDMETA INTEGER NOT NULL,
-    PRIMARY KEY (ID_PREDMETA),
-    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
-);
+```c
+EXEC SQL INCLUDE SQLDA;
 ```
 
-include_source(primeri/poglavlje_4/zadatak_4_4.sqc, c)
+Promenljive deklarisane u SQLDA zaglavlju predstavljaju podešavanja koja se mogu koristiti u naredbama poput `PREPARE`, `OPEN`, `FETCH` i `EXECUTE`. SQLDA komunicira sa dinamičkom SQL naredbom i ima nekoliko upotrebnih vrednosti. Značenje informacija u SQLDA zavisi od njenog korišćenja. U naredbama `PREPARE` i `DESCRIBE`, koristi se kao izvor informacija ka aplikaciji o pripremljenoj naredbi. U naredbama `OPEN`, `EXECUTE` i `FETCH`, SQLDA nosi informacije o matičnim promenljivama.
 
-Naredni zadatak ilustruje jednostavan rad sa tačkama čuvanja u okviru transakcija.
+U nastavku sledi opis strukture SQLDA, a grafički prikaz se nalazi na narednoj slici.
 
-{% include zadatak.html broj="4.5" tekst="Napisati C/SQL program koji redom:\n
-\n
-1. Unosi novi ispitni rok za april u 2019. godini.\n
-2. Unosi nove ispitne rokove za mart, maj, jun, jul, avgust, septembar i oktobar u 2019. godini.\n
-3. Ispisuje sve ispitne rokove.\n
-4. Pita korisnika da li želi da poništi unos ispitnih rokova u koraku 2. Ukoliko korisnik odgovori potvrdno, odgovarajuće izmene se poništavaju. U suprotno, izmene se potvrđuju.\n
-5. Ispisuje sve ispitne rokove." %}
+!["Struktura SQLDA."](./Slike/sqlda.png)
+
+Zaglavlje strukture se sastoji od narednih informacija:
+
+- Polje `sqldaid`:
+   - Tip: `CHAR(8)`
+   - Značenje u `DESCRIBE` i `PREPARE`: Sedmi bajt ovog polja se naziva `SQLDOUBLED` i postavlja se od strane SUBP na karakter `2` ukoliko se za svaku kolonu koriste dve `SQLVAR` vrednosti.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Ako se bilo koja od matičnih promenljivih opisuje kao struktuirani tip ili neka od `LOB` vrednosti, onda `SQLDOUBLED` mora biti postavljen na karakter `2`.
+
+- Polje `sqldabc`:
+   - Tip: `INTEGER`
+   - Značenje u `DESCRIBE` i `PREPARE`: Veličina SQLDA strukture u bajtovima.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Isto.
+
+- Polje `sqln`:
+   - Tip: `SMALLINT`
+   - Značenje u `DESCRIBE` i `PREPARE`: Nepromenjena od strane SUBP. Mora biti postavljena na vrednost veću ili jednaku nuli pre izvršavanja naredbe `DESCRIBE`. Indikuje ukupan broj pojavljivanja `SQLVAR`.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Ukupan broj pojavljivanja `SQLVAR` u SQLDA. `SQLN` vrednost mora biti postavljena na vrednost veću ili jednaku nuli.
+
+- Polje `sqld`:
+   - Tip: `SMALLINT`
+   - Značenje u `DESCRIBE` i `PREPARE`: Broj kolona u rezultujućoj tabeli ili broj parametarskih oznaka, postavljen od strane SUBP.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Broj matičnih promenljivih opisanih pojavljivanjima SQLVAR.
+
+Zaglavlje je praćeno proizvoljnim brojem pojavljivanja struktura koje se nazivaju `SQLVAR`. U naredbama `OPEN`, `FETCH` i `EXECUTE` svako pojavljivanje `SQLVAR` opisuje matičnu promenljivu. U naredbama `DESCRIBE` i `PREPARE` svako pojavljivanje `SQLVAR` opisuje kolonu rezultujuće tabele ili parametarsku oznaku. Svaka `SQLVAR` struktura ima naredna polja:
+
+- Polje `sqltype`:
+   - Tip: `SMALLINT`
+   - Značenje u `DESCRIBE` i `PREPARE`: Indikuje tip kolone ili parametarske oznake, kao i informaciju o tome da li je potencijalno nedostajuća (pri čemu smo napomenuli da se parametarske oznake uvek smatraju za potencijalno nedostajuće). Tabela u nastavku prikazuje dozvoljene vrednosti i njihova značenja.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Isto kao u prethodnom slučaju, samo primenjeno na matične promenljive.
+
+- Polje `sqllen`:
+   - Tip: `SMALLINT`
+   - Značenje u `DESCRIBE` i `PREPARE`: Dužina atributa kolone ili parametarske oznake.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Dužina atributa matične promenljive.
+
+- Polje `sqldata`:
+   - Tip: pokazivač
+   - Značenje u `DESCRIBE` i `PREPARE`: Za različite varijante tipa niske sadrži informaciju o preslikavanju karaktera u tačke kodova. Za ostale tipove je nedefinisan.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Adresa matične promenljive u kojoj će biti smešteni dohvaćeni podaci.
+
+- Polje `sqlind`:
+   - Tip: pokazivač
+   - Značenje u `DESCRIBE` i `PREPARE`: Za različite varijante tipa niske sadrži informaciju o preslikavanju karaktera u tačke kodova. Za ostale tipove je nedefinisan.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Adresa indikatorske promenljive za odgovarajuću matičnu promenljivu, ako postoji. Inače, ne koristi se. Ako je vrednost `sqltype` paran broj, ovo polje se ignoriše.
+
+- Polje `sqlname`:
+   - Tip: `VARCHAR(30)`
+   - Značenje u `DESCRIBE` i `PREPARE`: Sadrži naziv kolone ili parametarske oznake.
+   - Značenje u `FETCH`, `OPEN` i `EXECUTE`: Različito značenje za različit tip baze podataka (relacione ili XML).
+
+Naredna tabela opisuje SQL tipove kolona i njihove odgovarajuće `SQLTYPE` tipove u SQLDA. Primetimo da svaki simbolički naziv počinje imenom `SQL_TYP_` ukoliko vrednost nije potencijalno nedostajuća, a imenom `SQL_TYP_N` ukoliko jeste.
+
+| SQL tip kolone | SQLTYPE numerička vrednost | SQLTYPE simboličko ime |
+| ----- | ----- | ----- |
+| DATE | 384/385 | SQL_TYP_DATE / SQL_TYP_NDATE |
+| TIME | 388/389 | SQL_TYP_TIME / SQL_TYP_NTIME |
+| TIMESTAMP | 392/393 | SQL_TYP_STAMP / SQL_TYP_NSTAMP |
+| n/a | 400/401 | SQL_TYP_CGSTR / SQL_TYP_NCGSTR |
+| BLOB | 404/405 | SQL_TYP_BLOB / SQL_TYP_NBLOB |
+| CLOB | 408/409 | SQL_TYP_CLOB / SQL_TYP_NCLOB |
+| DBCLOB | 412/413 | SQL_TYP_DBCLOB / SQL_TYP_NDBCLOB |
+| VARCHAR | 448/449 | SQL_TYP_VARCHAR / SQL_TYP_NVARCHAR |
+| CHAR | 452/453 | SQL_TYP_CHAR / SQL_TYP_NCHAR |
+| LONG VARCHAR | 456/457 | SQL_TYP_LONG / SQL_TYP_NLONG |
+| n/a | 460/461 | SQL_TYP_CSTR / SQL_TYP_NCSTR |
+| VARGRAPHIC | 464/465 | SQL_TYP_VARGRAPH / SQL_TYP_NVARGRAPH |
+| GRAPHIC | 468/469 | SQL_TYP_GRAPHIC / SQL_TYP_NGRAPHIC |
+| LONG VARGRAPHIC | 472/473 | SQL_TYP_LONGRAPH / SQL_TYP_NLONGRAPH |
+| FLOAT | 480/481 | SQL_TYP_FLOAT / SQL_TYP_NFLOAT |
+| REAL | 480/481 | SQL_TYP_FLOAT / SQL_TYP_NFLOAT |
+| DECIMAL | 484/485 | SQL_TYP_DECIMAL / SQL_TYP_DECIMAL |
+| INTEGER | 496/497 | SQL_TYP_INTEGER / SQL_TYP_NINTEGER |
+| SMALLINT | 500/501 | SQL_TYP_SMALL / SQL_TYP_NSMALL |
+| n/a | 804/805 | SQL_TYP_BLOB_FILE / SQL_TYPE_NBLOB_FILE |
+| n/a | 808/809 | SQL_TYP_CLOB_FILE / SQL_TYPE_NCLOB_FILE |
+| n/a | 812/813 | SQL_TYP_DBCLOB_FILE / SQL_TYPE_NDBCLOB_FILE |
+| n/a | 960/961 | SQL_TYP_BLOB_LOCATOR / SQL_TYP_NBLOB_LOCATOR |
+| n/a | 964/965 | SQL_TYP_CLOB_LOCATOR / SQL_TYP_NCLOB_LOCATOR |
+| n/a | 968/969 | SQL_TYP_DBCLOB_LOCATOR / SQL_TYP_NDBCLOB_LOCATOR |
+| XML | 988/989 | SQL_TYP_XML / SQL_TYP_XML |
+
+### 4.5.1 Efekat naredbe `EXECUTE` na SQLDA strukturu
+
+Pre nego što se naredba `EXECUTE` izvrši, korisnik mora da postavi naredna polja u ulaznoj SQLDA strukturi:
+
+- `SQLN` za indikovanje broja pojavljivanja SQLVAR.
+- `SQLDABC` za indikovanje broja bajtova alociranih za SQLDA.
+- `SQLD` za indikovanje broja promenljivih koje se koriste u SQLDA prilikom procesiranja naredbe.
+- `SQLVAR` pojavljivanja za indikovanje atributa promenljivih.
+
+Pritom, SQLDA mora imati dovoljno alociranog prostora da sadrži sva pojavljivanja `SQLVAR`.
+
+Procedura za alociranje dovoljne veličine prostora glasi:
+
+- Zaglavlje sadrži fiksnu veličinu od 16 bajtova.
+- Niz promenljive dužine `SQLVAR` struktura za svaki element sadrži 44 bajtova na 32-bitnim, odnosno, 56 bajtova na 64-bitnim sistemima.
+
+Drugim rečima, količina prostora koju treba alocirati je (`SQLD` je odgovarajući broj matičnih promenljivih opisanih pojavljivanjima `SQLVAR`):
+
+```c
+16 + (SQLD ∗ sizeof(struct sqlvar))
+```
+
+Na raspolaganju nam je makro `SQLDASIZE` koji će izračunati ovu vrednost za nas, uzimajući u obzir specifičnosti platforme. Njegov obavezni argument je upravo vrednost `SQLD`. Dodatno, `SQLD` mora biti postavljen na vrednost veću ili jednaku nuli i manju od ili jednaku `SQLN`.
+
+### 4.5.2 Efekat naredbe `PREPARE` na SQLDA strukturu
+
+Prilikom izvršavanja naredbe `PREPARE INPUT`, SUBP uvek postavlja `SQLD` na broj ulaznih parametarskih oznaka u naredbi.
+
+Prilikom izvršavanja naredbe `PREPARE OUTPUT`, SUBP uvek postavlja `SQLD` na broj kolona u rezultujućoj tabeli ili na broj izlaznih parametarskih oznaka.
+
+## 4.6 Naredba `DESCRIBE`
+
+Naredba `DESCRIBE` dohvata informacije o pripremljenoj naredbi. Postoje dva tipa informacija koja se mogu dobiti ovom naredbom, i svaki od njih ćemo posebno opisati.
+
+### 4.6.1 Naredba `DESCRIBE INPUT`
+
+Ova naredba dohvata informacije o ulaznim parametarskim oznakama u pripremljenoj naredbi. Ova informacija se smešta u SQLDA strukturu.
+
+Sintaksa ove naredbe je:
+
+```sql
+DESCRIBE INPUT <NAZIV_NAREDBE> INTO <NAZIV_OPISIVAČA>
+```
+
+Ova naredba dohvata informacije iz prethodno pripremljene naredbe koja se identifikuje imenom `<NAZIV_NAREDBE>`. Klauza `INTO <NAZIV_OPISIVAČA>` identifikuje SQLDA strukturu za unos informacija.
+
+Prilikom izvršavanja naredbe `DESCRIBE INPUT`, SUBP uvek postavlja `SQLD` na broj ulaznih parametarskih oznaka u naredbi.
+
+#### Priprema SQLDA strukture za izvršavanje naredbe
+
+Pre izvršavanja `DESCRIBE INPUT` naredbe, korisnik mora da alocira prostor za SQLDA strukturu i da postavi vrednost promenljive `SQLN` na broj `SQLVAR` pojavljivanja u okviru SQLDA strukture. Ova vrednost mora biti veća od nule ili jednaka nuli, pre nego što se naredba izvrši.
+
+Postoje tri tehnike za alociranje SQLDA strukture:
+
+1. Alocirati prostor za SQLDA strukturu sa dovoljnim brojem `SQLVAR` promenljivih da sadrži bilo koju listu informacija koju aplikacija može da procesira. Najveći dozvoljen broj informacija iznosi 255. Ova tehnika koristi veliku količinu prostora koja u praktičnim primenama neće biti iskorišćena.
+
+2. Ponavljati naredna dva koraka:
+
+- Izvršiti naredbu `DESCRIBE INPUT` sa SQLDA koja nema pojavljivanja `SQLVAR`, odnosno, u kojoj je `SQLN` vrednost postavljena na nulu. Vrednost koja je postavljena u `SQLD` nakon izvršavanja naredbe predstavlja broj kolona u rezultujućoj tabeli. SUBP u ovom slučaju postavlja `SQLCODE` na vrednost `+236`.
+
+- Alocirati prostor za SQLDA strukturu sa dovoljnim brojem `SQLVAR` pojavljivanja na osnovu postavljene vrednosti za `SQLD` iz prethodnog koraka. Zatim izvršiti naredbu `DESCRIBE` ponovo, korišćenjem novoalocirane SQLDA. Ova tehnika ima bolji mehanizam rukovanja memorijom od prve tehnike, ali se broj izvršavanja naredbi `DESCRIBE` udvostručava.
+
+{:start="3"}
+3. Alocirati prostor za SQLDA strukturu koja je dovoljno velika da sadrži veliki broj `SQLVAR` pojavljivanja, ako ne i sve liste informacija koju aplikacija može da procesira, ali je takođe i dovoljno mala da ne bude previše viška memorije utrošeno. Ukoliko je ovo dovoljna količina prostora, nastaviti sa izvršavanjem. U suprotnom, alocirati novi prostor sa dovoljnim brojem `SQLVAR` pojavljivanja i izvršiti naredbu `DESCRIBE` ponovo. Ova tehnika predstavlja kompromis između prethodne dve tehnike i oslanja se na heuristiku izbora veličine prostora koja je dovoljno velika, a u isto vreme i dovoljno mala. 
+
+#### Efekat izvršenja naredbe
+
+Nakon izvršavanja naredbe `DESCRIBE INPUT`, SUBP dodeljuje vrednosti promenljivama strukture SQLDA na sledeći način:
+
+- U polju `SQLDAID` prvih 6 bajtova se postavlja na nisku `'SQLDA '`, a sedmi bajt (`SQLDOUBLED`) postavlja se na karakter `'2'` ili na razmak. Osmi bajt se postavlja na razmak.
+
+- Polje `SQLDABC` se postavlja na dužinu SQLDA strukture u bajtovima.
+
+- Polje `SQLD` se postavlja na broj ulaznih parametara procedure.
+
+- Za svako pojavljivanje `SQLVAR`: ako je vrednost `SQLD` jednaka nuli ili veća od `SQLN`, ne postavljaju se vrednosti za pojavljivanja SQLVAR. Ako je vrednost `SQLD` jednaka *n*, gde je *n > 0* i *n <= `SQLN`*, onda se vrednosti dodeljuju prvih *n* pojavljivanja `SQLVAR`. Ove vrednosti opisuju parametarske oznake za ulazne parametre prodecure, redom.
+
+### 4.6.2 Naredba `DESCRIBE OUTPUT`
+
+Ova naredba dohvata informacije o pripremljenoj naredbi ili informacije o listi kolona u pripremljenoj `SELECT` naredbi. Ova informacija se smešta u SQLDA strukturu.
+
+Sintaksa ove naredbe je:
+
+```sql
+DESCRIBE [OUTPUT] <NAZIV_NAREDBE> INTO <NAZIV_OPISIVAČA>
+```
+
+Ova naredba dohvata informacije iz perthodno pripremljene naredbe koja se identifikuje imenom `<NAZIV_NAREDBE>`. Ako je pripremljena naredba `SELECT` ili `VALUES INTO`, onda informacija koja se dohvata predstavlja informaciju o kolonama rezultujuće tabele. Klauza `INTO <NAZIV_OPISIVAČA>` identifikuje SQLDA strukturu za unos informacija.
+
+Prilikom izvršavanja naredbe `DESCRIBE OUTPUT`, SUBP uvek postavlja `SQLD` na broj kolona u rezultujućoj tabeli ili na broj izlaznih parametarskih oznaka.
+
+Pre izvršavanja `DESCRIBE OUTPUT` naredbe, korisnik mora da alocira prostor za SQLDA strukturu i da postavi vrednost promenljive `SQLN` na broj `SQLVAR` pojavljivanja u okviru SQLDA strukture. Ova vrednost mora biti veća od nule ili jednaka nuli, pre nego što se naredba izvrši.
+
+Postoje tri tehnike za alociranje SQLDA strukture:
+
+1. Alocirati prostor za SQLDA strukturu sa dovoljnim brojem `SQLVAR` promenljivih da sadrži bilo koju listu informacija koju aplikacija može da procesira. Najveći dozvoljen broj informacija iznosi 255. Ova tehnika koristi veliku količinu prostora koja u praktičnim primenama neće biti iskorišćena.
+
+2. Ponavljati naredna dva koraka:
+
+- Izvršiti naredbu `DESCRIBE OUTPUT` sa SQLDA koja nema pojavljivanja `SQLVAR`, odnosno, u kojoj je `SQLN` vrednost postavljena na nulu. Vrednost koja je postavljena u `SQLD` nakon izvršavanja naredbe predstavlja broj kolona u rezultujućoj tabeli. SUBP u ovom slučaju postavlja `SQLCODE` na vrednost `+236`.
+
+- Alocirati prostor za SQLDA strukturu sa dovoljnim brojem `SQLVAR` pojavljivanja na osnovu postavljene vrednosti za `SQLD` iz prethodnog koraka. Zatim izvršiti naredbu `DESCRIBE` ponovo, korišćenjem novoalocirane SQLDA. Ova tehnika ima bolji mehanizam rukovanja memorijom od prve tehnike, ali se broj izvršavanja naredbi `DESCRIBE` udvostručava.
+
+{:start="3"}
+3. Alocirati prostor za SQLDA strukturu koja je dovoljno velika da sadrži veliki broj `SQLVAR` pojavljivanja, ako ne i sve liste informacija koju aplikacija može da procesira, ali je takođe i dovoljno mala da ne bude previše viška memorije utrošeno. Ukoliko je ovo dovoljna količina prostora, nastaviti sa izvršavanjem. U suprotnom, alocirati novi prostor sa dovoljnim brojem `SQLVAR` pojavljivanja i izvršiti naredbu `DESCRIBE` ponovo. Ova tehnika predstavlja kompromis između prethodne dve tehnike i oslanja se na heuristiku izbora veličine prostora koja je dovoljno velika, a u isto vreme i dovoljno mala. 
+
+#### Efekat izvršenja naredbe
+
+Nakon izvršavanja naredbe `DESCRIBE OUTPUT`, SUBP dodeljuje vrednosti promenljivama strukture SQLDA na sledeći način:
+
+- U polju `SQLDAID` prvih 6 bajtova se postavlja na nisku `'SQLDA '`, a sedmi bajt (`SQLDOUBLED`) postavlja se na karakter `'2'` ili na razmak. Osmi bajt se postavlja na razmak.
+
+- Polje `SQLDABC` se postavlja na dužinu SQLDA strukture u bajtovima.
+
+- Polje `SQLD` se postavlja na broj kolona u rezultujućoj tabeli, ako je pripremljena naredba `SELECT`. Inače, `SQLD` se postavlja na 0.
+
+- Za svako pojavljivanje `SQLVAR`: ako je vrednost `SQLD` jednaka nuli ili veća od `SQLN`, ne postavljaju se vrednosti za pojavljivanja SQLVAR. Ako je vrednost `SQLD` jednaka *n*, gde je *n > 0* i *n <= `SQLN`*, onda se vrednosti dodeljuju prvih *n* pojavljivanja `SQLVAR`. Ove vrednosti opisuju parametarske oznake za ulazne parametre prodecure, redom.
+
+Naredni zadatak ilustruje sve opisane tehnike za dizajn programa koji može da izvrši proizvoljnu dinamičku SQL naredbu bez parametarskih oznaka.
+
+{% include zadatak.html broj="4.4" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Omogućiti izvršavanje proizvoljne naredbe. Prepostaviti da naredba nema parametarske oznake. Pretpostaviti da su jedini tipovi podataka koji se koriste numerički, tekstualni i datumi. Pretpostaviti da naredba koja se unosi sa standardnog ulaza nije duža od 512 karaktera." %}
 
 Rešenje:
 
-include_source(primeri/poglavlje_4/zadatak_4_5.sqc, c)
-
-Naredni zadatak ilustruje kompleksniji rad sa ta\v ckama \v cuvanja u okviru transakcija.
-
-{% include zadatak.html broj="4.6" tekst="Napisati C/SQL program kojim se omogu\'cuje da radnik u studentskoj slu\v zbi poni\v stava studentske ispite. Obrada jednog studenta u jednoj godini roka, koja je opisana u nastavku, mora da predstavlja zasebnu transakciju. Transakcija se sastoji od narednih koraka:\n
-\n
-1. Aplikacija zahteva od korisnika da unese indeks studenta.\n
-2. Aplikacija na osnovu unetog indeksa ispisuje godine rokova u kojima student ima neke polo\v zene ispite, ali samo ukoliko ve\'c nije prethodno ta godina roka obra\dj ena za tog studenta (ova informacija se \v cuva u tabeli `OBRADJENA_POLAGANJA`).\n
-3. Korisnik bira jednu od ispisanih godina.\n
-4. Aplikacija pronalazi sve polo\v zene ispite za datog studenta u odabranoj godini studija. Za svaki ispit, aplikacija ispisuje naziv polo\v zenog predmeta i ocenu koju je student ostvario. Tako\dj e, aplikacija pita korisnika da li \v zeli da poni\v sti teku\'ci ispit \v cije su informacije ispisane. Ukoliko korisnik odgovori potvrdno, aplikacija poni\v stava teku\'ci ispit. U svakom slu\v caju, aplikacija prelazi na naredni ispit sve do ispisivanja svih ispita.\n
-5. Kada se svi ispiti obrade, aplikacija pita korisnika da potvrdi sve izmene u teku\'coj transakciji. Ukoliko korisnik odgovori odri\v cno, onda je potrebno poni\v stiti sve izmene koje se ti\v cu poni\v stavanja ispita iz koraka 4. Me\dj utim, potrebno je omogu\'citi da, u svakom slu\v caju, teku\'ca godina roka za dati indeks bude obra\dj ena (tj. trajno zapam\'cena u tabeli `OBRADJENA_POLAGANJA`).\n
-\n
-Na kraju svake transakcije, aplikacija pita korisnika da li \v zeli da zavr\v si sa radom. Ukoliko korisnik odgovori potvrdno, aplikacija se zavr\v sava. U suprotnom, zapo\v cinje se nova transakcija sa prethodno opisanim koracima." %}
-
-Pre pokretanja programa, izvr\v siti naredne SQL naredbe:
-
-```sql
-DROP TABLE OBRADJENA_POLAGANJA;
-
-CREATE TABLE OBRADJENA_POLAGANJA (
-    INDEKS INTEGER NOT NULL,
-    GODINA SMALLINT NOT NULL,
-    PRIMARY KEY (INDEKS, GODINA),
-    FOREIGN KEY (INDEKS)
-        REFERENCES DOSIJE
-);
-
-INSERT INTO OBRADJENA_POLAGANJA
-VALUES (20100050, 2011);
-```
-
-{% include izlaz.html datoteka="4.6.txt" %}
-
-Rešenje: Da bismo lak\v se modulirali na\v se re\v senje, implementirajmo naredne funkcije:
-
-1. Funkcija `void deklarisi_kursor_za_godine(sqlint32 indeks)` vr\v si deklaraciju \v citaju\'ceg kursora sa nazivom `c_godine` koji pronalazi godine onih ispitnih rokova u kojem student, \v ciji je indeks jednak vrednosti parametra `indeks` (koja predstavlja mati\v cnu promenljivu koja je globalno deklarisana), ima polo\v zene ispite.
-
-2. Funkcija `unsigned godine_polozenih_ispita()` ispisuje sve godine iz kursora `c_godine`. Funkcija tako\dj e i vra\'ca broj prona\dj enih godina.
-
-3. Funkcija `void deklarisi_kursor_za_polaganja(sqlint32 indeks, short godina)` vr\v si deklaraciju a\v zuriraju\'ceg kursora sa nazivom `c_polozeni` kojim se mo\v ze a\v zurirati vrednost kolone `STATUS_PRIJAVE` u tabeli `ISPIT` i koji pronalazi naziv predmeta i ocenu za sve polo\v zene ispite za studenta sa indeksom `indeks` u godini roka `godina` (oba parametra predstavljaju mati\v cne promenljive). Ovaj kursor mora biti deklarisan klauzom `WITH HOLD` zato \v sto se koristi kao deo transakcije.
-
-4. Funkcija `void polaganja_za_studenta_u_godini(sqlint32 indeks, short godina)` implementira neophodne operacije koje \v cine deo transakcije za jednog studenta. Funkcija redom:
-
-- Unosi informacije (`INSERT`) o indeksu i godini roka u tabelu `OBRADJENA_POLAGANJA`.
-- Kreira ta\v cku \v cuvanja, kako bismo mogli da eventualno poni\v stimo sve izmene, osim unosa u tabelu iz prethodne ta\v cke.
-- Prolazi kroz kursor `c_polozeni`. Za svaki red ispisuje informacije iz kursora i ukoliko korisnik potvrdi poni\v stavanje ispita, izvr\v sava odgovaraju\'ce a\v zuriranje (`UPDATE`).
-- Postavlja pitanje korisniku da li \v zeli da potvrdi izmene. Ukoliko je odgovor negativan, funkcija poni\v stava sve izmene, ali ne i izmenu koja je u\v cinjena u prvoj ta\v cki (tj. naredbu `INSERT` iznad), po\v sto bez obzira na poni\v stavanje a\v zuriranja, \v zelimo da informacija o obra\dj ivanju bude trajno upisana.
-
-Funkcija `int main()` je sada poprili\v cno jednostavna. Nakon povezivanja na bazu podataka i deklarisanja kursora (pozivom funkcija pod 1 i 3 iznad), zapo\v cinje se iterativni proces koji predstavlja jednu transakciju. Svaka transakcija se sastoji od opisanih operacija iz teksta zadatka, tako \v sto se pozivaju odgovaraju\'ce funkcije (pod 2 i 4 iznad). Naravno, da bi svaka iteracija predstavljala jednu transakciju, potrebno je da se na kraju iteracije izvr\v si naredba `COMMIT`.
-
-include_source(primeri/poglavlje_4/zadatak_4_6.sqc, c)
+include_source(primeri/poglavlje_4/zadatak_4_4.sqc, c)
 
 ## 4.6 Zadaci za vežbu
 
-{% include zadatak.html broj="4.7" tekst="Napisati C/SQL program koji redom:\n
-\n
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
-2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
-\n
-Obezbediti da se navedene operacije izvrše ili sve ili nijedna." %}
+{% include zadatak.html broj="4.5" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Izdvojiti naziv predmeta, prosečnu ocenu i procenat studenata iz tog predmeta u školskoj godini koja se unosi sa standardnog ulaza." %}
 
-{% include zadatak.html broj="4.8" tekst="Napisati C/SQL program koji redom:\n
-\n
-1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka `'apr'` i naziv `'April 2019'`. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.\n
-2. Ažurira tip za prethodno uneti ispitni rok na tip `'Z'`. \n
-\n
-Obezbediti da se navedene operacije izvrše zasebno." %}
+{% include zadatak.html broj="4.6" tekst="Uraditi zadatke za ve\v zbu iz poglavlja 2 i 3 kori\v s\'cenjem dinami\v ckog SQL-a." %}
 
-{% include zadatak.html broj="4.9" tekst="Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.\n
-\n
-Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. \n
-\n
-Obezbediti da se navedene operacije izvrše zasebno." %}
-
-{% include zadatak.html broj="4.10" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
-1. Izvršavanje potvrđivanja\n
-2. Izvršavanje poništavanja\n
-3. Bez akcije\n
-\n
-U slučaju akcija 1. i 2. potrebno je izvršiti odgovarajuću SQL naredbu i prikazati poruku korisniku o uspešnosti akcije. Takođe ispisati i informaciju o tome za koliko studenata je izvršeno potvrđivanje/poništavanje, na primer: `'TRANSAKCIJA JE ZAVRSENA: POTVRDILI STE BRISANJE 7 STUDENATA'` ili `'TRANSAKCIJA JE ZAVRSENA: PONIŠTILI STE BRISANJE 7 STUDENATA'` (ukoliko je pre tekuće akcije korisnik 7 puta odabrao 3. akciju). \n
-\n
-U slučaju akcije 3. potrebno je samo uvećati broj studenata koji je obrisan u tekućoj jedinici posla. Naravno, prilikom izvršavanja akcije 1. ili 2. ovaj broj se mora postaviti na 0." %}
+{% include zadatak.html broj="4.7" tekst="Dopuniti implementaciju zadatka 4.4 tako da se omogući obrada naredbi sa parametarskim oznakama." %}
