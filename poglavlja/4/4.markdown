@@ -417,5 +417,3 @@ include_source(primeri/poglavlje_4/zadatak_4_4.sqc, c)
 {% include zadatak.html broj="4.5" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Izdvojiti naziv predmeta, prosečnu ocenu i procenat studenata iz tog predmeta u školskoj godini koja se unosi sa standardnog ulaza." %}
 
 {% include zadatak.html broj="4.6" tekst="Uraditi zadatke za ve\v zbu iz poglavlja 2 i 3 kori\v s\'cenjem dinami\v ckog SQL-a." %}
-
-{% include zadatak.html broj="4.7" tekst="Dopuniti implementaciju zadatka 4.4 tako da se omogući obrada naredbi sa parametarskim oznakama." %}
