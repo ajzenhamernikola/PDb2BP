@@ -404,9 +404,9 @@ Nakon izvršavanja naredbe `DESCRIBE OUTPUT`, SUBP dodeljuje vrednosti promenlji
 
 - Za svako pojavljivanje `SQLVAR`: ako je vrednost `SQLD` jednaka nuli ili veća od `SQLN`, ne postavljaju se vrednosti za pojavljivanja SQLVAR. Ako je vrednost `SQLD` jednaka *n*, gde je *n > 0* i *n <= `SQLN`*, onda se vrednosti dodeljuju prvih *n* pojavljivanja `SQLVAR`. Ove vrednosti opisuju parametarske oznake za ulazne parametre prodecure, redom.
 
-Naredni zadatak ilustruje sve opisane tehnike za dizajn programa koji može da izvrši proizvoljnu dinamičku SQL naredbu bez parametarskih oznaka.
+Naredni zadatak ilustruje sve opisane tehnike za dizajn programa koji može da izvrši proizvoljnu dinamičku SQL naredbu.
 
-{% include zadatak.html broj="4.4" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Omogućiti izvršavanje proizvoljne naredbe. Prepostaviti da naredba nema parametarske oznake. Pretpostaviti da su jedini tipovi podataka koji se koriste numerički, tekstualni i datumi. Pretpostaviti da naredba koja se unosi sa standardnog ulaza nije duža od 512 karaktera." %}
+{% include zadatak.html broj="4.4" tekst="Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Omogućiti izvršavanje proizvoljne naredbe. Pretpostaviti da su jedini tipovi podataka koji se koriste numerički, tekstualni i datumi. Pretpostaviti da naredba koja se unosi sa standardnog ulaza nije duža od 512 karaktera." %}
 
 Rešenje:
 
