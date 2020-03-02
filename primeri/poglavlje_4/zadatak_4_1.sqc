@@ -14,8 +14,6 @@ void is_error(const char* err)
     if (SQLCODE < 0)
     {
         printf("Greska %d: %s\n\n", SQLCODE, err);
-
-        EXEC SQL ROLLBACK;
         exit(EXIT_FAILURE);
     }
 }
@@ -67,9 +65,6 @@ int main(int argc, char *argv[])
     is_error("Execute immediate");
     
     printf("Naredba je uspesno izvrsena.\n");
-
-    EXEC SQL COMMIT;
-    is_error("Potvrdjivanje izmena");
 
     EXEC SQL CONNECT RESET;
     is_error("Connect reset");
