@@ -396,7 +396,9 @@ Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimaln
 \n
 Obezbediti da se navedene operacije izvrše zasebno." %}
 
-{% include zadatak.html broj="5.10" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
+{% include zadatak.html broj="5.10" tekst="Napisati C/SQL program koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika 'da', izvršava se odgovarajuća naredba. Obrada jednog predmeta treba da predstavlja jednu transakciju." %}
+
+{% include zadatak.html broj="5.11" tekst="Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela `ISPIT`, `UPISAN_KURS`, `UPIS_GODINE`, `STATUS` i `DOSIJE` (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:\n
 1. Izvršavanje potvrđivanja\n
 2. Izvršavanje poništavanja\n
 3. Bez akcije\n
