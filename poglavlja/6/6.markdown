@@ -391,6 +391,45 @@ include_source(primeri/poglavlje_6/zadatak_6_6/exclusiveMode.sqc, c)
 
 ## 6.6 Zadaci za vežbu
 
-TODO
+{% include zadatak.html broj="6.7" tekst="Napisati C/SQL program koji za sve ispitne rokove pronalazi informacije o polaganjima za svaki polo\v zeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Nakon jednog unosa podataka ispisati unete podatke odvojene zapetom. Nakon svih unosa podataka, potrebno je odgovaraju\'com SQL naredbom izra\v cunati broj unetih redova u tabeli `ISPITNI_ROKOVI_POLAGANJA` i ispisati rezultat na standardni izlaz. Napisati program tako da mo\v ze da radi u vi\v sekorisni\v ckom okru\v zenju. Unos podataka za jedan ispitni rok i jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
+
+Napraviti tabelu `ISPITNI_ROKOVI_POLAGANJA` koja sadr\v zi kolone sa podacima o:
+- godini roka
+- oznaci roka
+- identifikatoru predmeta
+- oceni
+- broju polo\v zenih ispita na tom predmetu sa tom ocenom
+- nazivu roka
+- nazivu predmeta
+
+Definisati primarni klju\v c na osnovu prvih 5 kolona i strane klju\v ceve ka odgovaraju\'cim tabelama. 
+
+{% include zadatak.html broj="6.8" tekst="Napisati C/SQL program koji za sve studente pronalazi informacije o smeru na kojem studiraju i te podatke unosi u tabelu `SMER_STUDENTI`. Nakon jednog unosa podataka ispisati unete podatke odvojene zapetom. Nakon svih unosa podataka, potrebno je odgovaraju\'com SQL naredbom izra\v cunati broj unetih redova u tabeli `SMER_STUDENTI` i ispisati rezultat na standardni izlaz. Napisati program tako da mo\v ze da radi u vi\v sekorisni\v ckom okru\v zenju. Unos podataka za jednog studenta i jedan smer predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
+
+Napraviti tabelu `SMER_STUDENTI` koja sadr\v zi kolone sa podacima o:
+- indeksu studenta
+- nazivu smera
+- imenu i prezimenu studenta
+- zvanju
+- broju bodova koji je potrebno ostvariti na smeru
+- broju bodova koje je student trenutno ostvario
+- napomeni: vrednost ove kolone je niska `'Polozeni su svi predmeti'` ukoliko je student ostvario sve potrebne poene, a prazna niska u suprotnom
+
+Definisati primarni klju\v c na osnovu prve 2 kolone i strane klju\v ceve ka odgovaraju\'cim tabelama. 
+
+{% include zadatak.html broj="6.9" tekst="Napisati C/SQL program koji redom omogu\'cava naredne funkcionalnosti:\n
+\n
+1. Student zapo\v cinje prijavljivanje na praksu navo\dj enjem broja indeksa, nakon \v cega mu se nudi spisak numerisanih naziva predmeta za koje se mo\v ze prijaviti da radi praksu. Za prijavljivanje studentu se nude samo predmeti koje je polo\v zio sa ocenom ve\'com od prose\v cne ocene sa polo\v zenih ispita iz tog predmeta.\n
+2. Zatim student (potencijalno vi\v se puta) upisuje identifikator predmeta iz koga \v zeli da radi praksu, ili 0 za kraj. Posle svakog izabranog predmeta studentu se nudi izmenjen spisak predmeta u kome se ne nalaze
+ve\'c izabrani predmeti. Odabrani predmet se unosi u tabelu `PRAKSA`.\n
+3. Na kraju se ispisuje izve\v staj koji za svaki prijavljeni predmet sadr\v zi: naziv predmeta, broj do tada prijavljenih studenata za praksu iz tog predmeta; prose\v cnu prolaznost (ukupnu) u poslednjih 5 godina. Izve\v staj urediti u opadaju\'cem redosledu po prolaznosti. Prolaznost ra\v cunati kao koli\v cnik broja polo\v zenih ispita sa ocenom ve\'com od 5 nevezano od statusa prijave i broja izlazaka na ispit (broja unosa u tabelu ispit sa statusom prijave razli\v citim od 'n').\n
+\n
+Svako prijavljivanje predstavlja nezavisnu transakciju. Napisati program tako da radi ispravno u vi\v sekorisni\v ckom okru\v zenju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
+
+Potrebno je u bazi vstud kreirati naredbu koja pravi tabelu `PRAKSA` koja ima kolone:
+- `indeks` - indeks studenta;
+- `id_predmeta` - identifikator predmeta koji student prijavljuje.
+
+Definisati primarni klju\v c u tabeli `PRAKSA` i strane klju\v ceve nad tabelama `DOSIJE` i `PREDMET`. U ovoj tabeli se \v cuvaju podaci o prijavljenim praksama. Jedan student mo\v ze potencijalno prijaviti vi\v se razli\v citih predmeta, a i isti predmet mo\v ze prijaviti vi\v se razli\v citih studenata.
 
 -----
