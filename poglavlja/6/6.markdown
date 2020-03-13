@@ -176,7 +176,7 @@ Rešenje: S obzirom da se ovoga puta obrada katanaca vr\v si kao deo zasebne tra
 
 Tako\dj e, primetimo da aplikacija \v cuva niz obra\dj enih predmeta tokom svog rada. Prilikom obra\dj ivanja narednog predmeta, aplikacija prvo proverava funkcijom `int predmet_je_obradjen(sqlint32 id)` i ukoliko jeste, aplikacija ga preska\v ce i prelazi na naredni predmet. U suprotnom, vr\v si se obrada i funkcijom `void oznaci_kao_obradjen(sqlint32 id)` se predmet ozna\v cava da je obra\dj en za naredne provere.
 
-include_source(primeri/poglavlje_6/zadatak_6_.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_2.sqc, c)
 
 ## 6.4 Nivoi izolovanosti
 
