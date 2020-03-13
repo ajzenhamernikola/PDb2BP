@@ -102,7 +102,7 @@ Očigledno, počevši od trenutka T3, obe aplikacije će čekati jedna na drugu 
 
 Zbog toga što aplikacije neće "volonterski" osloboditi katance koje drže nad podacima, da bi se prevazišla mrtva petlja, mora se pristupiti procesu prepoznavanja mrtve petlje. Mehanizam prepoznavanja mrtve petlje nadgleda informacije o agentima koji čekaju na katance i pokreće se na interval specifikovan kroz parametar `dlchktime` podešavanja baze podataka.
 
-Ukoliko mehanizam pronađe mrtvu petlju, onda se nasumično bira jedan od procesa u mrtvoj petlji koji se naziva *žrtva* (engl. *victim process*), čije će izmene biti poništene. Aplikacija koja pripada procesu žrtvi se podiže i prosleđuje joj se odgovarajući kod koji je ona dužna da obradi. SUBP automatski poništava nepohranjene izmene od strane odabrane aplikacije. Kada je operacija pohranjivanja završena, katanci koji su pripadali procesu žrtvi se oslobađaju i ostali procesi u mrtvoj petlji mogu da nastave dalje sa radom.
+Ukoliko mehanizam pronađe mrtvu petlju, onda se nasumično bira jedan od procesa u mrtvoj petlji koji se naziva *žrtva* (engl. *victim process*), čije će izmene biti poništene. Aplikacija koja pripada procesu žrtvi se podiže i prosleđuje joj se odgovarajući kod koji je ona dužna da obradi. **SUBP automatski poništava nepotvr\dj ene izmene od strane odabrane aplikacije.** Kada je operacija poni\v stavanja završena, katanci koji su pripadali procesu žrtvi se oslobađaju, kursori se zatvaraju i ostali procesi u mrtvoj petlji mogu da nastave dalje sa radom.
 
 Postoje dve vrste grešaka koje SUBP može prijaviti aplikaciji u slučaju da dođe do isteka vremena, odnosno, ako je aplikacija izabrana za žrtvu prilikom prepoznavanja mrtve petlje:
 
@@ -152,25 +152,33 @@ Ovoj naredbi je moguće specifikovati naredne vrednosti:
 
 - Navođenjem `<MATIČNA PROMENLJIVA>` specifikuje se celobrojna vrednost iz intervala `[-1, 32767]` koja se čita iz vrednosti date matične promenljive. Ako data vrednost pripada intervalu `[1, 32767]`, onda će SUBP čekati toliko sekundi pre nego što aplikaciji prosledi grešku. Vrednosti `-1` i `0` odgovaraju specifikovanju prethodno opisanih klauza `WAIT` i `NO WAIT`, redom.
 
-Naredni zadatak ilustruje obradu transakcija u višekorisničkom okruženju korišćenjem znanja iz ovog poglavlja.
-
-{% include zadatak.html broj="6.1" tekst="Napisati C/SQL program koji za svaki predmet omogućuje korisniku da poveća broj semestra u kome se taj predmet sluša za 1. Nakon svakog ažuriranja, proveriti da li je odgovarajuci red u tabeli izmenjen ponovnim dohvatanjem informacija. Dodatno, svaku obradu evidentirati u tabeli `OBRADJENI_PREDMETI`.\n
+{% include zadatak.html broj="6.1" tekst="Napisati C/SQL program koji za svaki smer pita korisnika da li \v zeli da promeni broj bodova na tom smeru. Ukoliko korisnik odgovori potvrdno, aplikacija zahteva od korisnika da unese novi broj bodova nakon \v cega se vr\v si izmena podataka.\n
 \n
-Napisati program tako da može da radi u višekorisničkom okruženju. Obrada jednog predmeta predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 10 sekundi." %}
+Napisati program tako da može da radi u višekorisničkom okruženju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi.\n
+\n
+Pokrenuti dve instance aplikacije. Uveriti se da dok jedna aplikacija obra\dj uje teku\'ci smer, druga aplikacija ne mo\v ze da dobije katanac nad odgovaraju\'cim slogom." %}
 
-Rešenje: Pre početka izvršavanja, kreirati tabelu `OBRADJENI_PREDMETI` koja sadrži identifikatore predmeta koji su do sada obrađeni:
-
-```sql
-CREATE TABLE OBRADJENI_PREDMETI (
-    ID_PREDMETA INTEGER NOT NULL,
-    PRIMARY KEY (ID_PREDMETA),
-    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
-)
-```
+Re\v senje: Nakon izvr\v savanja svake SQL naredbe koja mo\v ze da zahteva zaklju\v cavanje nekog sloga u tabeli, potrebno je izvr\v siti proveru da li aplikacija mo\v ze da dobije odgovaraju\'ci katanac. Provera se sastoji u ispitivanju vrednosti makroa `SQLCODE` i to pre poziva funkcije za obradu gre\v ske, kako se proces ne bi zavr\v sio pre obrade katanaca. Sama obrada gre\v ske je u ovom slu\v caju vrlo jednostavna - potrebno je ispisati poruku korisniku da je isteklo vreme za \v cekanje trenutnog katanca i nastaviti dalje sa izvr\v savanjem.
 
 include_source(primeri/poglavlje_6/zadatak_6_1.sqc, c)
 
-## 6.3 Nivoi izolovanosti
+## 6.3 Obrada transakcija u višekorisničkom okruženju
+
+Problem sa pristupom obrade gre\v saka u prethodnom zadatku je taj \v sto se pod transakcijom smatra izvr\v savanje celog programa, te ako bilo gde u obradi do\dj e do problema dobijanja katanaca, sve izmene koje su do tada na\v cinjene se poni\v stavaju. Umesto toga, pouzdanija tehnika jeste definisati da jedna transakcija obuhvata obradu jednog podatka. U prethodnom primeru, to bi zna\v cilo da jedna transakcija obuhvata izmenu ta\v cno jednog smera, a ne svih smerova. Dodatno, \v cesto je po\v zeljno da aplikacija pamti koji podaci su ve\'c obra\dj eni, kako ih ne bi obra\dj ivala dva puta.
+
+Naredni zadatak ilustruje obradu transakcija u višekorisničkom okruženju korišćenjem znanja iz ovog poglavlja.
+
+{% include zadatak.html broj="6.2" tekst="Napisati C/SQL program koji za svaki predmet omogućuje korisniku da poveća broj semestra u kome se taj predmet sluša za 1. Nakon svakog ažuriranja, proveriti da li je odgovarajuci red u tabeli izmenjen ponovnim dohvatanjem informacija.\n
+\n
+Napisati program tako da može da radi u višekorisničkom okruženju. Obrada jednog predmeta predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 10 sekundi." %}
+
+Rešenje: S obzirom da se ovoga puta obrada katanaca vr\v si kao deo zasebne transakcije, onda je potrebno da poni\v stavamo izmene ukoliko do\dj e do isteka vremena za dobijanje katanaca. Zbog toga, funkciji za obradu \v cekanja dodajemo naredbu `ROLLBACK`. Dodatno, kako \'ce ta naredba zatvoriti sve otvorene kursore u transakciji (pa \v cak i one deklarisane klauzom `WITH HOLD`), potrebno je otvoriti kursor koji se koristio pre nego \v sto se pre\dj e u narednu iteraciju petlje koja obra\dj uje taj kursor. 
+
+Tako\dj e, primetimo da aplikacija \v cuva niz obra\dj enih predmeta tokom svog rada. Prilikom obra\dj ivanja narednog predmeta, aplikacija prvo proverava funkcijom `int predmet_je_obradjen(sqlint32 id)` i ukoliko jeste, aplikacija ga preska\v ce i prelazi na naredni predmet. U suprotnom, vr\v si se obrada i funkcijom `void oznaci_kao_obradjen(sqlint32 id)` se predmet ozna\v cava da je obra\dj en za naredne provere.
+
+include_source(primeri/poglavlje_6/zadatak_6_.sqc, c)
+
+## 6.4 Nivoi izolovanosti
 
 U najosnovnijem slučaju, svaka transakcija je u potpunosti izolovana od svih drugih transakcija. Međutim, videli smo da ovakva, potpuna izolovanost, može brzo dovesti do problema poput mrtve petlje u konkurentnom sistemu izvršavanja. Zbog toga, da bi se povećala konkurentnost između aplikacionih procesa, DB2 SUBP definiše različite nivoe izolovanosti na kojima aplikacija može da se izvršava.
 
@@ -188,13 +196,13 @@ DB2 definiše naredna četiri nivoa izolacije:
 - Stabilni kursor
 - Nepotvrđeno čitanje
 
-### 6.3.1 Ponovljeno čitanje
+### 6.4.1 Ponovljeno čitanje
 
 U nivou izolacije *ponovljeno čitanje* (engl. *repeatable read*, skr. *RR*) nijedan podatak koji je pročitan od strane procesa P ne sme se menjati od strane drugih procesa sve do završetka obrade od strane procesa P (čime se obezbeđuje saglasnost podataka u slučaju ponovljenog čitanja, te otuda i naziv nivoa izolacije). Sa druge strane, nijedan red promenjen od strane drugog procesa ne može se čitati od strane procesa P dok se promene u okviru tog procesa na okončaju.
 
 Osim već pomenutih ekskluzivnih katanaca, proces na RR nivou izolovanosti dobija bar deljive katance na svim podacima kojima pristupa, pri čemu se zaključavanje vrši tako da je proces u potpunosti izolovan od strane ostalih procesa.
 
-### 6.3.2 Stabilno čitanje
+### 6.4.2 Stabilno čitanje
 
 U nivou izolacije *stabilno čitanje* (engl. *read stability*, skr. *RS*) nijedan podatak koji je pročitan od strane procesa P ne sme se menjati od strane drugih procesa sve do završetka obrade od strane procesa P. Sa druge strane, nijedan red promenjen od strane drugog procesa ne može se čitati dok se promene u okviru tog procesa ne okončaju.
 
@@ -210,7 +218,7 @@ WHERE   ID_NIVOA = 10
 
 U slučaju RR nivoa izolovanosti izvršavanje ovog upita izazvaće zaključavanje svih redova tabele `SMER`, a u slučaju RS nivoa izolovanosti zaključavanje se vrši samo nad onim redovima koji ispunjavaju uslov restrikcije `ID_NIVOA = 10`. Zbog toga, ako neki drugi proces unese novi red koji zadovoljava datu restrikciju, u slučaju RR nivoa izolovanosti to neće biti moguće, dok će ponovo izvršavanje upita u slučaju RS nivoa izolovanosti proizvesti prikazivanje i tih novih redova.
 
-### 6.3.3 Stabilni kursor
+### 6.4.3 Stabilni kursor
 
 U nivou izolacije *stabilni kursor* (engl. *cursor stability*, skr. *CS*) nijedan proces ne može da menja podatke iz reda dok je ažurirajući kursor pozicioniran nad tim redom. Dakle, ovaj nivo izolovanosti obezbeđuje da konkurentni procesi ne mogu menjati samo trenutno aktivne redove otvorenih kursora posmatranog procesa P. Redovi koji su ranije pročitani mogu biti menjani. Takodje, nijedan red promenjen od strane drugog procesa ne može se čitati dok se promene u okviru tog procesa na okončaju. 
 
@@ -220,7 +228,7 @@ Očito, i u ovom nivou izolacije moguć je problem fantomskih redova. Međutim, 
 
 Bez obzira na razne ekskluzivne katance, ovaj nivo obezbeđuje bar deljive katance na aktivnim redovima svih kursora.
 
-### 6.3.4 Nepotvrđeno čitanje
+### 6.4.4 Nepotvrđeno čitanje
 
 I nivou izolacije *nepotvrđeno čitanje* (engl. *uncommitted read*, skr. *UR*) proces P može da pristupi nepotvrđenim izmenama od strane drugih procesa. Dodatno, nivo izolacije UR ne sprečava drugim procesima da pristupe redu koji čita proces P, osim ukoliko taj drugi proces ne pokušava da izmeni strukturu tabele ili da je obriše.
 
@@ -234,7 +242,7 @@ Za naredbe `SELECT INTO` ili `FETCH` nad kursorom koji služi samo za čitanje, 
 
 Pored problema fantomskih redova i problema neponovljivih čitanja, postoji još jedan problem koji se može javiti u ovom nivou izolacije. Ako prvo proces A izmeni neku vrednost, zatim proces B pročita tu vrednost pre nego što je potvrđena, a zatim proces A poništi svoje izmene, onda proces B može raditi nad nekorektnim podacima. Ovaj problem se naziva *problem pristupa nepotvrđenim podacima* (engl. *access to uncommitted data problem*). 
 
-### 6.3.5 Programersko podešavanje nivoa izolovanosti
+### 6.4.5 Programersko podešavanje nivoa izolovanosti
 
 Moguće je specifikovati koji se nivo izolovanosti koristi i on je u efektu tokom trajanja jedinice posla. Postoji nekoliko načina za podešavanje nivoa izolovanosti:
 
@@ -277,31 +285,9 @@ Ukoliko se ne specifikuje nivo izolacije, DB2 će podrazumevano koristiti nivo C
 
 Naredni primeri ilustruju različite efekte iste aplikacije pri različitim nivoima izolovanosti. Primetimo da smo u narednim primerima koristili klauzu `WITH` za postavljanje nivoa izolovanosti.
 
-{% include zadatak.html broj="6.2" tekst="Napisati C/SQL program `repeatableRead` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Omogućiti da se prilikom oba ispisivanja dobijaju iste informacije.\n
+{% include zadatak.html broj="6.3" tekst="Napisati C/SQL program `repeatableRead` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Omogućiti da se prilikom oba ispisivanja dobijaju iste informacije.\n
 \n
 Napisati C/SQL program `insertIspitniRok` koji unosi novi ispitni rok za mesec mart u 2016. godini. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
-
-Rešenje: Pre početka izvršavanja bilo kog programa, pokrenuti skript `pripremaBaze` čiji je sadržaj: 
-
-include_source(primeri/poglavlje_6/zadatak_6_2/pripremaBaze, shell)
-
-a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu skripta `pripremaBaze.sql` čiji je sadržaj:
-
-include_source(primeri/poglavlje_6/zadatak_6_2/pripremaBaze.sql, sql)
-
-Pokrenuti program `repeatableRead` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti program `insertIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
-
-Uveriti se da program `insertIspitniRok` ne može da izvrši unos sve dok program `repeatableRead` ne završi sa svim ispisivanjima i takođe da oba ispisivanja imaju iste vrednosti.
-
-include_source(primeri/poglavlje_6/zadatak_6_2/repeatableRead.sqc, c)
-
-include_source(primeri/poglavlje_6/zadatak_6_2/insertIspitniRok.sqc, c)
-
-{% include zadatak.html broj="6.3" tekst="Napisati C/SQL program `readStability` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Dozvoljeno je da se prilikom drugog ispisivanja pojave novi redovi, ali ne i da budu vidljive izmene pročitanih redova. \n
-\n
-Napisati C/SQL program `insertIspitniRok` koji unosi novi ispitni rok za mesec mart u 2016. godini. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi.\n
-\n
-Napisati C/SQL program `updateIspitniRok` koji za svaki ispitni rok u 2016. godini produžava period prijavljivanja za 3 dana. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
 
 Rešenje: Pre početka izvršavanja bilo kog programa, pokrenuti skript `pripremaBaze` čiji je sadržaj: 
 
@@ -311,19 +297,15 @@ a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu 
 
 include_source(primeri/poglavlje_6/zadatak_6_3/pripremaBaze.sql, sql)
 
-Pokrenuti program `readStability` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti programe `insertIspitniRok` i `updateIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
+Pokrenuti program `repeatableRead` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti program `insertIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
 
-Uveriti se da program `insertIspitniRok` može da izvrši unos novog ispitnog roka tokom rada programa `readStability` i da se novi rok vidi prilikom drugog ispisivanja. 
+Uveriti se da program `insertIspitniRok` ne može da izvrši unos sve dok program `repeatableRead` ne završi sa svim ispisivanjima i takođe da oba ispisivanja imaju iste vrednosti.
 
-Takođe, uveriti se i da program `updateIspitniRok` ne može da promeni informacije o ispitnim rokovima sve dok program `readStability` ne završi sa izvršavanjem.
-
-include_source(primeri/poglavlje_6/zadatak_6_3/readStability.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_3/repeatableRead.sqc, c)
 
 include_source(primeri/poglavlje_6/zadatak_6_3/insertIspitniRok.sqc, c)
 
-include_source(primeri/poglavlje_6/zadatak_6_3/updateIspitniRok.sqc, c)
-
-{% include zadatak.html broj="6.4" tekst="Napisati C/SQL program `cursorStability` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Dozvoljeno je da se prilikom drugog ispisivanja pojave novi redovi, kao i da budu vidljive izmene pročitanih redova.\n
+{% include zadatak.html broj="6.4" tekst="Napisati C/SQL program `readStability` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Dozvoljeno je da se prilikom drugog ispisivanja pojave novi redovi, ali ne i da budu vidljive izmene pročitanih redova. \n
 \n
 Napisati C/SQL program `insertIspitniRok` koji unosi novi ispitni rok za mesec mart u 2016. godini. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi.\n
 \n
@@ -337,19 +319,45 @@ a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu 
 
 include_source(primeri/poglavlje_6/zadatak_6_4/pripremaBaze.sql, sql)
 
+Pokrenuti program `readStability` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti programe `insertIspitniRok` i `updateIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova.
+
+Uveriti se da program `insertIspitniRok` može da izvrši unos novog ispitnog roka tokom rada programa `readStability` i da se novi rok vidi prilikom drugog ispisivanja. 
+
+Takođe, uveriti se i da program `updateIspitniRok` ne može da promeni informacije o ispitnim rokovima sve dok program `readStability` ne završi sa izvršavanjem.
+
+include_source(primeri/poglavlje_6/zadatak_6_4/readStability.sqc, c)
+
+include_source(primeri/poglavlje_6/zadatak_6_4/insertIspitniRok.sqc, c)
+
+include_source(primeri/poglavlje_6/zadatak_6_4/updateIspitniRok.sqc, c)
+
+{% include zadatak.html broj="6.5" tekst="Napisati C/SQL program `cursorStability` koji dva puta ispisuje informacije o godini, oznaci, nazivu i periodu prijavljivanja za svaki ispitni rok u 2016. godini. Dozvoljeno je da se prilikom drugog ispisivanja pojave novi redovi, kao i da budu vidljive izmene pročitanih redova.\n
+\n
+Napisati C/SQL program `insertIspitniRok` koji unosi novi ispitni rok za mesec mart u 2016. godini. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi.\n
+\n
+Napisati C/SQL program `updateIspitniRok` koji za svaki ispitni rok u 2016. godini produžava period prijavljivanja za 3 dana. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi." %}
+
+Rešenje: Pre početka izvršavanja bilo kog programa, pokrenuti skript `pripremaBaze` čiji je sadržaj: 
+
+include_source(primeri/poglavlje_6/zadatak_6_5/pripremaBaze, shell)
+
+a koji će uneti neke informacije o ispitnim rokovima u bazu podataka na osnovu skripta `pripremaBaze.sql` čiji je sadržaj:
+
+include_source(primeri/poglavlje_6/zadatak_6_5/pripremaBaze.sql, sql)
+
 Pokrenuti program `cursorStability` i započeti prvo ispisivanje. U toku ispisivanja ili nakon njega, pokrenuti programe `insertIspitniRok` i `updateIspitniRok`, pa nastaviti sa daljim ispisivanjem ispitnih rokova. 
 
 Uveriti se da program `insertIspitniRok` može da izvrši unos novog ispitnog roka tokom rada programa `cursorStability` i da se novi rok vidi prilikom drugog ispisivanja.
 
 Takođe, uveriti se i da program `updateIspitniRok` može da promeni informacije o ispitnim rokovima i da se izmene vide u programu `cursorStability` tokom drugog ispisivanja.
 
-include_source(primeri/poglavlje_6/zadatak_6_4/cursorStability.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_5/cursorStability.sqc, c)
 
-include_source(primeri/poglavlje_6/zadatak_6_4/insertIspitniRok.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_5/insertIspitniRok.sqc, c)
 
-include_source(primeri/poglavlje_6/zadatak_6_4/updateIspitniRok.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_5/updateIspitniRok.sqc, c)
 
-## 6.4 Programersko zaključavanje tabela
+## 6.5 Programersko zaključavanje tabela
 
 Programeri mogu sami da zatraže katance od SUBP ukoliko smatraju da im je to neophodno, ali sa ograničenjem da je na ovaj način jedino moguće zaključati tabelu, a ne redove, blokove, i druge objekte. SQL naredba `LOCK TABLE` onemogućava konkurentnoj aplikaciji da koristi ili menja tabelu, u zavinosti od režima u kojem se tabela zaključava. Ovako dobijeni katanac se oslobađa kada se završi jedinica posla u kojem je naredba `LOCK TABLE` izvršena, bilo operacijom potvrđivanja izmena ili njenim završavanjem.
 
@@ -371,17 +379,17 @@ Ovom naredbom se traži odgovarajući katanac nad tabelom `<IME_TABELE>`. U zavi
 
 - Kluza `EXCLUSIVE` onemogućava konkurentnoj aplikaciji da izvrši bilo koju operaciju nad tabelom. Napomenimo da ovaj režim ne onemogućava da aplikacioni procesi izvršavaju naredbe čitanja podataka iz tabele ukoliko oni rade na nivou izolacije nepotvrđeno čitanje (UR).
 
-{% include zadatak.html broj="6.5" tekst="Napisati C/SQL program `shareMode` koji ispisuje identifikator, oznaku, naziv, broj semestara i bodove za svaki smer u bazi podataka. Omogućiti da ostale aplikacije ne mogu da menjaju ove podatke tokom ispisivanja podataka.\n
+{% include zadatak.html broj="6.6" tekst="Napisati C/SQL program `shareMode` koji ispisuje identifikator, oznaku, naziv, broj semestara i bodove za svaki smer u bazi podataka. Omogućiti da ostale aplikacije ne mogu da menjaju ove podatke tokom ispisivanja podataka.\n
 \n
 Napisati C/SQL program `exclusiveMode` koji ispisuje identifikator, oznaku, naziv, broj semestara i bodove za svaki smer u bazi podataka. Omogućiti da ostale aplikacije ne mogu da menjaju ove podatke tokom ispisivanja podataka, kao ni da ih čitaju." %}
 
 Rešenje: Isprobati sve kombinacije redosleda izvršavanja programa `exclusiveMode` i `shareMode` i uveriti se da jedino kombinacija `(shareMode, shareMode)` može raditi konkurentno.
 
-include_source(primeri/poglavlje_6/zadatak_6_5/shareMode.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_6/shareMode.sqc, c)
 
-include_source(primeri/poglavlje_6/zadatak_6_5/exclusiveMode.sqc, c)
+include_source(primeri/poglavlje_6/zadatak_6_6/exclusiveMode.sqc, c)
 
-## 6.5 Zadaci za vežbu
+## 6.6 Zadaci za vežbu
 
 TODO
 

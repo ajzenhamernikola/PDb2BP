@@ -53,10 +53,10 @@ int main()
 
     EXEC SQL SET CURRENT LOCK TIMEOUT NULL;
     is_error("Set timeout");
-    
+
     EXEC SQL COMMIT;
     is_error("Potvrdjivanje izmena");
-
+    
     EXEC SQL CONNECT RESET;
     is_error("Connect reset");
     
