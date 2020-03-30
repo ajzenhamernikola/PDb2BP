@@ -48,7 +48,7 @@ form using the SQL standard. The interfaces defined in this package are implemen
 the driver specific classes and the definition can differ from vendor to vendor.
 
 Before getting connection, the driver specific classes must be loaded and registered to the
-DriverManager. Any number of drivers can be loaded and registered with the DriverManager using the forName method:
+`DriverManager`. Any number of drivers can be loaded and registered with the `DriverManager` using the `forName` method:
 
 ```java
 class ProgramName {
@@ -71,11 +71,11 @@ member of that class (even if you never make an object of that class). We will b
 static blocks in our programs to load and register DB2 JDBC driver, as shown in the code
 example above.
 
-The forName method take a string argument whose value is the name of the package which
-implements the interfaces defined in java.sql package.
+The `forName` method take a string argument whose value is the name of the package which
+implements the interfaces defined in `java.sql` package.
 
-The connection to a database can be obtained by calling the getConnection method of
-DriverManager class. This method takes a string value (URL) as an input, which gives
+The connection to a database can be obtained by calling the `getConnection` method of
+`DriverManager` class. This method takes a string value (URL) as an input, which gives
 the information required to connect to the database. A typical URL format for Type 4
 driver is:
 
@@ -83,9 +83,9 @@ driver is:
 jdbc:db2://<servername>:<port number>/<database name>
 ```
 
-The connection to a database is closed by calling close method of Connection class.
+The connection to a database is closed by calling `close` method of `Connection` class.
 
-The code in the following example returns the connection as Connection class object:
+The code in the following example returns the connection as `Connection` class object:
 
 ```java
 public static void main(String argv[]) {
@@ -105,11 +105,11 @@ public static void main(String argv[]) {
 ## 8.2 Obrada SQL grešaka
 
 Just like any Java program, in JDBC, exception handling is done using the try-catch
-block. A DB2 application throws a SQLException whenever it encounters a SQL error or
-a SQLWarning whenever it encounters a SQL warning when executing SQL statements.
+block. A DB2 application throws a `SQLException` whenever it encounters a SQL error or
+a `SQLWarning` whenever it encounters a SQL warning when executing SQL statements.
 
-An object of SQLException is created and thrown whenever an error occurs while accessing
-the database. The SQLException object provides the information listed in Table 11.1.
+An object of `SQLException` is created and thrown whenever an error occurs while accessing
+the database. The `SQLException` object provides the information listed in Table 11.1.
 
 | SQLException information | Description | Method to retrieve this information |
 | --- | --- | --- |
@@ -118,14 +118,14 @@ the database. The SQLException object provides the information listed in Table 1
 | ErrorCode | An integer value that indicates the error which caused the exception to be thrown. | getErrorCode |
 
 Apart from the above information, the DB2 JCC driver provides an extra interface
-com.ibm.db2.jcc.DB2Diagnosable. This interface gives more information regarding the
+`com.ibm.db2.jcc.DB2Diagnosable`. This interface gives more information regarding the
 error that occurred while accessing the DB2 database.
 
-If multiple SQLExceptions are thrown, they are chained. The next exception information
-can be retrieved by calling the getNextException method of the current SQLException
-object. This method will return null if the current SQLException object is last in the
+If multiple `SQLExceptions` are thrown, they are chained. The next exception information
+can be retrieved by calling the getNextException method of the current `SQLException`
+object. This method will return null if the current `SQLException` object is last in the
 chain. A while loop in the catch block of the program can be used to retrieve all the
-SQLException objects one by one.
+`SQLException` objects one by one.
 
 ```java
 Connection con = null;
@@ -179,8 +179,8 @@ catch (Exception e) {
 ## 8.3 Upravljanje podacima
 
 After getting the connection, data can be selected, inserted, updated, or deleted from the
-relational tables using SQL statements. JDBC driver implements two interfaces Statement
-and PreparedStatement for this purpose. An object of any of these classes is required for
+relational tables using SQL statements. JDBC driver implements two interfaces `Statement`
+and `PreparedStatement` for this purpose. An object of any of these classes is required for
 running an SQL statement.
 
 
@@ -238,33 +238,33 @@ the first data type is the recommended data type.
 
 ### 8.3.2 Interfejs Statement
 
-An object of Statement (or class implementing the Statement interface) can be used to
+An object of `Statement` (or class implementing the `Statement` interface) can be used to
 execute the SQL statement which does not contain parameter markers. An object can be
-created from the Connection object using createStatement method.
+created from the `Connection` object using `createStatement` method.
 
 Any number of statements can be created for a particular connection object.
 
-Statement interface defines executeQuery and executeUpdate methods to execute a query
-statement. The executeQuery method is used when the result set is expected (for example, for the SELECT statement) as output of the query. Alternatively, executeUpdate
-method is used for updating the database contents (for example, INSERT, UPDATE, and
-DELETE statements). The executeQuery method returns the ResultSet object, which represents a set of rows returned by the SELECT query. This ResultSet object can be used
-to fetch the result row by row. Method executeUpdate returns an integer value, which
+`Statement` interface defines `executeQuery` and `executeUpdate` methods to execute a query
+statement. The `executeQuery` method is used when the result set is expected (for example, for the `SELECT` statement) as output of the query. Alternatively, `executeUpdate`
+method is used for updating the database contents (for example, `INSERT`, `UPDATE`, and
+`DELETE` statements). The `executeQuery` method returns the `ResultSet` object, which represents a set of rows returned by the `SELECT` query. This `ResultSet` object can be used
+to fetch the result row by row. Method `executeUpdate` returns an integer value, which
 indicates the number of rows updated, inserted, or deleted from the database based on
 the type of SQL statement.
 
-The following example illustrates the retrieval of data using the Statement.executeQuery
-method. This method returns a result table in a ResultSet object. After you obtain the
-result table, you need to use ResultSet methods to move through the result table and
+The following example illustrates the retrieval of data using the `Statement.executeQuery`
+method. This method returns a result table in a `ResultSet object`. After you obtain the
+result table, you need to use `ResultSet` methods to move through the result table and
 obtain the individual column values from each row.
 
 To retrieve rows from a table using a SELECT statement with no parameter markers, you
 need to perform these steps:
 
-1. Invoke the Connection.createStatement method to create a Statement object.
-2. Invoke the Statement.executeQuery method to obtain the result table from the SELECT statement in a ResultSet object.
-3. In a loop, position the cursor using the next method, and retrieve data from each column of the current row of the ResultSet object using getXXX methods. XXX represents a data type.
-4. Invoke the ResultSet.close method to close the ResultSet object.
-5. Invoke the Statement.close method to close the Statement object when you have finished using that object.
+1. Invoke the `Connection.createStatement` method to create a `Statement` object.
+2. Invoke the `Statement.executeQuery` method to obtain the result table from the `SELECT` statement in a `ResultSet` object.
+3. In a loop, position the cursor using the `next` method, and retrieve data from each column of the current row of the `ResultSet` object using `getXXX` methods. `XXX` represents a data type.
+4. Invoke the `ResultSet.close` method to close the `ResultSet` object.
+5. Invoke the `Statement.close` method to close the `Statement` object when you have finished using that object.
 
 {% include zadatak.html broj="8.1" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izlistava šifre i nazive svih predmeta koji imaju više od 20 ESPB bodova." %}
 
@@ -272,19 +272,19 @@ Rešenje:
 
 include_source(primeri/poglavlje_8/src/zadatak_8_1/Main.java, java)
 
-The Statement.executeUpdate is one of the JDBC methods that you can use to update
-tables. You can use the Statement.executeUpdate method to do the following things:
+The `Statement.executeUpdate` is one of the JDBC methods that you can use to update
+tables. You can use the `Statement.executeUpdate` method to do the following things:
 
-- Execute data definition statements, such as CREATE, ALTER, DROP, GRANT, REVOKE.
-- Execute INSERT, UPDATE, DELETE, and MERGE statements that do not contain parameter markers.
+- Execute data definition statements, such as `CREATE`, `ALTER`, `DROP`, `GRANT`, `REVOKE`.
+- Execute `INSERT`, `UPDATE`, `DELETE`, and `MERGE` statements that do not contain parameter markers.
 
 To execute these SQL statements, you need to perform these steps:
 
-1. Invoke the Connection.createStatement method to create a Statement object.
-2. Invoke the Statement.executeUpdate method to perform the SQL operation.
-3. Invoke the Statement.close method to close the Statement object.
+1. Invoke the `Connection.createStatement` method to create a `Statement` object.
+2. Invoke the `Statement.executeUpdate` method to perform the SQL operation.
+3. Invoke the `Statement.close` method to close the `Statement` object.
 
-Method Statement.executeUpdate returns an integer which represents the number of updated rows
+Method `Statement.executeUpdate` returns an integer which represents the number of updated rows.
 
 {% include zadatak.html broj="8.2" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji u tabelu `PREDMET` unosi podatak o predmetu čiji je identifikator 2001, šifra Pred1, naziv Predmet 1, koji se sluša u prvom semestru i nosi `5` ESPB bodova." %}
 
@@ -294,14 +294,14 @@ include_source(primeri/poglavlje_8/src/zadatak_8_2/Main.java, java)
 
 ### 8.3.3 Interfejs `PreparedStatement`
 
-An object of PreparedStatement (or a class implementing the PreparedStatement interface)
-can be used to run the queries, which can contain parameter markers. A PreparedStatement object can be created using the prepareStatement method of Connection object.
-PreparedStatement extends the Statement interface.
+An object of `PreparedStatement` (or a class implementing the `PreparedStatement` interface)
+can be used to run the queries, which can contain parameter markers. A `PreparedStatement` object can be created using the `prepareStatement` method of `Connection` object.
+`PreparedStatement` extends the `Statement` interface.
 
 If the SQL statement contains parameter markers, the values for these parameter markers
-need to be set before executing the statement. Value can be set using setXXX methods
-of PreparedStatement object where XXX denoted the data type of the parameter marker.
-setXXX methods are also called setter methods.
+need to be set before executing the statement. Value can be set using `setXXX` methods
+of `PreparedStatement` object where `XXX` denoted the data type of the parameter marker.
+`setXXX` methods are also called setter methods.
 
 The following are the examples of setXXX methods:
 
@@ -314,7 +314,7 @@ The following are the examples of setXXX methods:
 - ...
 
 After setting the parameter values, the SQL statement can be executed using any of the
-executeQuery, executeUpdate, or execute method based on the SQL type.
+`executeQuery`, `executeUpdate`, or `execute` method based on the SQL type.
 
 {% include zadatak.html broj="8.3" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji svim predmetima koji imaju X ESPB bodova, postavlja broj bodova na Y. Nakon toga ispisati broj ažuriranih redova. Brojevi X i Y se učitavaju sa standardnog ulaza." %}
 
@@ -335,9 +335,9 @@ include_source(primeri/poglavlje_8/src/zadatak_8_4/Main.java, java)
 ### 8.3.4 Rukovanje nedostajućim vrednostima
 
 Što se tiče rada sa podacima koji su potencijalno nedostajući, na raspolaganju nam
-je metod ResultSet.wasNull, koji je potrebno pozvati odmah nakon pozivanja metodadohvatača za neku kolonu. Ukoliko je vrednost za tu kolonu bila NULL, onda će metod
-wasNull vratiti vrednost true, a inače će vratiti false. Napomenimo da se poziv wasNull
-metoda vezuje samo za poslednji poziv metoda getXXX, te samim tim i na poslednju dohvaćenu kolonu. Zbog toga je potrebno više puta pozivati ovaj metod ukoliko ima više
+je metod `ResultSet.wasNull`, koji je potrebno pozvati odmah nakon pozivanja metoda dohvatača za neku kolonu. Ukoliko je vrednost za tu kolonu bila `NULL`, onda će metod
+`wasNull` vratiti vrednost `true`, a inače će vratiti `false`. Napomenimo da se poziv `wasNull`
+metoda vezuje samo za poslednji poziv metoda `getXXX`, te samim tim i na poslednju dohvaćenu kolonu. Zbog toga je potrebno više puta pozivati ovaj metod ukoliko ima više
 potencijalno nedostajućih kolona:
 
 ```java
@@ -373,93 +373,93 @@ include_source(primeri/poglavlje_8/src/zadatak_8_5/Main.java, java)
 
 ### 8.3.5 Podešavanje kursora
 
-A ResultSet maintains a cursor, which points to a row in the result set. It works like a
+A `ResultSet` maintains a cursor, which points to a row in the result set. It works like a
 cursor in database programs. You can scroll the cursor to a specific row in the result set
 to access or manipulate the column values for that row. The cursor can point to only one
 row at a time. The row to which it points at a point in time is called the current row.
-There are different ways to move the cursor of a ResultSet to a row in the result set. 
+There are different ways to move the cursor of a `ResultSet` to a row in the result set. 
 
-The following three properties of a ResultSet need to be discussed before you can look at
+The following three properties of a `ResultSet` need to be discussed before you can look at
 an example:
 
 - Scrollability
 - Concurrency
 - Holdability
 
-Scrollability determines the ability of the ResultSet to scroll through the rows. By default,
-a ResultSet is scrollable only in the forward direction. When you have a forward-only
-scrollable ResultSet, you can move the cursor starting from the first row to the last row.
+Scrollability determines the ability of the `ResultSet` to scroll through the rows. By default,
+a `ResultSet` is scrollable only in the forward direction. When you have a forward-only
+scrollable `ResultSet`, you can move the cursor starting from the first row to the last row.
 Once you move to the last row, you cannot reuse the ResultSet because you cannot scroll
-back in a forward-only scrollable ResultSet. You can also create a ResultSet that can scroll
-in the forward as well as the backward direction. We call this ResultSet a bidirectional
-scrollable ResultSet.
+back in a forward-only scrollable `ResultSet`. You can also create a `ResultSet` that can scroll
+in the forward as well as the backward direction. We call this `ResultSet` a bidirectional
+scrollable `ResultSet`.
 
-A bidirectional scrollable ResultSet has another property called update sensitivity. It
+A bidirectional scrollable `ResultSet` has another property called update sensitivity. It
 determines whether the changes in the underlying database will be reflected in the result
-set while you are scrolling through its rows. A scroll sensitive ResultSet shows you changes
+set while you are scrolling through its rows. A scroll sensitive `ResultSet` shows you changes
 made in the database, whereas a scroll insensitive one would not show you the changes
-made in the database after you have opened the ResultSet. The following three constants
-in the ResultSet interface are used to specify the scrollability of a ResultSet:
+made in the database after you have opened the `ResultSet`. The following three constants
+in the `ResultSet` interface are used to specify the scrollability of a `ResultSet`:
 
-- TYPE_FORWARD_ONLY: Allows a ResultSet to scroll only in the forward direction.
-- TYPE_SCROLL_SENSITIVE: Allows a ResultSet to scroll in the forward and backward
-directions. It makes the changes in the underlying database made by other transactions or statements in the same transaction visible to the ResultSet. This type of
-ResultSet is aware of the changes made to its data by other means.
-- TYPE_SCROLL_INSENSITIVE: Allows a ResultSet to scroll in the forward and backward
+- `TYPE_FORWARD_ONLY`: Allows a `ResultSet` to scroll only in the forward direction.
+- `TYPE_SCROLL_SENSITIVE`: Allows a `ResultSet` to scroll in the forward and backward
+directions. It makes the changes in the underlying database made by other transactions or statements in the same transaction visible to the `ResultSet`. This type of
+`ResultSet` is aware of the changes made to its data by other means.
+- `TYPE_SCROLL_INSENSITIVE`: Allows a `ResultSet` to scroll in the forward and backward
 directions. It does not make the changes in the underlying database made by other
-transactions or statements in the same transaction visible to the ResultSet while
-scrolling. This type of ResultSet determines its data set when it is open and the
+transactions or statements in the same transaction visible to the `ResultSet` while
+scrolling. This type of `ResultSet` determines its data set when it is open and the
 data set does not change if it is updated through any other means except through
-this ResultSet itself. If you want to get up-to-date data, you must re-execute the
+this `ResultSet` itself. If you want to get up-to-date data, you must re-execute the
 query.
 
-Concurrency refers to the ability of a ResultSet to update data. By default, a ResultSet is
+Concurrency refers to the ability of a `ResultSet` to update data. By default, a `ResultSet` is
 read-only and it does not let you update its data. If you want to update data in a database
-through a ResultSet, you need to request an updatable result set from the JDBC driver.
-The following two constants in the ResultSet interface are used to specify the concurrency
-of a ResultSet:
+through a `ResultSet`, you need to request an updatable result set from the JDBC driver.
+The following two constants in the `ResultSet` interface are used to specify the concurrency
+of a `ResultSet`:
 
-• CONCUR_READ_ONLY: Makes a result set read-only.
-• CONCUR_UPDATABLE: Makes a result set updatable.
+- `CONCUR_READ_ONLY`: Makes a result set read-only.
+- `CONCUR_UPDATABLE`: Makes a result set updatable.
 
-Holdability refers to the state of a ResultSet after a transaction that it is associated with
-has been committed. A ResultSet may be closed or kept open when the transaction is
-committed. The default value of the holdability of a ResultSet is dependent on the JDBC
-driver. For DB2 driver, the holdability is set to false. It is specified using one of the
-following two constants defined in the ResultSet interface:
+Holdability refers to the state of a `ResultSet` after a transaction that it is associated with
+has been committed. A `ResultSet` may be closed or kept open when the transaction is
+committed. The default value of the holdability of a `ResultSet` is dependent on the JDBC
+driver. For DB2 driver, the holdability is set to `false`. It is specified using one of the
+following two constants defined in the `ResultSet` interface:
 
-• HOLD_CURSORS_OVER_COMMIT: Keeps the ResultSet open after the transaction is committed.
-• CLOSE_CURSORS_AT_COMMIT: Closes the ResultSet after the transaction is committed.
+• `HOLD_CURSORS_OVER_COMMIT`: Keeps the `ResultSet` open after the transaction is committed.
+• `CLOSE_CURSORS_AT_COMMIT`: Closes the `ResultSet` after the transaction is committed.
 
-Da bismo definisali ponašanje ResultSet objekta, potrebno je da prosledimo odgovarajuće
-opcije metodima createStatement, odnosno, prepareStatement, koji su definisani nad
-objektom klase Connection, u zavisnosti od toga da li želimo da naredbu izvršimo kroz
-interfejse Statement ili PreparedStatement, redom.
+Da bismo definisali ponašanje `ResultSet` objekta, potrebno je da prosledimo odgovarajuće
+opcije metodima `createStatement`, odnosno, `prepareStatement`, koji su definisani nad
+objektom klase `Connection`, u zavisnosti od toga da li želimo da naredbu izvršimo kroz
+interfejse `Statement` ili `PreparedStatement`, redom.
 
-U slučaju kreiranja objekta Statement, na raspolaganju su nam naredna dva preopterećenja metoda createStatement:
+U slučaju kreiranja objekta `Statement`, na raspolaganju su nam naredna dva preopterećenja metoda `createStatement`:
 
 - Metod sa dva argumenta:
-   - int resultSetType — Tip skupa rezultata.
-   - int resultSetConcurrency — Tip konkurentnosti.
+   - `int resultSetType` — Tip skupa rezultata.
+   - `int resultSetConcurrency` — Tip konkurentnosti.
 - Metod sa tri argumenta:
-   - int resultSetType
-   - int resultSetConcurrency
-   - int resultSetHoldability — Tip zadrživosti kursora prilikom izvršavanja operacije pohranjivanja.
+   - `int resultSetType`
+   - `int resultSetConcurrency`
+   - `int resultSetHoldability` — Tip zadrživosti kursora prilikom izvršavanja operacije pohranjivanja.
 
-U slučaju kreiranja objekta PreparedStatement, na raspolaganju su nam naredna dva
-preopterećenja metoda prepareStatement, sa istim značenjima parametara kao i u slučaju
-metoda createStatement:
+U slučaju kreiranja objekta `PreparedStatement`, na raspolaganju su nam naredna dva
+preopterećenja metoda `prepareStatement`, sa istim značenjima parametara kao i u slučaju
+metoda `createStatement`:
 
 - Metod sa tri argumenta:
-   - String sql — Niska koja sadrži tekstualni oblik SQL naredbe. Može sadržati
+   - `String sql` — Niska koja sadrži tekstualni oblik SQL naredbe. Može sadržati
 nula ili više parametarskih oznaka.
-   - int resultSetType
-   - int resultSetConcurrency
+   - `int resultSetType`
+   - `int resultSetConcurrency`
 - Metod sa četiri argumenta:
-   - String sql
-   - int resultSetType
-   - int resultSetConcurrency
-   - int resultSetHoldability
+   - `String sql`
+   - `int resultSetType`
+   - `int resultSetConcurrency`
+   - `int resultSetHoldability`
 
 {% include zadatak.html broj="8.?" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke o ispitnim rokovima koristeći kursor kome je omogućeno kretanje i unazad kroz podatke. Podatke urediti po nazivu rastuće, ali ih ispisivati opadajuće." %}
 
@@ -469,17 +469,17 @@ include_source(primeri/poglavlje_8/src/zadatak_8_6/Main.java, java)
 
 ### 8.3.6 Ažuriranje redova korišćenjem ResultSet kursora
 
-Postoje dve procedure za ažuriranje informacija u bazi podataka na osnovu ResultSet
+Postoje dve procedure za ažuriranje informacija u bazi podataka na osnovu `ResultSet`
 kursora:
 
-- Korišćenjem pozicionirajuće UPDATE naredbe.
-- Korišćenjem JDBC metoda updateXXX i updateRow.
+- Korišćenjem pozicionirajuće `UPDATE` naredbe.
+- Korišćenjem JDBC metoda `updateXXX` i `updateRow`.
 
-Kao što znamo, možemo koristiti pozicionirajuću UPDATE naredbu za menjanje podataka
-u bazi podataka, na osnovu tekućeg reda kursora, tako što se na kursor referiše u WHERE
-CURRENT OF klauzi naredbe. Da bismo dohvatili naziv ResultSet kursora, možemo iskoristiti
-metod ResultSet.getCursorName, koji vraća nisku sa nazivom kursora koji je vezan
-za taj ResultSet. Na primer, naredni fragment koda ilustruje kako možemo ažurirati broj bodova za sve predmete iz tabele `PREDMET` korišćenjem pozicionirajuće `UPDATE` naredbe:
+Kao što znamo, možemo koristiti pozicionirajuću `UPDATE` naredbu za menjanje podataka
+u bazi podataka, na osnovu tekućeg reda kursora, tako što se na kursor referiše u `WHERE CURRENT OF` 
+klauzi naredbe. Da bismo dohvatili naziv `ResultSet` kursora, možemo iskoristiti
+metod `ResultSet.getCursorName`, koji vraća nisku sa nazivom kursora koji je vezan
+za taj `ResultSet`. Na primer, naredni fragment koda ilustruje kako možemo ažurirati broj bodova za sve predmete iz tabele `PREDMET` korišćenjem pozicionirajuće `UPDATE` naredbe:
 
 ```java
 String upit =
@@ -512,23 +512,23 @@ try (Scanner scanner = new Scanner(System.in)) {
 
 Another approach is to use specific methods in order to update the data in the cursor,
 effectively updating the data in the database. Here are the steps involved in updating an
-existing row in a ResultSet:
+existing row in a `ResultSet`:
 
 - Move the cursor to a valid row in the result set. Note that you can update data only
 for an existing row. It is obvious that the cursor should not be positioned before the
 first row or after the last row if you want to update the data in a row.
-- Call the updateXXX() method for a column to update the column’s value.
-- If you do not want to go ahead with the changes made using updateXxx() method
-calls, you need to call the cancelRowUpdates() method of the ResultSet to cancel
+- Call the `updateXXX()` method for a column to update the column’s value.
+- If you do not want to go ahead with the changes made using `updateXXX()` method
+calls, you need to call the `cancelRowUpdates()` method of the `ResultSet` to cancel
 the changes.
 - When you are done updating all the column’s values for the current row, call the
-updateRow() method to send the changes to the database. If the auto-commit mode
-is enabled for the Connection, changes will be committed. Otherwise, you need to
+`updateRow()` method to send the changes to the database. If the auto-commit mode
+is enabled for the `Connection`, changes will be committed. Otherwise, you need to
 commit the changes to the database.
-- If you move the cursor to a different row before calling the updateRow(), all your
-changes made using the updateXXX() method calls will be discarded.
+- If you move the cursor to a different row before calling the `updateRow()`, all your
+changes made using the `updateXXX()` method calls will be discarded.
 - There is another way to lose your updates to columns in a row. If you call the
-refreshRow() method after calling updateXxx(), but before calling updateRow(),
+`refreshRow()` method after calling `updateXXX()`, but before calling `updateRow()`,
 your changes will be lost because the JDBC driver will refresh the row’s data from
 the database.
 
@@ -545,12 +545,11 @@ include_source(primeri/poglavlje_8/src/zadatak_8_7/Main.java, java)
 
 Poput ažuriranja podataka, i za brisanje podataka postoje dve procedure:
 
-- Korišćenjem pozicionirajuće DELETE naredbe.
-- Korišćenjem JDBC metoda deleteRow.
+- Korišćenjem pozicionirajuće `DELETE` naredbe.
+- Korišćenjem JDBC metoda `deleteRow`.
 
 Kao što znamo, možemo koristiti pozicionirajuću DELETE naredbu za brisanje podataka iz
-baze podataka, na osnovu tekućeg reda kursora, tako što se na kursor referiše u WHERE
-CURRENT OF klauzi naredbe. Procedura za dohvatanje naziva kursora i izvršavanje pozicionirajuće DELETE naredbe je ekvivalentna prethodno opisanoj proceduri za ažuriranje podataka korišćenjem pozicionirajuće UPDATE naredbe, te ćemo samo prikazati fragment koda koji ilustruje ovu proceduru:
+baze podataka, na osnovu tekućeg reda kursora, tako što se na kursor referiše u `WHERE CURRENT OF` klauzi naredbe. Procedura za dohvatanje naziva kursora i izvršavanje pozicionirajuće `DELETE` naredbe je ekvivalentna prethodno opisanoj proceduri za ažuriranje podataka korišćenjem pozicionirajuće `UPDATE` naredbe, te ćemo samo prikazati fragment koda koji ilustruje ovu proceduru:
 
 ```java
 String upit =
@@ -576,16 +575,16 @@ while (rs.next()) {
 }
 ```
 
-Deleting a row from a ResultSet is easier than updating a row. Here are the steps to delete
+Deleting a row from a `ResultSet` is easier than updating a row. Here are the steps to delete
 a row:
 
 - Position the cursor at a valid row.
-- Call the deleteRow() method of the ResultSet to delete the current row.
+- Call the `deleteRow()` method of the `ResultSet` to delete the current row.
 
-The deleteRow() method deletes the row from the ResultSet and, at the same time, it
+The `deleteRow()` method deletes the row from the `ResultSet` and, at the same time, it
 deletes the row from the database. There is no way to cancel the delete operation except
-by rolling back the transaction. If the auto-commit mode is enabled on the Connection,
-deleteRow() will permanently delete the row from the database.
+by rolling back the transaction. If the auto-commit mode is enabled on the `Connection`,
+`deleteRow()` will permanently delete the row from the database.
 
 {% include zadatak.html broj="8.8" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji briše sve nepoložene ispite u godini koja se zadaje sa standarnog ulaza. Nakon svakog brisanja ispita, ispisati naredne informacije o njemu na standardni izlaz: indeks, oznaku roka, godinu roka i identifikator predmeta." %}
 
