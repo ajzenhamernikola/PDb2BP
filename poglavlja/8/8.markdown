@@ -257,14 +257,26 @@ method. This method returns a result table in a `ResultSet object`. After you ob
 result table, you need to use `ResultSet` methods to move through the result table and
 obtain the individual column values from each row.
 
-To retrieve rows from a table using a SELECT statement with no parameter markers, you
-need to perform these steps:
+Da bismo iterirali kroz rezultuju\'cu tabelu naredbe `SELECT` koja ne sadr\v zi parametarske oznake, potrebno je da ispratimo naredne korake:
 
-1. Invoke the `Connection.createStatement` method to create a `Statement` object.
-2. Invoke the `Statement.executeQuery` method to obtain the result table from the `SELECT` statement in a `ResultSet` object.
-3. In a loop, position the cursor using the `next` method, and retrieve data from each column of the current row of the `ResultSet` object using `getXXX` methods. `XXX` represents a data type.
-4. Invoke the `ResultSet.close` method to close the `ResultSet` object.
-5. Invoke the `Statement.close` method to close the `Statement` object when you have finished using that object.
+1. Kreirati objekat interfejsa `Statement` pozivom metoda
+```java
+Statement stmt = con.createStatement(...);
+```
+2. Kreirati objekat interfejsa `ResultSet` pozivom metoda
+```java
+ResultSet kursor = stmt.executeQuery(sql);
+```
+3. Pozicionirati se na red koji je potrebno pročitati metodima za prolazak kroz kursor. Na primer:
+```java
+while (kursor.next()) {
+    // ...
+}
+```
+4. Pozvati odgovarajući metod nad objektom `kursor` iz familije metoda `ResultSet.getXXX(int columnIndex)` za dohvatanje vrednosti iz kolone rezultujuće tabele sa indeksom `columnIndex` 
+5. Eventualno proveriti da li je dohvaćena `NULL` vrednost pozivom `kursor.wasNull()`
+6. Nakon svih iteracija, pozvati metod `kursor.close()` radi zatvaranja kursora
+7. Nakon zatvaranja kursora, pozvati metod `stmt.close()` radi zatvaranja objekta naredbe
 
 {% include zadatak.html broj="8.1" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izlistava šifre i nazive svih predmeta koji imaju više od 20 ESPB bodova." %}
 
@@ -278,11 +290,14 @@ tables. You can use the `Statement.executeUpdate` method to do the following thi
 - Execute data definition statements, such as `CREATE`, `ALTER`, `DROP`, `GRANT`, `REVOKE`.
 - Execute `INSERT`, `UPDATE`, `DELETE`, and `MERGE` statements that do not contain parameter markers.
 
-To execute these SQL statements, you need to perform these steps:
+Da bismo izvr\v sili ove SQL naredbe bez parametarskih oznaka, potrebno je da ispratimo naredne korake:
 
-1. Invoke the `Connection.createStatement` method to create a `Statement` object.
-2. Invoke the `Statement.executeUpdate` method to perform the SQL operation.
-3. Invoke the `Statement.close` method to close the `Statement` object.
+1. Kreirati objekat interfejsa `Statement` pozivom metoda
+```java
+Statement stmt = con.createStatement();
+```
+2. Pozvati metod `stmt.executeUpdate(String sql)`
+3. Pozvati metod `stmt.close()` radi zatvaranja objekta naredbe
 
 Method `Statement.executeUpdate` returns an integer which represents the number of updated rows.
 
@@ -428,8 +443,8 @@ committed. The default value of the holdability of a `ResultSet` is dependent on
 driver. For DB2 driver, the holdability is set to `false`. It is specified using one of the
 following two constants defined in the `ResultSet` interface:
 
-• `HOLD_CURSORS_OVER_COMMIT`: Keeps the `ResultSet` open after the transaction is committed.
-• `CLOSE_CURSORS_AT_COMMIT`: Closes the `ResultSet` after the transaction is committed.
+- `HOLD_CURSORS_OVER_COMMIT`: Keeps the `ResultSet` open after the transaction is committed.
+- `CLOSE_CURSORS_AT_COMMIT`: Closes the `ResultSet` after the transaction is committed.
 
 Da bismo definisali ponašanje `ResultSet` objekta, potrebno je da prosledimo odgovarajuće
 opcije metodima `createStatement`, odnosno, `prepareStatement`, koji su definisani nad
@@ -461,7 +476,7 @@ nula ili više parametarskih oznaka.
    - `int resultSetConcurrency`
    - `int resultSetHoldability`
 
-{% include zadatak.html broj="8.?" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke o ispitnim rokovima koristeći kursor kome je omogućeno kretanje i unazad kroz podatke. Podatke urediti po nazivu rastuće, ali ih ispisivati opadajuće." %}
+{% include zadatak.html broj="8.6" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke o ispitnim rokovima koristeći kursor kome je omogućeno kretanje i unazad kroz podatke. Podatke urediti po nazivu rastuće, ali ih ispisivati opadajuće." %}
 
 Rešenje:
 
@@ -510,27 +525,27 @@ try (Scanner scanner = new Scanner(System.in)) {
 }
 ```
 
-Another approach is to use specific methods in order to update the data in the cursor,
-effectively updating the data in the database. Here are the steps involved in updating an
-existing row in a `ResultSet`:
+Drugi pristup podrazumeva kori\v s\'cenje specifi\v cnih metoda radi a\v zuriranja podataka u kursoru, \v cime se efektivno vr\v si a\v zuriranje u bazi podataka. Naredni koraci opisuju postupak a\v zuriranja postoje\'cih slogova u `ResultSet`:
 
-- Move the cursor to a valid row in the result set. Note that you can update data only
-for an existing row. It is obvious that the cursor should not be positioned before the
-first row or after the last row if you want to update the data in a row.
-- Call the `updateXXX()` method for a column to update the column’s value.
-- If you do not want to go ahead with the changes made using `updateXXX()` method
-calls, you need to call the `cancelRowUpdates()` method of the `ResultSet` to cancel
-the changes.
-- When you are done updating all the column’s values for the current row, call the
-`updateRow()` method to send the changes to the database. If the auto-commit mode
-is enabled for the `Connection`, changes will be committed. Otherwise, you need to
-commit the changes to the database.
-- If you move the cursor to a different row before calling the `updateRow()`, all your
-changes made using the `updateXXX()` method calls will be discarded.
-- There is another way to lose your updates to columns in a row. If you call the
-`refreshRow()` method after calling `updateXXX()`, but before calling `updateRow()`,
-your changes will be lost because the JDBC driver will refresh the row’s data from
-the database.
+1. Kreirati objekat interfejsa `Statement` pozivom metoda 
+```java
+Statement stmt = con.createStatement(..., ResultSet.CONCUR_UPDATABLE, ...);
+```
+2. Kreirati objekat interfejsa `ResultSet` pozivom metoda 
+```java
+ResultSet kursor = stmt.executeQuery(sql);
+```
+3. Pozicionirati se na slog koji je potrebno ažurirati metodima za prolazak kroz kursor. Na primer:
+```java
+while (kursor.next()) {
+    // ...
+}
+```
+4. Pozvati odgovarajući metod nad objektom `kursor` iz familije metoda `ResultSet.updateXXX(int columnIndex, XXX x)` za ažuriranje vrednosti kolone tabele sa indeksom `columnIndex` novom vrednošću `x`
+5. Ako želimo da poništimo izmene, možemo pozvati metod `kursor.cancelRowUpdates()`
+6. Ukoliko želimo da zapravo izvršimo izmene nad slogom u BP, potrebno je da pozovemo metod `kursor.updateRow()`. U suprotnom će, prelaskom na drugi red, sve izmene biti ignorisane
+7. Nakon svih iteracija, pozvati metod `kursor.close()` radi zatvaranja kursora
+8. Nakon zatvaranja kursora, pozvati metod `stmt.close()` radi zatvaranja objekta naredbe
 
 {% include zadatak.html broj="8.7" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje sadržaj tabele
 `PREDMET` i, u istoj iteraciji, ukoliko je broj bodova jednak X, postavlja se broj bodova na
@@ -541,7 +556,43 @@ Rešenje:
 
 include_source(primeri/poglavlje_8/src/zadatak_8_7/Main.java, java)
 
-### 8.3.7 Brisanje redova korišćenjem ResultSet kursora
+### 8.3.7 Unos redova korišćenjem ResultSet kursora
+
+Ono \v sto nismo imali prilike da vidimo jeste da se pomo\'cu kursora mogu uneti novi slogovi u tabelu. Za unos novog sloga u tabelu koristi se specijalni „slog za unos“. Ovaj specijalni slog zapravo predstavlja bafer za konstruisanje novog sloga koji \'ce biti unet u odgovaraju\'cu tabelu.
+
+Konstrukcija novog sloga se vrši u dva koraka:
+1. Potrebno je postaviti vrednosti svih kolona rezultujuće tabele u „slogu za unos“ pozivom odgovarajućih metoda iz familije metoda `ResultSet.updateXXX(int columnIndex, XXX x)`
+2. Kada su svim kolonama u „slogu za unos“ dodeljene odgovaraju\'ce vrednosti, tada je potrebno izvr\v siti unos baferisanog „sloga za unos“ u rezultujuću tabelu.
+
+Unos baferisanog „slogu za unos“ se izvr\v sava pozivom metoda `void ResultSet.insertRow()`. Me\dj utim, da bismo zapravo uspeli da konstrui\v semo ovaj specijalni slog, neophodno je da signaliziramo kursoru da \v zelimo da menjamo ba\v s taj red, a ne teku\'ci red kroz koji se iterira u kursoru. Ovo je mogu\'ce uraditi pozivom metoda `void ResultSet.moveToInsertRow()`. Prilikom poziva ovog metoda, kursor se pozicionira na „slog za unos“ i ujedno se pamti redni broj tekućeg sloga koji se obrađuje u kursoru. Nakon \v sto smo zavr\v sili proceduru za unos opisanu prethodnim koracima, potrebno je pozvati metod `void ResultSet.moveToCurrentRow()` koji \'ce ponovo pozicionirati kursor na prethodno zapamćeni tekući slog koji se obrađuje u kursoru.
+
+Dakle, celokupna procedura za unos novog sloga je data narednim koracima:
+
+1. Kreirati objekat interfejsa `Statement` pozivom metoda 
+```java
+Statement stmt = con.createStatement(..., ResultSet.CONCUR_UPDATABLE, ...);
+```
+2. Kreirati objekat interfejsa `ResultSet` pozivom metoda 
+```java
+ResultSet kursor = stmt.executeQuery(sql);
+```
+3. Pozicionirati se na „slog za unos“ pozivom metoda `kursor.moveToInsertRow()`
+4. Pozvati odgovarajući metod nad objektom `kursor` iz familije metoda `ResultSet.updateXXX(int columnIndex, XXX x)` za postavljanje vrednosti kolone „sloga za unos“ sa indeksom `columnIndex` novom vrednošću `x`
+5. Ukoliko želimo da zapravo unesemo novi slog u BP, potrebno je da pozovemo metod `kursor.insertRow()`. U suprotnom će, prelaskom na drugi red, sve izmene biti ignorisane
+6. Pozicionirati se na tekući slog u rezultujućoj tabeli kursora pozivom metoda `kursor.moveToCurrentRow()`
+7. Nakon svih iteracija, pozvati metod `kursor.close()` radi zatvaranja kursora
+8. Nakon zatvaranja kursora, pozvati metod `stmt.close()` radi zatvaranja objekta naredbe
+
+{% include zadatak.html broj="8.8" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji:\n
+1. Kreira tabelu `UNETI_PREDMETI` \v cije su kolone: (1) identifikator predmeta i (2) broj polo\v zenih ispita za taj predmet. Postaviti odgovaraju\'ce primarne i strane klju\v ceve.\n
+2. Za svaki predmet koji nije prethodno obra\dj en (tj. koji se ne nalazi u tabeli `UNETI_PREDMETI`) pronalazi statistiku koja se sastoji od njegovog identifikator i broj polo\v zenih ispita.\n
+3. Za svaku prona\dj enu statistiku ispisuje podatke na standardni izlaz i pita korisnika da li \v zeli da unete statistiku u tabelu `UNETI_PREDMETI`. Ukoliko korisnik potvrdi, potrebno je uneti statistiku u datu tabelu i ispisati poruku o uspehu. U suprotnom, ispisati poruku da je korisnik poni\v stio unos." %}
+
+Rešenje:
+
+include_source(primeri/poglavlje_8/src/zadatak_8_8/Main.java, java)
+
+### 8.3.8 Brisanje redova korišćenjem ResultSet kursora
 
 Poput ažuriranja podataka, i za brisanje podataka postoje dve procedure:
 
@@ -575,55 +626,69 @@ while (rs.next()) {
 }
 ```
 
-Deleting a row from a `ResultSet` is easier than updating a row. Here are the steps to delete
-a row:
+Brisanje sloga iz objekta `ResultSet` je jednostavnije nego a\v zuriranje ili unos sloga. Naredni koraci defini\v su operaciju brisanja sloga iz kursora:
 
-- Position the cursor at a valid row.
-- Call the `deleteRow()` method of the `ResultSet` to delete the current row.
+1. Kreirati objekat interfejsa `Statement` pozivom metoda
+```java
+Statement stmt = con.createStatement(..., ResultSet.CONCUR_UPDATABLE, ...);
+```
+2. Kreirati objekat interfejsa `ResultSet` pozivom metoda 
+```java
+ResultSet kursor = stmt.executeQuery(sql);
+```
+3. Pozicionirati se na slog koji je potrebno obrisati metodima za prolazak kroz kursor. Na primer:
+```java
+while (kursor.next()) {
+    // ...
+}
+```
+4. Pozvati metod `kursor.deleteRow()` koji će obrisati slog u bazi podataka
+5. Nakon svih iteracija, pozvati metod `kursor.close()` radi zatvaranja kursora
+6. Nakon zatvaranja kursora, pozvati metod `stmt.close()` radi zatvaranja objekta naredbe
 
 The `deleteRow()` method deletes the row from the `ResultSet` and, at the same time, it
 deletes the row from the database. There is no way to cancel the delete operation except
 by rolling back the transaction. If the auto-commit mode is enabled on the `Connection`,
 `deleteRow()` will permanently delete the row from the database.
 
-{% include zadatak.html broj="8.8" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji briše sve nepoložene ispite u godini koja se zadaje sa standarnog ulaza. Nakon svakog brisanja ispita, ispisati naredne informacije o njemu na standardni izlaz: indeks, oznaku roka, godinu roka i identifikator predmeta." %}
+{% include zadatak.html broj="8.9" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji briše sve nepoložene ispite u godini koja se zadaje sa standarnog ulaza. Nakon svakog brisanja ispita, ispisati naredne informacije o njemu na standardni izlaz: indeks, oznaku roka, godinu roka i identifikator predmeta." %}
 
 Rešenje:
 
-include_source(primeri/poglavlje_8/src/zadatak_8_8/Main.java, java)
+include_source(primeri/poglavlje_8/src/zadatak_8_9/Main.java, java)
 
-### 8.3.8 Ugnežđeni kursori
+### 8.3.9 Ugnežđeni kursori
 
 U JDBC aplikacijama se kursori jednostavno ugnežđuju: potrebno je celokupnu obradu
 unutrašnjeg kursora smestiti u okviru obrade jednog reda iz spoljašnjeg kursora. Naredni
 primer ilustruje upotrebu ugnežđenih kursora.
 
-{% include zadatak.html broj="8.9" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izdvaja indeks, ime, prezime i naziv smera svih studenata koji su položili tačno N predmeta, kao i spisak tih predmeta (naziv i ocena). Broj N se učitava sa standardnog ulaza. Za svakog studenta napraviti posebnu sekciju izveštaja." %}
+{% include zadatak.html broj="8.10" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji izdvaja indeks, ime, prezime i naziv smera svih studenata koji su položili tačno N predmeta, kao i spisak tih predmeta (naziv i ocena). Broj N se učitava sa standardnog ulaza. Za svakog studenta napraviti posebnu sekciju izveštaja." %}
 
 Rešenje:
 
-include_source(primeri/poglavlje_8/src/zadatak_8_9/ispiti.sql, sql)
-include_source(primeri/poglavlje_8/src/zadatak_8_9/predmeti.sql, sql)
-include_source(primeri/poglavlje_8/src/zadatak_8_9/Main.java, java)
+include_source(primeri/poglavlje_8/src/zadatak_8_10/ispiti.sql, sql)
+include_source(primeri/poglavlje_8/src/zadatak_8_10/predmeti.sql, sql)
+include_source(primeri/poglavlje_8/src/zadatak_8_10/Main.java, java)
 
 ## 8.4 Zadaci za vežbu
 
-{% include zadatak.html broj="8.10" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke za predmet čiji je identifikator `640`." %}
+{% include zadatak.html broj="8.11" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje podatke za predmet čiji je identifikator `640`." %}
 
-{% include zadatak.html broj="8.11" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza." %}
+{% include zadatak.html broj="8.12" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza." %}
 
-{% include zadatak.html broj="8.12" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom `LIMIT 1` naredbe `SELECT INTO` se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti `for` petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)" %}
+{% include zadatak.html broj="8.13" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom `LIMIT 1` naredbe `SELECT INTO` se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti `for` petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)" %}
 
-{% include zadatak.html broj="8.13" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se dodaje da je za polaganje predmeta čiji je identifikator `720` uslov da se položi predmet čiji je identifikator `655`." %}
+{% include zadatak.html broj="8.14" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se dodaje da je za polaganje predmeta čiji je identifikator `720` uslov da se položi predmet čiji je identifikator `655`." %}
 
-{% include zadatak.html broj="8.14" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabelu `NIVO_KVALIFIKACIJE` dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza." %}
+{% include zadatak.html broj="8.15" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabelu `NIVO_KVALIFIKACIJE` dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza." %}
 
-{% include zadatak.html broj="8.15" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se svim obaveznim predmetima na smeru `'Informatika'` povećava broj semestra za 1." %}
+{% include zadatak.html broj="8.16" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se svim obaveznim predmetima na smeru `'Informatika'` povećava broj semestra za 1." %}
 
-{% include zadatak.html broj="8.16" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1." %}
+{% include zadatak.html broj="8.17" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1." %}
 
-{% include zadatak.html broj="8.17" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabeli `USLOVNI_PREDMET` brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza." %}
+{% include zadatak.html broj="8.18" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se u tabeli `USLOVNI_PREDMET` brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza." %}
 
-{% include zadatak.html broj="8.18" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza." %}
+{% include zadatak.html broj="8.19" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza." %}
 
-{% include zadatak.html broj="8.19" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji iz tabele `PREDMET` briše podatak o predmetu čija se šifra unosi sa standardnog ulaza. " %}
+{% include zadatak.html broj="8.20" tekst="Napisati Java program u kojem se naredbe izvr\v savaju dinami\v cki koji iz tabele `PREDMET` briše podatak o predmetu čija se šifra unosi sa standardnog ulaza. " %}
