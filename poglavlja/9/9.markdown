@@ -17,17 +17,17 @@ JDBC supports the following concepts:
 
 ### 9.1.1 Auto-Commit Mode
 
-When you connect to a database, the auto-commit property for the Connection object
-is set to true by default. If a connection is in the auto-commit mode, a SQL statement
+When you connect to a database, the auto-commit property for the `Connection` object
+is set to `true` by default. If a connection is in the auto-commit mode, a SQL statement
 is committed automatically after its successful execution. If a connection is not in the
-auto-commit mode, you must call the commit() or rollback() method of the Connection
+auto-commit mode, you must call the `commit()` or `rollback()` method of the `Connection`
 object to commit or roll back a transaction. Typically, you disable the auto-commit mode
 for a connection in a JDBC application, so the logic in your application controls the
 final outcome of the transaction. To disable the auto-commit mode, you need to call the
-setAutoCommit(false) on the Connection object after a connection has been established.
+`setAutoCommit(false)` on the `Connection` object after a connection has been established.
 If a connection URL allows you to set the auto-commit mode, you can also specify it as
 part of the connection URL. You set the auto-commit mode of your connection in the
-JDBCUtil.getConnection() method to false after you get a Connection object.
+`JDBCUtil.getConnection()` method to false after you get a `Connection` object.
 
 ```java
 // Get a connection
@@ -37,17 +37,17 @@ Connection con = DriverManager.getConnection(dbURL, userId, password);
 con.setAutoCommit(false);
 ```
 
-If you have enabled the auto-commit mode for your connection, you cannot use its commit()
-and rollback() methods. Calling the commit() and rollback() methods on a Connection
-object, which has enabled the auto-commit mode, throws a SQLException.
+If you have enabled the auto-commit mode for your connection, you cannot use its `commit()`
+and `rollback()` methods. Calling the `commit()` and `rollback()` methods on a `Connection`
+object, which has enabled the auto-commit mode, throws a `SQLException`.
 
-If the setAutoCommit() method is called to change the auto-commit mode of a connection
+If the `setAutoCommit()` method is called to change the auto-commit mode of a connection
 in the middle of a transaction, the transaction is committed at that time. Typically, you
 would set the auto-commit mode of a connection just after connecting to the database.
 
 #### Committing and Rolling Back Transactions
 
-If the auto-commit mode is disabled for a connection, you can use the commit() or rollback()
+If the auto-commit mode is disabled for a connection, you can use the `commit()` or `rollback()`
 method to commit or roll back a transaction. Typical code in a JDBC application
 that performs a database transaction is as shown:
 
@@ -105,16 +105,15 @@ not allowed. The four transaction isolation levels are as follows:
 - Repeatable read
 - Serializable
 
-Java defines the following four constants in the Connection interface that correspond to
+Java defines the following four constants in the `Connection` interface that correspond to
 the four isolation levels defined by the ANSI SQL-92 standard:
 
-- TRANSACTION_READ_UNCOMMITTED
-- TRANSACTION_READ_COMMITTED
-- TRANSACTION_REPEATABLE_READ
-- TRANSACTION_SERIALIZABLE
+- `TRANSACTION_READ_UNCOMMITTED`
+- `TRANSACTION_READ_COMMITTED`
+- `TRANSACTION_REPEATABLE_READ`
+- `TRANSACTION_SERIALIZABLE`
 
-You can set the isolation level of a transaction for a database connection using the set-
-TransactionIsolation(int level) method of the Connection interface.
+You can set the isolation level of a transaction for a database connection using the `setTransactionIsolation(int level)` method of the `Connection` interface.
 
 ```java
 // Get a Connection object
@@ -124,7 +123,7 @@ Connection con = DriverManager.getConnection(dbURL, userId, password);
 con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 ```
 
-TODO: dodati zadatke za ovaj deo gradiva
+[comment]: # (TODO: dodati zadatke za ovaj deo gradiva)
 
 ### 9.1.3 Savepoints in a Transaction
 
@@ -132,11 +131,11 @@ A database transaction consists of one or more changes as a unit of work. A save
 a transaction is like a marker that marks a point in a transaction so that, if needed, the
 transaction can be rolled back (or undone) up to that point.
 
-An object of the Savepoint interface represents a savepoint in a transaction. To mark a
-savepoint in a transaction, you simply call the setSavepoint() method of the Connection.
-The setSavepoint() method is overloaded. One version accepts no argument and another
-accepts a string, which is the name of the savepoint. The setSavepoint() method returns
-a Savepoint object, which is your marker and you must keep it for future use. Here’s an
+An object of the `Savepoint` interface represents a savepoint in a transaction. To mark a
+savepoint in a transaction, you simply call the `setSavepoint()` method of the `Connection`.
+The `setSavepoint()` method is overloaded. One version accepts no argument and another
+accepts a string, which is the name of the savepoint. The `setSavepoint()` method returns
+a `Savepoint` object, which is your marker and you must keep it for future use. Here’s an
 example:
 
 ```java
@@ -156,8 +155,8 @@ Savepoint sp3 = con.setSavepoint(); // 3
 ```
 
 At this point, you have finer control on the transaction if you want to undo any of these
-three inserts into the person table. Now you can use another version of the rollback()
-method of the Connection, which accepts a Savepoint object. If you want to undo all
+three inserts into the person table. Now you can use another version of the `rollback()`
+method of the `Connection`, which accepts a `Savepoint` object. If you want to undo all
 changes that were made after savepoint 1, you can do so as follows:
 
 ```java
@@ -165,10 +164,10 @@ changes that were made after savepoint 1, you can do so as follows:
 con.rollback(sp1);
 ```
 
-Once you roll back up to a savepoint (say, spx), all savepoints that were created after the
+Once you roll back up to a savepoint (say, `spx`), all savepoints that were created after the
 savepoint spx are released and you cannot refer to them again. If you refer to a released
-savepoint, the JDBC driver will throw a SQLException. The following snippet of code
-will throw a SQLException:
+savepoint, the JDBC driver will throw a `SQLException`. The following snippet of code
+will throw a `SQLException`:
 
 ```java
 con.rollback(sp2); // Will release sp3
@@ -176,10 +175,10 @@ con.rollback(sp3); // Will throw an exception: sp3 is already released.
 ```
 
 Note that when you roll back a transaction to a savepoint, that savepoint itself is not
-released. When you call, for example, con.rollback(sp2), savepoint sp2 remains valid. You
-can add more savepoints afterward and roll back up to savepoint sp2 again.
+released. When you call, for example, `con.rollback(sp2)`, savepoint `sp2` remains valid. You
+can add more savepoints afterward and roll back up to savepoint `sp2` again.
 
-TODO: dodati zadatke za ovaj deo gradiva
+[comment]: # (TODO: dodati zadatke za ovaj deo gradiva)
 
 ## 9.2 Rad u višekorisničkom okruženju
 
@@ -189,11 +188,11 @@ istih problema kao i aplikacije koje smo pisali u programskom jeziku C. Zbog tog
 imati na umu sve napomene koje smo tada uveli, sa određenim napomenama koje slede u
 daljem tekstu.
 
-S obzirom da se u programskom jeziku Java greške prijavljuju kroz objekte klase SQLException, 
+S obzirom da se u programskom jeziku Java greške prijavljuju kroz objekte klase `SQLException`, 
 proveru da li je došlo do nekog problema konkurentnog okruženja možemo izvršiti proverom
-koda greške, pozivom metoda getErrorCode() nad objektom klase SQLException koji
+koda greške, pozivom metoda `getErrorCode()` nad objektom klase `SQLException` koji
 smo uhvatili. Zašto nam je ova informacija važna? Prisetimo se da, ukoliko dođe do nekog
-problema konkurentnog okruženja, DB2 SUBP šalje grešku 􀀀911 ili 􀀀913. U tom slučaju,
+problema konkurentnog okruženja, DB2 SUBP šalje grešku -911 ili -913. U tom slučaju,
 potrebno je izvršiti obradu isteka vremena ili pojave mrtve petlje, i poništiti eventualne
 izmene. Evo jednog primera:
 
@@ -271,17 +270,17 @@ include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java, java)
 Upravljanje podacima nad više baza podataka u JDBC aplikacijama je značajno jednostavnije
 nego u C aplikacijama sa ugnežđenim SQL-om.
 
-U JDBC aplikacijama možemo imati proizvoljan broj objekata klase Connection i svaki
+U JDBC aplikacijama možemo imati proizvoljan broj objekata interfejsa `Connection` i svaki
 od njih predstavlja i ostvaruje konekciju ka jednoj bazi podataka. Pretpostavimo da
-imamo dve konekcije ka bazama podataka X i Y ostvarene kroz objekte conX i conY klase
-Connection.
+imamo dve konekcije ka bazama podataka `X` i `Y` ostvarene kroz objekte `conX` i `conY` interfejsa
+`Connection`.
 
-Ukoliko je potrebno da izvršimo naredbu nad bazom podataka X, onda je potrebno da kreiramo
-objekat naredbe (bilo kroz klasu Statement ili PreparedStatement) koristeći objekat
-conX. Za izvršavanje naredbe nad drugom bazom podataka Y, koristićemo objekat conY
+Ukoliko je potrebno da izvršimo naredbu nad bazom podataka `X`, onda je potrebno da kreiramo
+objekat naredbe (bilo kroz klasu `Statement` ili `PreparedStatement`) koristeći objekat
+`conX`. Za izvršavanje naredbe nad drugom bazom podataka `Y`, koristićemo objekat conY
 za kreiranje objekta naredbe.
 
-Naredni primer ilustruje korišćenje dve baze podataka: VSTUD i MSTUD.
+Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
 
 {% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
 \n
