@@ -284,12 +284,12 @@ Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
 
 {% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
 \n
-1. Zahteva od korisnika da unese broj bodova _B_.\n
-2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od _B_ bodova.\n
-3. Zatim, zahteva od korisnika da unese ocenu _O_ (ceo broj od 6 do 10).\n
-4. Iz baze vstud izlistava indeks, naziv, ocenu, godinu i oznaku ispitnog roka za sve studente koji nikada nisu dobili ocenu manju nego što je ocena _O_.\n
-5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa _I_ iz dosije, i vraća _I_.\n
-6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa _I_, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
+1. Zahteva od korisnika da unese broj bodova *B*.\n
+2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od *B* bodova.\n
+3. Zatim, zahteva od korisnika da unese ocenu *O* (ceo broj od 6 do 10).\n
+4. Iz baze vstud izlistava indeks, naziv, ocenu, godinu i oznaku ispitnog roka za sve studente koji nikada nisu dobili ocenu manju nego što je ocena *O*.\n
+5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa *I* iz dosije, i vraća *I*.\n
+6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa *I*, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
 
 Re\v senje:
 
@@ -306,7 +306,7 @@ include_source(primeri/poglavlje_9/src/zadatak_9_3/uvecajBodoveZaPredmeteVstud.s
 {% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
 informacije o polaganjima za svaki položeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Kreirati datu tabelu na osnovu SQL koda ispod.\n
 \n
-Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. _batch_ unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
+Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. *batch* unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
 \n
 SQL naredbe za kreiranje i brisanje tabele sačuvati u datotekama 2a.sql i 2b.sql, redom, a `SELECT` naredbu kojim se izdvajaju potrebni podaci sačuvati u datoteci 2c.sql." %}
 
