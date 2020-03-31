@@ -277,7 +277,7 @@ imamo dve konekcije ka bazama podataka `X` i `Y` ostvarene kroz objekte `conX` i
 
 Ukoliko je potrebno da izvršimo naredbu nad bazom podataka `X`, onda je potrebno da kreiramo
 objekat naredbe (bilo kroz klasu `Statement` ili `PreparedStatement`) koristeći objekat
-`conX`. Za izvršavanje naredbe nad drugom bazom podataka `Y`, koristićemo objekat conY
+`conX`. Za izvršavanje naredbe nad drugom bazom podataka `Y`, koristićemo objekat `conY`
 za kreiranje objekta naredbe.
 
 Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
