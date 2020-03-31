@@ -1,6 +1,7 @@
 package zadatak_8_8;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
@@ -11,15 +12,28 @@ public class Main {
             e.printStackTrace();
         }
     }
+    
+    private static class StatistikaPolaganja {
+        public int id_predmeta;
+        public int broj_polaganja;
+        
+        public StatistikaPolaganja(int id_predmeta, int broj_polaganja) {
+            this.id_predmeta = id_predmeta;
+            this.broj_polaganja = broj_polaganja;
+        }
+    }
 
     public static void main(String argv[]) {
         Connection con = null;
         String url = "jdbc:db2://localhost:50001/vstud";
+        ArrayList<StatistikaPolaganja> statistike = new ArrayList<>();
 
         try {
             con = DriverManager.getConnection(url, "student", "abcdef");
             
-            izbrisi_nepolozene_ispite(con);
+            kreiraj_tabelu(con);
+            sakupi_statistiku(con, statistike);
+            unesi_predmete_iz_statistike(con, statistike);
 
             con.close();
         } catch (SQLException e) {
@@ -49,49 +63,84 @@ public class Main {
             System.exit(2);
         }
     }
-
-    private static void izbrisi_nepolozene_ispite(Connection con) throws SQLException {
-        int godina = ucitaj_godinu();
-        
-        String selectSql = 
-            "SELECT INDEKS, " + 
-            "       OZNAKA_ROKA, " + 
-            "       ID_PREDMETA " +
-            "FROM   ISPIT " +
-            "WHERE  GODINA_ROKA= ? AND " +   
-            "       OCENA = 5 AND " +  
-            "       STATUS_PRIJAVE = 'o'";    
-        PreparedStatement stmt = con.prepareStatement(selectSql,
-            ResultSet.TYPE_FORWARD_ONLY,
-            // Podesavamo kursor da bude za menjanje,
-            // da bi smo mogli da brisemo redove metodom deleteRow() .
-            ResultSet.CONCUR_UPDATABLE);
-        stmt.setInt(1, godina);
-        ResultSet ispiti = stmt.executeQuery();
-        
-        while(ispiti.next()) {
-            int indeks = ispiti.getInt(1);
-            String oznaka_roka = ispiti.getString(2).trim();
-            int id_predmeta = ispiti.getInt(3);
-            
-            ispiti.deleteRow();
-            
-            System.out.printf("Obrisan je ispit %-10d %-10s %-5d %-10d\n", 
-                indeks, oznaka_roka, godina, id_predmeta);
+    
+    private static void kreiraj_tabelu(Connection con) throws SQLException {
+        String sql = "CREATE TABLE UNETI_PREDMETI ( "
+                + "ID_PREDMETA INTEGER NOT NULL, "
+                + "BROJ_POLOZENIH INTEGER NOT NULL, "
+                + "PRIMARY KEY (ID_PREDMETA), "
+                + "FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET "
+                + ")";
+        Statement stmt = con.createStatement();
+        try {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            // Ignorisemo gresku samo ako je u pitanju greska da tabela vec postoji (-601).
+            // Sve ostale ispaljujemo main metodu.
+            if (e.getErrorCode() != -601) {
+                throw e;
+            }
         }
-        
-        ispiti.close();
+        stmt.close();
+    }
+
+    private static void sakupi_statistiku(Connection con, ArrayList<StatistikaPolaganja> statistike) throws SQLException {
+        String sql = "SELECT  ID_PREDMETA, COUNT(OCENA) " +
+            "FROM    ISPIT " +
+            "WHERE   OCENA > 5 AND " +
+            "        STATUS_PRIJAVE = 'o' AND " +
+            "        ID_PREDMETA NOT IN (SELECT ID_PREDMETA FROM UNETI_PREDMETI) " +
+            "GROUP BY ID_PREDMETA";
+        Statement stmt = con.createStatement();
+        ResultSet kursor = stmt.executeQuery(sql);
+        while (kursor.next()) {
+            int id_predmeta = kursor.getInt(1);
+            // Ako je druga kolona NULL, onda ce poziv getInt vratiti 0, 
+            // sto nam odgovara, pa nema potrebe za proverom NULL vrednosti u ovom slucaju
+            int broj_polaganja = kursor.getInt(2); 
+            statistike.add(new StatistikaPolaganja(id_predmeta, broj_polaganja));
+        }
+        kursor.close();
         stmt.close();
     }
     
-    private static int ucitaj_godinu() {
-        int godina;
+    private static void unesi_predmete_iz_statistike(Connection con, ArrayList<StatistikaPolaganja> statistike) throws SQLException {
+        String sql = 
+            "SELECT * " + 
+            "FROM   UNETI_PREDMETI";
+        Statement stmt = con.createStatement( 
+                // Dovoljan nam je kursor koji prolazi unapred kroz redove.
+                ResultSet.TYPE_FORWARD_ONLY,
+                // Definisemo da je kursor azurirajuci,
+                // pa su nam dostupni metodi
+                // ResultSet.updateXXX i ResultSet.insertRow
+                // koje cemo koristiti za konstrukciju i unos novog reda
+                ResultSet.CONCUR_UPDATABLE);
+        ResultSet kursor = stmt.executeQuery(sql);
+        Scanner ulaz = new Scanner(System.in);
         
-        try (Scanner ulaz = new Scanner(System.in)) {
-            System.out.println("Unesite godinu roka za koju zelite da budu obrisani nepolozeni ispiti:");
-            godina = ulaz.nextInt();
+        for (StatistikaPolaganja statistika : statistike) {
+            // Pozicioniramo kursor na "slog za unos"
+            kursor.moveToInsertRow();
+            // Konstruisemo "slog za unos" navodjenjem vrednost za svaku kolonu
+            kursor.updateInt(1, statistika.id_predmeta);
+            kursor.updateInt(2, statistika.broj_polaganja);
+            // Izvrsavamo ili ponistavamo unos u zavisnosti od korisnikovog odgovora
+            System.out.println("Da li zelite da unete statistiku za predmet " + statistika.id_predmeta + "? [da/ne]");
+            String odgovor = ulaz.nextLine();
+            if (odgovor.equalsIgnoreCase("da")) {
+                kursor.insertRow();
+                System.out.println("\tUneta je statistika: " + statistika.id_predmeta + " (" + statistika.broj_polaganja + ")");
+            }
+            else {
+                System.out.println("\tPonistili ste unos!");
+            }
+            // Vracamo kursor na zapamceni tekuci red
+            kursor.moveToCurrentRow();
         }
         
-        return godina;
+        ulaz.close();
+        kursor.close();
+        stmt.close();
     }
 }

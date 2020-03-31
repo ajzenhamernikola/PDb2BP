@@ -1,7 +1,5 @@
 package zadatak_8_9;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.sql.*;
 import java.util.Scanner;
 
@@ -21,7 +19,7 @@ public class Main {
         try {
             con = DriverManager.getConnection(url, "student", "abcdef");
             
-            prodji_kroz_spoljasnji_kursor(con);
+            izbrisi_nepolozene_ispite(con);
 
             con.close();
         } catch (SQLException e) {
@@ -52,75 +50,48 @@ public class Main {
         }
     }
 
-    private static void prodji_kroz_spoljasnji_kursor(Connection con) throws SQLException, FileNotFoundException {
-        int ukupnoPredmeta = ucitaj_broj_predmeta();
-
-        PreparedStatement pstmt;
-
-        String sql = ucitajSqlIzDatoteke("ispiti.sql");
-        pstmt = con.prepareStatement(sql);
-
-        pstmt.setInt(1, ukupnoPredmeta);
-        ResultSet ispiti = pstmt.executeQuery();
-
-        while (ispiti.next()) {
-            System.out.printf("\n\nIndeks: %-10d\nIme: %-10s\nPrezime: %-20s\nNaziv smera: %-30s\n\n", ispiti.getInt(1),
-                    ispiti.getString(2), ispiti.getString(3), ispiti.getString(4));
-
+    private static void izbrisi_nepolozene_ispite(Connection con) throws SQLException {
+        int godina = ucitaj_godinu();
+        
+        String selectSql = 
+            "SELECT INDEKS, " + 
+            "       OZNAKA_ROKA, " + 
+            "       ID_PREDMETA " +
+            "FROM   ISPIT " +
+            "WHERE  GODINA_ROKA= ? AND " +   
+            "       OCENA = 5 AND " +  
+            "       STATUS_PRIJAVE = 'o'";    
+        PreparedStatement stmt = con.prepareStatement(selectSql,
+            ResultSet.TYPE_FORWARD_ONLY,
+            // Podesavamo kursor da bude za menjanje,
+            // da bi smo mogli da brisemo redove metodom deleteRow() .
+            ResultSet.CONCUR_UPDATABLE);
+        stmt.setInt(1, godina);
+        ResultSet ispiti = stmt.executeQuery();
+        
+        while(ispiti.next()) {
             int indeks = ispiti.getInt(1);
-            prodji_kroz_unutrasnji_kursor(con, indeks);
+            String oznaka_roka = ispiti.getString(2).trim();
+            int id_predmeta = ispiti.getInt(3);
+            
+            ispiti.deleteRow();
+            
+            System.out.printf("Obrisan je ispit %-10d %-10s %-5d %-10d\n", 
+                indeks, oznaka_roka, godina, id_predmeta);
         }
-
+        
         ispiti.close();
-        pstmt.close();
-    }
-
-    private static void prodji_kroz_unutrasnji_kursor(Connection con, int indeks) throws SQLException, FileNotFoundException {
-        PreparedStatement pstmt;
-
-        String sql = ucitajSqlIzDatoteke("predmeti.sql");
-        pstmt = con.prepareStatement(sql);
-
-        pstmt.setInt(1, indeks);
-        ResultSet predmeti = pstmt.executeQuery();
-
-        int redniBr = 1;
-
-        while (predmeti.next()) {
-            System.out.printf("\t%d. predmet: %s\n\t\tOcena: %d\n", redniBr, predmeti.getString(1),
-                    predmeti.getShort(2));
-
-            ++redniBr;
-        }
-
-        predmeti.close();
-        pstmt.close();
-    }
-
-    private static int ucitaj_broj_predmeta() {
-        int godina;
-
-        try (Scanner ulaz = new Scanner(System.in)) {
-            System.out.println("Unesite broj predmeta N:");
-            godina = ulaz.nextInt();
-        }
-
-        return godina;
+        stmt.close();
     }
     
-    private static String ucitajSqlIzDatoteke(String nazivDatoteke) throws FileNotFoundException {
-        String putanja = "./bin/zadatak_8_9/" + nazivDatoteke;
-        StringBuilder sql = new StringBuilder("");
-        String linija = null;
+    private static int ucitaj_godinu() {
+        int godina;
         
-        try (Scanner skenerFajla = new Scanner(new File(putanja), "utf-8")) {
-            while (skenerFajla.hasNextLine()) {
-                linija = skenerFajla.nextLine();
-                sql.append(linija);
-                sql.append("\n");
-            }
+        try (Scanner ulaz = new Scanner(System.in)) {
+            System.out.println("Unesite godinu roka za koju zelite da budu obrisani nepolozeni ispiti:");
+            godina = ulaz.nextInt();
         }
-
-        return sql.toString();
+        
+        return godina;
     }
 }
