@@ -448,7 +448,7 @@ following two constants defined in the `ResultSet` interface:
 
 Da bismo definisali ponašanje `ResultSet` objekta, potrebno je da prosledimo odgovarajuće
 opcije metodima `createStatement`, odnosno, `prepareStatement`, koji su definisani nad
-objektom klase `Connection`, u zavisnosti od toga da li želimo da naredbu izvršimo kroz
+objektom interfejsa `Connection`, u zavisnosti od toga da li želimo da naredbu izvršimo kroz
 interfejse `Statement` ili `PreparedStatement`, redom.
 
 U slučaju kreiranja objekta `Statement`, na raspolaganju su nam naredna dva preopterećenja metoda `createStatement`:
