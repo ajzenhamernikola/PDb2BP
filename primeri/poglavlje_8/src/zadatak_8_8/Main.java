@@ -95,8 +95,6 @@ public class Main {
         ResultSet kursor = stmt.executeQuery(sql);
         while (kursor.next()) {
             int id_predmeta = kursor.getInt(1);
-            // Ako je druga kolona NULL, onda ce poziv getInt vratiti 0, 
-            // sto nam odgovara, pa nema potrebe za proverom NULL vrednosti u ovom slucaju
             int broj_polaganja = kursor.getInt(2); 
             statistike.add(new StatistikaPolaganja(id_predmeta, broj_polaganja));
         }
