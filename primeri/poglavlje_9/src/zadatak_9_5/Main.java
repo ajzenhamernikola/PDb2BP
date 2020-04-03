@@ -1,8 +1,14 @@
-package zadatak_9_3;
+package zadatak_9_5;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.sql.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Scanner;
 
 public class Main {
@@ -11,26 +17,20 @@ public class Main {
             Class.forName("com.ibm.db2.jcc.DB2Driver");
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 
     public static void main(String argv[]) {
         String urlVstud = "jdbc:db2://localhost:50001/vstud";
-        Connection conVstud = null;
-
         String urlMstud = "jdbc:db2://localhost:50001/mstud";
-        Connection conMstud = null;
 
-        try {
-            System.out.println("Povezivanje na VSTUD...");
-            conVstud = DriverManager.getConnection(urlVstud, "student", "abcdef");
+        try (
+            Connection conVstud = DriverManager.getConnection(urlVstud, "student", "abcdef");
+            Connection conMstud = DriverManager.getConnection(urlMstud, "student", "abcdef");
+        ) {
             conVstud.setAutoCommit(false);
-            System.out.println("Uspesno je ostvarena konekcija!");
-
-            System.out.println("Povezivanje na MSTUD...");
-            conMstud = DriverManager.getConnection(urlMstud, "student", "abcdef");
             conMstud.setAutoCommit(false);
-            System.out.println("Uspesno je ostvarena konekcija!");
 
             try (Scanner ulaz = new Scanner(System.in)) {
                 // Program redom:
@@ -71,57 +71,32 @@ public class Main {
                 // tada ostavlja nepromenjeno stanje).
 
                 uvecajBodoveZaPredmeteVstud(conVstud, indeks);
-            }
-
-            // Potvrdjivanje izmena i zatvaranje konekcije
-            // mora da se vrsi nad obe baze!
-            conVstud.commit();
-            conVstud.close();
-
-            conMstud.commit();
-            conMstud.close();
+                
+                // Potvrdjivanje izmena mora da se vrsi nad obe baze!
+                conVstud.commit();
+                conMstud.commit();
+            } catch (Exception e) {
+                // Ponistavanje izmena mora da se vrsi nad obe baze!
+                conVstud.rollback();
+                conMstud.rollback();
+                throw e;
+            } 
         } catch (SQLException e) {
             e.printStackTrace();
-
             System.out.println("SQLCODE: " + e.getErrorCode() + "\n" + "SQLSTATE: " + e.getSQLState() + "\n"
                     + "PORUKA: " + e.getMessage());
-
-            try {
-                // Ponistavanje izmena i zatvaranje konekcije
-                // mora da se vrsi nad obe baze!
-                if (null != conVstud) {
-                    conVstud.rollback();
-                    conVstud.close();
-                }
-                if (null != conMstud) {
-                    conMstud.rollback();
-                    conMstud.close();
-                }
-            } catch (SQLException e2) {
-            }
 
             System.exit(1);
         } catch (Exception e) {
             e.printStackTrace();
-
-            try {
-                if (null != conVstud) {
-                    conVstud.rollback();
-                    conVstud.close();
-                }
-                if (null != conMstud) {
-                    conMstud.rollback();
-                    conMstud.close();
-                }
-            } catch (SQLException e2) {
-            }
+            System.out.println("Doslo je do neke greske: " + e.getMessage());
 
             System.exit(2);
         }
     }
 
     private static void izlistajStudenteMstud(Connection con, short brojBodova)
-            throws SQLException, FileNotFoundException {
+            throws SQLException, IOException {
         String sql = ucitajSqlIzDatoteke("izlistajStudenteMstud.sql");
         PreparedStatement stmt = con.prepareStatement(sql);
 
@@ -138,7 +113,8 @@ public class Main {
         stmt.close();
     }
 
-    private static void izlistajPolaganjaVstud(Connection con, short ocena) throws SQLException, FileNotFoundException {
+    private static void izlistajPolaganjaVstud(Connection con, short ocena) 
+            throws SQLException, IOException {
         String sql = ucitajSqlIzDatoteke("izlistajPolaganjaVstud.sql");
         PreparedStatement stmt = con.prepareStatement(sql);
 
@@ -156,12 +132,13 @@ public class Main {
         stmt.close();
     }
 
-    private static int obrisiPolaganjaIVratiIndeksMstud(Connection con) throws Exception {
+    private static int obrisiPolaganjaIVratiIndeksMstud(Connection con) 
+            throws Exception {
         int indeks = 0;
         Statement stmt = con.createStatement();
         ResultSet rez = stmt.executeQuery(
-            "SELECT MAX(INDEKS) " + 
-            "FROM   DOSIJE");
+                "SELECT  MAX(INDEKS) " + 
+                "FROM    DOSIJE");
 
         boolean dohvacenIndeks = rez.next();
         if (!dohvacenIndeks) {
@@ -173,39 +150,31 @@ public class Main {
         rez.close();
 
         int brojObrisanih = stmt.executeUpdate(
-            "DELETE FROM ISPIT " + 
-            "WHERE  INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE)");        
+                "DELETE  FROM ISPIT " + 
+                "WHERE   INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE)");
         System.out.println("Broj obrisanih redova: " + brojObrisanih);
-        
+
         stmt.close();
         return indeks;
     }
 
-    private static void uvecajBodoveZaPredmeteVstud(Connection con, int indeks) 
-            throws SQLException, FileNotFoundException {
+    private static void uvecajBodoveZaPredmeteVstud(Connection con, int indeks)
+            throws SQLException, IOException {
         String sql = ucitajSqlIzDatoteke("uvecajBodoveZaPredmeteVstud.sql");
         PreparedStatement stmt = con.prepareStatement(sql);
         stmt.setInt(1, indeks);
 
         int brojAzuriranih = stmt.executeUpdate();
         System.out.println("Broj azuriranih redova: " + brojAzuriranih);
-        
+
         stmt.close();
     }
 
-    private static String ucitajSqlIzDatoteke(String nazivDatoteke) throws FileNotFoundException {
-        String putanja = "./bin/zadatak_9_3/" + nazivDatoteke;
-        StringBuilder sql = new StringBuilder("");
-        String linija = null;
-
-        try (Scanner skenerFajla = new Scanner(new File(putanja), "utf-8")) {
-            while (skenerFajla.hasNextLine()) {
-                linija = skenerFajla.nextLine();
-                sql.append(linija);
-                sql.append("\n");
-            }
-        }
-
+    private static String ucitajSqlIzDatoteke(String nazivDatoteke) 
+            throws IOException {
+        StringBuilder sql = new StringBuilder();
+        Files.lines(Paths.get(System.getProperty("user.dir") + "/bin/zadatak_9_5/" + nazivDatoteke))
+            .forEach(linija -> sql.append(linija).append("\n"));
         return sql.toString();
     }
 }

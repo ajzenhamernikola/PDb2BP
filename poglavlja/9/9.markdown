@@ -123,7 +123,15 @@ Connection con = DriverManager.getConnection(dbURL, userId, password);
 con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 ```
 
-[comment]: # (TODO: dodati zadatke za ovaj deo gradiva)
+{% include zadatak.html broj="9.2" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji iz tabele `UKUPNI_BODOVI` (videti ispod) izdvaja 10 najuspe\v snijih studenata. Za svakog studenta ispisati podatke iz te tabele i upitati korisnika da li \v zeli da dodeli tom studentu po\v casnih 10 ESPB. Ukoliko \v zeli, izvr\v siti odgovaraju\'cu izmenu. Nakon svih izmena, ispisati izve\v staj rada u kojem se vide izmene. Sve izmene i prikaz izve\v staja implementirati kao jednu transakciju. Omogu\'citi da nijedan drugi korisnik ne mo\v ze da vidi izmene tokom rada ovog programa." %}
+
+Re\v senje: Pre početka izvršavanja, izvr\v siti naredni skript nad bazom podataka `VSTUD` koji \'ce pripremiti podatke:
+
+include_source(primeri/poglavlje_9/src/zadatak_9_2/priprema_baze.sql, sql)
+
+S obzirom da \'cemo menjati odgovaraju\'cu tabelu, naredbu `stmt` koja se koristi za kreiranje kursora koji prolazi tabelom moramo kreirati opcijom `ResultSet.CONCUR_UPDATABLE`. Me\dj utim, da bismo spre\v cili sve ostale programe da vide izmene, potrebno je da postavimo najstro\v ziji nivo izolacije, tj. da pozovemo metod `setIsolationLevel()` sa argumentom `Connection.TRANSACTION_SERIALIZABLE`.
+
+include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java, java)
 
 ### 9.1.3 Savepoints in a Transaction
 
@@ -251,19 +259,11 @@ private static ResultSet obradiCekanje(String codeHint, Connection con, Statemen
 Naredni primeri ilustruju konstrukciju JDBC aplikacija koje koriste transakcioni rad u
 višekorisničkom okruženju.
 
-{% include zadatak.html broj="9.2" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika ”da”, izvršava se odgovarajuća naredba. Zadatak uraditi tako da aplikacija radi u višekorisničkom okruženju. Obrada jednog predmeta treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi." %}
+{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika ”da”, izvršava se odgovarajuća naredba. Zadatak uraditi tako da aplikacija radi u višekorisničkom okruženju. Obrada jednog predmeta treba da predstavlja jednu transakciju. Postaviti istek vremena na 5 sekundi. Omogu\'citi da drugi korisnici mogu da pristupaju predmetima koje ovaj program trenutno" %}
 
-Re\v senje: Pre početka izvršavanja, kreirati tabelu `OBRADJENI_PREDMETI` koja sadrži identifikatore predmeta koji su do sada obrađeni:
+Re\v senje: Da bismo implementirali date zahteve, potrebno je da pamtimo koje smo predmete obra\dj ivali. Zato \'cemo kreirati promenljivu `obradjeniPredmeti` tipa `ArrayList<Integer>` koja \'ce \v cuvati informaciju o identifikatorima predmeta koje smo obradili. Zbog toga \v sto se primarni klju\v c tabele `PREDMET` sastoji samo od jedne kolone tipa `INTEGER`, to je \v sablonski parametar kolekcije `ArrayList` tipa `Integer`. U slu\v caju slo\v zenih primarnih klju\v ceva, neophodno je da kreiramo klasu koja sadr\v zi atribute koji odgovaraju kolonama slo\v zenog primarnog klju\v ca (videti [zadatke za ve\v zbu](#94-zadaci-za-ve\v zbu)). Dodatno, potrebno je da postavimo nivo izolovanosti stabilno \v citanje, kako bismo omogu\'cili da drugi programi mogu da \v citaju slogove koji se ne a\v zuriraju od strane na\v se aplikacije.
 
-```sql
-CREATE TABLE OBRADJENI_PREDMETI (
-    ID_PREDMETA INTEGER NOT NULL,
-    PRIMARY KEY (ID_PREDMETA),
-    FOREIGN KEY (ID_PREDMETA) REFERENCES PREDMET
-)
-```
-
-include_source(primeri/poglavlje_9/src/zadatak_9_2/Main.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_4/Main.java, java)
 
 ## 9.3 Povezivanje na više baza podataka
 
@@ -282,7 +282,7 @@ za kreiranje objekta naredbe.
 
 Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
 
-{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+{% include zadatak.html broj="9.5" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
 \n
 1. Zahteva od korisnika da unese broj bodova `B`.\n
 2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od `B` bodova.\n
@@ -291,19 +291,19 @@ Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
 5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa `I` iz dosije, i vraća `I`.\n
 6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa `I`, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
 
-Re\v senje:
+Re\v senje: Datoteka `Main.java` implementira navedene funkcionalnosti, dok prate\'ce `*.sql` datoteke sadr\v ze SQL naredbe koje se koriste u re\v senju.
 
-include_source(primeri/poglavlje_9/src/zadatak_9_3/Main.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_5/Main.java, java)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajStudenteMstud.sql, sql)
+include_source(primeri/poglavlje_9/src/zadatak_9_5/izlistajStudenteMstud.sql, sql)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_3/izlistajPolaganjaVstud.sql, sql)
+include_source(primeri/poglavlje_9/src/zadatak_9_5/izlistajPolaganjaVstud.sql, sql)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_3/uvecajBodoveZaPredmeteVstud.sql, sql)
+include_source(primeri/poglavlje_9/src/zadatak_9_5/uvecajBodoveZaPredmeteVstud.sql, sql)
 
 ## 9.4 Zadaci za ve\v zbu
 
-{% include zadatak.html broj="9.4" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
+{% include zadatak.html broj="9.6" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji za sve ispitne rokove pronalazi
 informacije o polaganjima za svaki položeni predmet u tom ispitnom roku i te podatke unosi u tabelu `ISPITNI_ROKOVI_POLAGANJA`. Kreirati datu tabelu na osnovu SQL koda ispod.\n
 \n
 Pre jednog unosa podataka ispisati podatke koji ce biti uneti. Takođe, omogućiti da se podaci unose tako što korisnik mora da odobri unos podataka na svakih 20 redova (tzv. *batch* unos podataka). Napisati program tako da može da radi u višekorisničkom okruženju. Unos podataka za jedno polaganje predstavlja jednu transakciju. Postaviti istek vremena za zahtevanje katanaca na 5 sekundi. Obraditi sve moguće greške.\n
@@ -337,7 +337,7 @@ CREATE TABLE OBRADJENA_POLAGANJA (
 )
 ```
 
-{% include zadatak.html broj="9.5" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
+{% include zadatak.html broj="9.7" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji redom:\n
 \n
 1. Naredbama `INSERT` unosi podatke o nekoliko stipendija u tabelu `STIPENDIJA`. Izračunati i broj unetih redova. U slučaju da je broj unetih redova jednak nuli, ispisati poruku ”Nijedan red nije dodat”, a inače ispisati poruku u unetom broju redova. Kreirati datu tabelu na osnovu SQL koda ispod.\n
 2. Za svaku stipendiju, pita korisnika da li želi da promeni broj studenata za tu stipendiju i ukoliko je odgovor korinika potvrdan, od korisnika traži da unese novi broj studenata i izvršava odgovarajuću naredbu.\n
@@ -358,7 +358,7 @@ CREATE TABLE STIPENDIJA (
 )
 ```
 
-{% include zadatak.html broj="9.6" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
+{% include zadatak.html broj="9.8" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji omogućava konekciju na 2 baze (vstud i mstud). Program redom:\n
 \n
 1. Iz baze mstud ispisuje naziv predmeta, za svaki predmet koji postoji u toj bazi.\n
 2. Iz baze vstud, za svaki predmet iz prethodnog koraka, ispisuje ime i prezime studenta koji su položili taj predmet, kao i ocenu koju su dobili.\n
