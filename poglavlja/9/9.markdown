@@ -313,15 +313,15 @@ Re\v senje: Jedan od problema koji smo imali prilike da vidimo jeste umnožavanj
 
 Za početak, pogledajmo koji su to elementi koji se ponavljaju za obe baze podataka (naravno, sa različitim vrednostima): objekat konekcije, naziv baze podataka, URL, korisničko ime i lozinka. Svi ovi elementi su idealni kandidati za članice klase za svaku od baza podataka. Od ponašanja koje ove baze podataka imaju zajedničko jesu: povezivanje, diskonekcija, pohranjivanje i poništavanje izmena. Ovo će se direktno oslikati u metode klasa koje kreiramo. Takođe, primetimo da postoje i funkcionalnosti koje se razlikuju. U pitanju su operacije procesiranja podataka - za svaku bazu podataka imamo različite zahteve.
 
-Kako imamo elemente koji su zajednički za obe baze podataka, ali i oni koji su različiti, to nas dovodi do zaključka da bi trebalo da kreiramo jednu baznu klasu, na primer, `Database`, koja će implementirati zajedničko ponašanje, ali i skladištiti zajedničke podatke (i implementirati pomoćne funkcije za njihovo lakše upravljanje), kao i po jednu klasu za svaku bazu podataka, na primer, `Vstud` i `Mstud`, koje će dodeliti odgovarajuće vrednosti podacima i implementirati zahteve nad tim bazama podataka. Time dobijamo naredne klase:
+Kako imamo elemente koji su zajednički za obe baze podataka, ali i oni koji su različiti, to nas dovodi do zaključka da bi trebalo da kreiramo jednu baznu klasu, na primer, `Database`, koja će implementirati zajedničko ponašanje, ali i skladištiti zajedničke podatke (i implementirati pomoćne funkcije za njihovo lakše upravljanje), kao i po jednu klasu za svaku bazu podataka, na primer, `Vstud` i `Mstud`, koje će dodeliti odgovarajuće vrednosti podacima i pozvati metod `connect()` i, zatim, potrebno je implementirati zahteve nad tim bazama podataka kao metode odgovaraju\'cih klasa. Time dobijamo naredne klase:
 
-include_source(primeri/poglavlje_9/src/zadatak_9_5/Database.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_6/Database.java, java)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_5/Vstud.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_6/Vstud.java, java)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_5/Mstud.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_6/Mstud.java, java)
 
-include_source(primeri/poglavlje_9/src/zadatak_9_5/Main.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_6/Main.java, java)
 
 SQL datoteke koje sadr\v ze odgovaraju\'ce naredbe su identi\v cne onima iz re\v senja zadatka 9.5, tako da ih ne\'cemo prikazivati ovde.
 
