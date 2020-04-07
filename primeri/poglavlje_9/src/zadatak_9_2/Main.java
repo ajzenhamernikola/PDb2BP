@@ -29,7 +29,6 @@ public class Main {
                 izdvoji_10_najuspesnijih_studenata(con, ulaz);
                 con.commit();
             } catch (Exception e) {
-
                 con.rollback();
                 throw e;
             }

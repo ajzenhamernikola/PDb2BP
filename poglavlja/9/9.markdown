@@ -186,7 +186,12 @@ Note that when you roll back a transaction to a savepoint, that savepoint itself
 released. When you call, for example, `con.rollback(sp2)`, savepoint `sp2` remains valid. You
 can add more savepoints afterward and roll back up to savepoint `sp2` again.
 
-[comment]: # (TODO: dodati zadatke za ovaj deo gradiva)
+{% include zadatak.html broj="9.3" tekst="Napisati Java program u kojem se SQL naredbe izvr\v savaju dinami\v cki koji pronalazi indekse i nazive predmeta za sva polaganja koja su bila neuspe\v sna. Sortirati podatke po indeksu rastu\'ce. Obezbediti da aplikacija bri\v se podatke o najvi\v se 10 studenata. Jednu transakciju \v cine brisanja za sve prona\dj ene studente. Prilikom obrade podataka, ispisati informacije o indeksu studenta, a zatim prikazati nazive predmeta za obrisana polaganja tog studenta. Nakon brisanja podataka o jednom studentu, upitati korisnika da li \v zeli da poni\v sti izmene za tog studenta (voditi ra\v cuna da brisanja za sve prethodne studente ostanu nepromenjena)." %}
+
+Re\v senje: Ono \v sto je potrebno uraditi jeste, pre brisanja slogova za jednog studenta, postaviti ta\v cku \v cuvanja. Nakon \v sto se detektuje da se dohvatio slog za narednog studenta, aplikacija treba da pita korisnika da li \v zeli da poni\v sti izmene od postavljene ta\v cke \v cuvanja. Tako se obezbe\dj ujemo da samo obrisani redovi za teku\'ceg studenta budu poni\v steni, a ne i za sve prethodne.
+
+include_source(primeri/poglavlje_9/src/zadatak_9_3/Main.java, java)
+include_source(primeri/poglavlje_9/src/zadatak_9_3/upit.sql, sql)
 
 ## 9.2 Rad u višekorisničkom okruženju
 

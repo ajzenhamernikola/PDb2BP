@@ -58,7 +58,7 @@ public class Main {
     private static void obradiPredmete(Connection con) throws SQLException, IOException {
         try (Scanner ulaz = new Scanner(System.in)) {
             ArrayList<Integer> obradjeniPredmeti = new ArrayList<>();
-            String sql = ucitajSql(con);
+            String sql = ucitajSql();
                 
             Statement stmt = con.createStatement(
                 ResultSet.TYPE_FORWARD_ONLY, 
@@ -164,7 +164,7 @@ public class Main {
         return otvoriKursor(stmt, sql);
     }
     
-    private static String ucitajSql(Connection con) throws IOException {
+    private static String ucitajSql() throws IOException {
         StringBuilder sql = new StringBuilder();
         Files.lines(Paths.get(System.getProperty("user.dir") + "/bin/zadatak_9_4/upit.sql"))
             .forEach(linija -> sql.append(linija).append("\n"));
