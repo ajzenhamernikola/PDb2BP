@@ -10,7 +10,7 @@ Sli\v can koncept, ali ne\v sto op\v stiji u smislu upotrebe, predstavlja JPA Cr
 
 ## 12.1 Kratak pregled JPA Criteria API
 
-Zapo\v cnimo ovo poglavlje davanjem primera sa ciljem da ilustrujemo promenu u razmi\v sljanju izme\dj u konstrukcije HQL upita i kori\v s\'cenja JPA Criteria API. Naredni HQL upit izdvaja sve zaposlene u kompaniji \v cije je ime _John Smith_:
+Zapo\v cnimo ovo poglavlje davanjem primera sa ciljem da ilustrujemo promenu u razmi\v sljanju izme\dj u konstrukcije HQL upita i kori\v s\'cenja JPA Criteria API. Naredni HQL upit izdvaja sve zaposlene u kompaniji \v cije je ime _"John Smith"_:
 
 ```java
 String hql = "FROM Employee e WHERE e.name = \"John Smith\"";
@@ -21,11 +21,12 @@ org.hibernate.query.Query<Employee> upit =
 Ekvivalentan rezultat koji se dobija kori\v s\'cenjem JPA Criteria API je:
 
 ```java
-CriteriaBuilder cb = session.getCriteriaBuilder();
-CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
+CriteriaBuilder cb          = session.getCriteriaBuilder();
+CriteriaQuery<Employee> c   = cb.createQuery(Employee.class);
+
 Root<Employee> emp = c.from(Employee.class);
 c.select(emp)
-    .where(cb.equal(emp.get("name"), "John Smith"));
+ .where(cb.equal(emp.get("name"), "John Smith"));
 ```
 
 O\v cigledno, ovi pristupi se jasno razlikuju. HQL upit se konstrui\v se na isti na\v cin kao i SQL upit - navo\dj enjem odgovaraju\'ce sintakse u cilju konstrukcije niske koja sadr\v zi sve informacije. Za razliku od toga, pristup koji se oslanja na JPA Criteria API koristi metode i refleksiju za konstrukciju uslova koje rezultati upita moraju da zadovolje. Kroz ovo poglavlje \'cemo se detaljno upoznati sa ovim konceptima.
@@ -74,360 +75,252 @@ else {
 }
 
 c.select(emp)
-    .where(cb.equal(emp.get(attribute), restriction));
+ .where(cb.equal(emp.get(attribute), restriction));
 ```
 
 Na ovaj na\v cin ne moramo da vodimo ra\v cuna da li smo ispravno konstruisali niske od kojih upit zavisi zato \v sto se _na\v cin izdvajanja rezultata u poslednjoj liniji nikad ne menja_!
 
 ## 12.2 Konstrukcija JPA Criteria API upita
 
-As we demonstrated in the previous sections, the heart of the Criteria API is the
-CriteriaBuilder interface, obtained from the EntityManager interface by calling the
-getCriteriaBuilder() method. The CriteriaBuilder interface is large and serves 
-several purposes within the Criteria API. It is a factory with which we create the query
-definition itself, an instance of the CriteriaQuery interface, as well as many of various
-components of the query definition such as conditional expressions.
+Kao \v sto smo demonstrirali u prethodnoj sekciji, sr\v z JPA Criteria API-ja je u interfejsu `CriteriaBuilder`, koji se dobija pozivom metoda `getCriteriaBuilder()` nad objektom sesije. Ovaj interfejs je poprili\v cno \v sirok i slu\v zi u razne svrhe u okviru JPA Criteria API-ja. Cilj ovog poglavlja jeste da se upoznamo sa njim.
 
-The CriteriaBuilder interface provides three methods for creating a new select
-query definition, depending on the desired result type of the query. The first and
-most common method is the createQuery(Class<T>) method, passing in the class
-corresponding to the result of the query. 
-The second method is createQuery(), without any parameters, and corresponds to a
-query with a result type of Object. The third method, createTupleQuery(), is used for
-projection or report queries where the SELECT clause of the query contains more than
-one expression and you wish to work with the result in a more strongly typed manner. It
-is really just a convenience method that is equivalent to invoking createQuery(Tuple.
-class). Note that Tuple is an interface that contains an assortment of objects or data
-and applies typing to the aggregate parts. It can be used whenever multiple items are
-returned and you want to combine them into a single typed object.
+Interfejs `CriteriaBuilder` nudi tri metoda za kreiranje novog upita, u zavisnosti od \v zeljenog tipa rezultata upita: 
+1. Metod `createQuery(Class<T>)` prihvata klasu koja odgovara rezultatu upita.
+2. Metod `createQuery()`, bez parametara, odgovara rezultatu tipa klase `Object`. 
+3. Metod `createTupleQuery()` koristi se za projekcije ili u slu\v caju kada `SELECT` klauza sadr\v zi vi\v se od jednog izraza i \v zelimo da radimo sa rezultatom u strogo tipiziranom maniru. Zapravo, taj metod predstavlja skra\'cenicu za poziv prvog metoda `createQuery(Tuple.class)`. Primetimo da je `Tuple` interfejs koji sadr\v zi razli\v cite objekte ili podatke i primenuje tipiziranost nad agregatnim delovima. Mo\v ze biti kori\v s\'cen kada je rezultat upita vi\v se podataka, pri \v cemu \v zelimo da ih kombinujemo u jedinstveni tipizirani objekat.
 
-The Criteria API is comprised of a number of interfaces that work together to model
-the structure of a JPA query. As you progress through this chapter, you may find it useful
-to refer to the interface relationships shown in Figure 9-1.
+JPA Criteria API se sastoji od velikog broja interfejsa koji rade zajedno u cilju modeliranja strukture JPA upita. Kako budemo prolazili kroz ovo poglavlje, bi\'ce korisno pratiti dijagram na narednoj slici i posmatrati odnose izme\dj u interfejsa.
 
+<div markdown="1" class="text-center">
 ![Interfejsi u JPA Criteria API](./Slike/criteria-interfejsi.png)
+</div>
 
 ## 12.3 Osnovna struktura
 
 U prethodnom poglavlju smo videli da u jeziku HQL mo\v zemo koristiti narednih \v sest klauza za konstrukciju klasi\v cnih `SELECT` upita: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, `GROUP BY` and `HAVING`. Svaka od ovih HQL klauza ima ekvivalentan metod nad nekim od JPA Criteria API interfejsa. Naredna tabela sumira ove metode.
 
-| HQL klauza | JPA Criteria API Interface | Method |
+| HQL klauza | Interfejs iz JPA Criteria API | Metod kojim se ostvaruje |
 | --- | --- | --- |
-| SELECT | CriteriaQuery | select() |
-| | Subquery | select() |
-| FROM | AbstractQuery | from() |
-| WHERE | AbstractQuery | where() |
-| ORDER BY | CriteriaQuery | orderBy() |
-| GROUP BY | AbstractQuery | groupBy() |
-| HAVING | AbstractQuery | having() |
+| `SELECT` | `CriteriaQuery` | `select()` |
+| | `Subquery` | `select()` |
+| `FROM` | `AbstractQuery` | `from()` |
+| `WHERE` | `AbstractQuery` | `where()` |
+| `ORDER BY` | `CriteriaQuery` | `orderBy()` |
+| `GROUP BY` | `AbstractQuery` | `groupBy()` |
+| `HAVING` | `AbstractQuery` | `having()` |
 
-A newly created CriteriaQuery object is basically an empty shell. With the exception
-of defining the result type of the query, no additional content has yet been added to
-fill out the query. As with JP QL queries, the developer is responsible for defining the
-various clauses of the query necessary to fetch the desired data from the database.
-Semantically speaking, there is no difference between JP QL and Criteria API query
-definitions. Both have SELECT, FROM, WHERE, GROUP BY, HAVING, and ORDER clauses; only
-the manner of defining them is different. Before we can fill in the various clauses of the
-query definition, let's first revisit two key concepts defined in Chapter 8 and look at the
-equivalent Criteria API syntax for those concepts.
+A newly created `CriteriaQuery` object is basically an empty shell. With the exception of defining the result type of the query, no additional content has yet been added to fill out the query. As with HQL queries, the developer is responsible for defining the various clauses of the query necessary to fetch the desired data from the database. Semantically speaking, there is no difference between HQL and Criteria API query definitions. Both have `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, and `ORDER BY` clauses; only the manner of defining them is different. Before we can fill in the various clauses of the query definition, let's first revisit two key concepts and look at the equivalent Criteria API syntax for those concepts.
 
 ### 12.3.1 Koreni upita
 
-The first fundamental concept to revisit is the identification variable used in the
-FROM clause of JP QL queries to alias declarations that cover entity, embeddable, and
-other abstract schema types. In JP QL, the identification variable takes on a central
-importance, as it is the key to tying the different clauses of the query together. But
-with the Criteria API we represent query components with objects and therefore
-rarely have aliases with which to concern ourselves. Still, in order to define a FROM
-clause, we need a way to express which abstract schema types we are interested in
-querying against.
+The first fundamental concept to revisit is the identification variable used in the `FROM` clause of HQL queries to alias declarations that cover entity, embeddable, and other abstract schema types. In HQL, the identification variable takes on a central importance, as it is the key to tying the different clauses of the query together. But with the Criteria API we represent query components with objects and therefore rarely have aliases with which to concern ourselves. Still, in order to define a `FROM` clause, we need a way to express which abstract schema types we are interested in querying against.
 
-The AbstractQuery interface (parent of CriteriaQuery) provides the from()
-method to define the abstract schema type that will form the basis for the query. This
-method accepts an entity type as a parameter and adds a new root to the query. A root
-in a criteria query corresponds to an identification variable in JP QL, which in turn
-corresponds to a range variable declaration or join expression. In Listing 9-2, we used
-the following code to obtain our query root:
+Interfejs `AbstractQuery` (roditelj interfejsa `CriteriaQuery`) nudi metod `from()` za definisanje apstraktne sheme koja formira osnovu na\v seg upita. Ovaj metod prihvata tip entiteta kao parametar i dodaje novi koren u upitu. Koren u upitu koresponsira identifikacionoj promenljivoj u HQL-u, koja dalje koresponsira deklaraciji ranga (tj. skupu iz kojeg se podaci izdvajaju) ili izrazu spajanja. Naredni kod ilustruje kako mo\v zemo dobiti koren upita:
 
 ```java
-CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
-Root<Employee> emp = c.from(Employee.class);
+CriteriaQuery<Student> c    = cb.createQuery(Student.class);
+Root<Student> emp           = c.from(Student.class);
 ```
 
-The from() method returns an instance of Root corresponding to the entity type.
-The Root interface is itself extended from the From interface, which exposes functionality
-for joins. The From interface extends Path, which further extends Expression and then
-Selection, allowing the root to be used in other parts of the query definition. The role
-of each of these interfaces is described in later sections. Calls to the from() method are
-additive. Each call adds another root to the query, resulting in a Cartesian product when
-more than one root is defined if no further constraints are applied in the WHERE clause.
-The following example from Chapter 8 demonstrates multiple query roots, replacing a
-conventional join with the more traditional SQL approach:
+Metod `from()` vra\'ca objekat interfejsa `Root` koja odgovara tipu entiteta. Interfejs `Root` je dete interfejsa `From`, koji nam nudi funkcionalnosti spajanja. Interfejs `From` je dete interfejsa `Path`, koji je dalje dete `Expression`, pa `Selection`, kojim se omogu\'cava da se koren koristi u drugim delovima definicije upita. Uloga svih ovih interfejsa \'ce biti detaljnije opisana u kasnijim sekcijama. 
+
+Pozivi metoda `from()` su aditivni. To zna\v ci da svaki poziv dodaje novi koren u upitu, \v sto rezultuje u Dekartovom proizvodu kada je vi\v se od jednog korena definisan, ako nema daljih ograni\v cenja u `WHERE` klauzi. Naredni primer demonstrira vi\v sekoreni upit, koji zamenjuju savremenija spajanja tradacionalnijim SQL pristupom:
 
 ```sql
-SELECT DISTINCT d
-FROM Department d, Employee e
-WHERE d = e.department
+SELECT  DISTINCT s
+FROM    Student s, 
+        Ispit i
+WHERE   s = i.indeks
 ```
 
-To convert this query to the Criteria API we need to invoke from() twice, adding
-both the Department and Employee entities as query roots. The following example
-demonstrates this approach:
+Da bismo pretvorili ovaj upit u JPA Criteria API, potrebno je da pozovemo metod `from()` dvaput, dodaju\'ci entitete `Student` i `Ispit` kao korene upita:
 
 ```java
-CriteriaQuery<Department> c = cb.createQuery(Department.class);
-Root<Department> dept = c.from(Department.class);
-Root<Employee> emp = c.from(Employee.class);
-c.select(dept)
-    .distinct(true)
-    .where(cb.equal(dept, emp.get("department")));
+CriteriaQuery<Student> c    = cb.createQuery(Student.class);
+Root<Student> stud          = c.from(Student.class);
+Root<Ispit> ispit           = c.from(Ispit.class);
+
+c.select(stud)
+ .distinct(true)
+ .where(cb.equal(stud, ispit.get("indeks")));
 ```
 
 ### 12.3.2 Izrazi nad putanjama
 
-The second fundamental concept to revisit is the path expression. The path expression
-is the key to the power and flexibility of the JP QL language, and it is likewise a central
-piece of the Criteria API. We discussed path expressions in detail in Chapter 8 so if you
-feel you need a refresher we recommend going back to review that section.
+The second fundamental concept to revisit is the path expression. The path expression is the key to the power and flexibility of the HQL language, and it is likewise a central piece of the Criteria API. 
 
-We went over query roots in the previous section, and roots are actually just a special
-type of path expression. Query roots in hand, we can now look at how to obtain and
-extend path expressions. Consider the following basic JP QL query, which returns all the
-employees living in New York City:
+Govorili smo o korenima upita u prethodnoj podsekciji, ali svi koreni zapravo predstavljaju specijalni tip izraza putanje. Posmatrajmo naredni jednostavan HQL upit koji vra\'ca sve studente koji su upisani na smeru Informatika:
 
 ```sql
-SELECT e
-FROM Employee e
-WHERE e.address.city = 'New York'
+SELECT  s
+FROM    Student s
+WHERE   s.smer.naziv = 'Informatika'
 ```
 
-Thinking in terms of the Criteria API, the query root for this expression is the
-Employee entity. This query also contains a path expression in the WHERE clause. To
-represent this path expression using the Criteria API, we would use the following
-expression:
+Razmi\v sljaju\'ci u terminima JPA Criteria API, koren ovog izraza je entitet `Student` i neka je on predstavljen objektom `stud`. Ovaj upit tako\dj e sadr\v zi izraz putanje u `WHERE` klauzi. Da bismo predstavili ovaj izraz putanje kori\v s\'cenjem JPA Criteria API, koristimo naredni izraz:
 
 ```java
-emp.get("address").get("city")
+stud.get("smer").get("naziv")
 ```
 
-The emp object in this example corresponds to the query root for Employee. The
-get() method is derived from the Path interface extended by the Root interface and is
-equivalent to the dot operator used in JP QL path expressions to navigate along a path.
-Because the get() method returns a Path object, the method calls can be chained
-together, avoiding the unnecessary declaration of intermediate local variables. 
-The argument to get() is the name of the attribute we are interested in. Because the
-result of constructing a path expression is an Expression object that we can use to build
-conditional expressions, we can then express the complete query as follows:
+Metod `get()` je izveden iz interfejsa `Path` pro\v sirenog interfejsom `Root` i ekvivalentan je operatoru ta\v cke koji se koristi u HQL izrazima putanje radi navigacije kroz putanju. S obzirom da metod `get()` vra\'ca objekat interfejsa `Path`, pozivi metoda se mogu ulan\v cavati, \v sto \'ce nam biti veoma korisna tehnika pri izgradnji upita, jer time izbegavamo uvo\dj enje privremenih lokalnih promenljivih (koji nam ne slu\v ze prakti\v cno ni\v cemu). Argument metoda `get()` je naziv atributa entiteta za koji smo zainteresovani. Zbog toga \v sto je rezultat konstruisanja izraza putanje objekat interfejsa `Expression` koji mi mo\v zemo da koristimo za izgradnju uslovnih izraza, mo\v zemo prethodni HQL upit izraziti na slede\'ci na\v cin:
 
 ```java
-CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
-Root<Employee> emp = c.from(Employee.class);
-c.select(emp)
-    .where(cb.equal(emp.get("address").get("city"), "New York"));
+CriteriaQuery<Student> c    = cb.createQuery(Student.class);
+Root<Student> stud          = c.from(Student.class);
+
+c.select(stud)
+ .where(cb.equal(stud.get("smer").get("naziv"), "Informatika"));
 ```
 
-Much like JP QL, path expressions may be used throughout the different clauses of
-the query definition. With the Criteria API, it is necessary to hold onto the root object
-in a local variable and use it to form path expressions where required. Once again it is
-worth emphasizing that the from() method of AbstractQuery should never be invoked
-more than once for each desired root. Invoking it multiple times will result in additional
-roots being created and a Cartesian product if not careful. Always store the root objects
-locally and refer to them when necessary.
+Much like HQL, path expressions may be used throughout the different clauses of the query definition. With the Criteria API, it is necessary to hold onto the root object in a local variable and use it to form path expressions where required. Once again it is worth emphasizing that the `from()` method of `AbstractQuery` should never be invoked more than once for each desired root. Invoking it multiple times will result in additional roots being created and a `Cartesian` product if not careful. Always store the `root` objects locally and refer to them when necessary.
 
 ## 12.4 Klauza `SELECT`
 
-There are several forms that the SELECT clause of a query may take. The simplest form
-involves a single expression, while others involve multiple expressions or the use of a
-constructor expression to create new object instances. Each form is expressed differently
-in the Criteria API.
+Postoji nekoliko formi koje klauza `SELECT` mo\v ze da uzima u upitu. Najjednostavnija forma predstavlja izdvajanje jednog izraza, dok neke druge forme rade sa vi\v se izraza ili koriste konstruktorskih izraza radi kreiranja novih instancnih objekata. Svaka forma je na drugi na\v cin predstavljena u JPA Criteria API.
 
 ### 12.4.1 Izdvajanje jednog izraza
 
-The select() method of the CriteriaQuery interface is used to form the SELECT clause
-in a Criteria API query definition. All forms of the SELECT clause may be represented via
-the select() method, although convenience methods also exist to simplify coding. The
-select() method requires an argument of type Selection, an interface extended by
-Expression, as well as CompoundSelection to handle the case where the result type of a
-query is a Tuple or array of results.
+Metod `select()` interfejsa `CriteriaQuery` se koristi radi formiranja `SELECT` klauze u JPA Criteria API definicijama upita. Sve forme `SELECT` klauze se mogu predstaviti metodom `select()`, premda postoje bolji na\v cini kori\v s\'cenjem specijalizovanih metoda radi pojednostavljivanja kodiranja. Metod `select()` prihvata argument interfejsa `Selection`, \v sto je zapravo roditelj interfejsa `Expression`, kao i `CompoundSelection` za slu\v caj kada je rezultat upita `Tuple` ili niz rezultata.
 
-Thus far, we have been passing in a query root to the select() method, therefore
-indicating that we want the entity to be the result of the query. We could also supply a
-single-valued expression such as selecting an attribute from an entity or any compatible
-scalar expression. The following example demonstrates this approach by selecting the
-name attribute of the Employee entity:
+Do sada, mi smo prosle\dj ivali koren upita metodu `select()`, \v cime smo indikovali da \v zelimo da odgovaraju\'ci entitet bude rezultat upita. Mogu\'ce je proslediti i izraz koji predstavlja jednu vrednost, poput izdvajanja atributa iz entiteta ili bilo kog kompatibilnog skalarnog izraza. Naredni primer ilustruje ovaj pristup izdvajanjem atributa koji predstavlja ime entiteta `Student`:
 
 ```java
 CriteriaQuery<String> c = cb.createQuery(String.class);
-Root<Employee> emp = c.from(Employee.class);
-c.select(emp.<String>get("name"));
+Root<Student> stud      = c.from(Stud.class);
+
+c.select(stud.<String>get("ime"));
 ```
 
-This query will return all employee names, including any duplicates. Duplicate results
-from a query may be removed by invoking distinct(true) from the AbstractQuery
-interface. This is identical in behavior to the DISTINCT keyword in a JP QL query.
+Ovakav upit \'ce vratiti sva imena studenata, uklju\v cuju\'ci sve duplikate. O izdvajanju upita bez duplikata \'ce biti re\v ci kasnije.
 
-Also note the unusual syntax we used to declare that the “name” attribute was
-of type String. The type of the expression provided to the select() method must be
-compatible with the result type used to create the CriteriaQuery object. For example,
-if the CriteriaQuery object was created by invoking createQuery(Project.class) on
-the CriteriaBuilder interface, then it will be an error to attempt to set an expression
-resolving to the Employee entity using the select() method. When a method call such
-as select() uses generic typing in order to enforce a compatibility constraint, the type
-may be prefixed to the method name in order to qualify it in cases where the type could
-not otherwise be automatically determined. We need to use that approach in this case
-because the select() method has been declared as follows:
+Primetimo neobi\v cnu sintaksu koju koristimo da bismo deklarisali da atribut `ime` predstavlja instancu tipa `String`. Tip izraza koji se prosle\dj uje metodu `select()` mora biti kompatibilan sa rezultuju\'cim tipom koji se koristi za kreiranje `CriteriaQuery` objekta. Na primer, ako je `CriteriaQuery` objekat kreiran pozivom `createQuery(Ispit.class)` nad objektom interfejsa `CriteriaBuilder`, onda \'ce biti gre\v ska ukoliko bismo poku\v sali da postavimo da se dobija izraz entiteta `Student` kori\v s\'cenjem metoda `select()`. Kada poziv metoda poput `select()` koristi \v sablonsku tipiziranost da bi omogu\'cio ograni\v cenja kompatibilnosti, onda mo\v zemo prefiksovati tip imenu metoda kako bismo ga kvalifikovali u slu\v cajevima kada tip ne mo\v ze biti automatski zaklju\v cen. U ovom slu\v caju, moramo koristiti ovaj pristup s obzirom da je metod `select()` deklarisan kao:
 
 ```java
 CriteriaQuery<T> select(Selection<? extends T> selection);
 ```
 
-The argument to select() must be a type that is compatible with the result type of
-the query definition. The get() method returns a Path object, but that Path object is
-always of type Path<Object> because the compiler cannot infer the correct type based
-on the attribute name. To declare that the attribute is really of type String, we need to
-qualify the method invocation accordingly. This syntax has to be used whenever the
-Path is being passed as an argument for which the parameter has been strongly typed,
-such as the argument to the select() method and certain CriteriaBuilder expression
-methods. We have not had to use them so far in our examples because we have been
-using them in methods like equal(), where the parameter was declared to be of type
-Expression<?>. Because the type is wildcarded, it is valid to pass in an argument of type
-Path<Object>. Later in the chapter, we look at the strongly typed versions of the Criteria
-API methods that remove this requirement.
+Argument metoda `select()` mora biti tipa koji je kompatibilan rezultuju\'cim tipom definicije upita. Metod `get()` vra\'ca objekat `Path`, ali taj objekat je uvek tipa `Path<Object>` zato \v sto kompilator ne mo\v ze da zaklju\v ci odgovaraju\'ci tip samo na osnovu imena atributa. Zbog toga, da bismo deklarisali da je atribut `ime` u entitetu `Student` tipa `String`, moramo da preciziramo poziv metoda kao \v sto smo videli.
+
+This syntax has to be used whenever the `Path` is being passed as an argument for which the parameter has been strongly typed, such as the argument to the `select()` method and certain `CriteriaBuilder` expression methods. 
+We have not had to use them so far in our examples because we have been using them in methods like `equal()`, where the parameter was declared to be of type `Expression<?>`. 
+Because the type is wildcarded, it is valid to pass in an argument of type `Path<Object>`. 
+Later in the chapter, we look at the strongly typed versions of the Criteria API methods that remove this requirement.
 
 ### 12.4.2 Izdvajanje vi\v se izraza
 
-When defining a SELECT clause that involves more than one expression, the Criteria API
-approach required depends on how the query definition was created. If the result type
-is Tuple, then a CompoundSelection<Tuple> object must be passed to select(). If the
-result type is a non-persistent class that will be created using a constructor expression,
-then the argument must be a CompoundSelection<[T]> object, where [T] is the class
-type of the non-persistent class. Finally, if the result type is an array of objects, then a
-CompoundSelection<Object[]> object must be provided. These objects are created with
-the tuple(), construct(), and array() methods of the CriteriaBuilder interface,
-respectively. The following example demonstrates how to provide multiple expressions
-to a Tuple query:
+Kada defini\v semo `SELECT` klauzu koja sadr\v zi izdvajanje vi\v se od jednog izraza, onda \'cemo koristiti razli\v cite pristupe u zavisnosti od na\v cina na koji je definicija upita kreirana:
 
-```java
-CriteriaQuery<Tuple> c= cb.createTupleQuery();
-Root<Employee> emp = c.from(Employee.class);
-c.select(cb.tuple(emp.get("id"), emp.get("name")));
+- Ako je rezultuju\'ci tip `Tuple`, onda moramo metodu `select()` proslediti objekat `CompoundSelection<Tuple>`.
+
+- Ako je rezultuju\'ci tip neperzistentna klasa koja \'ce biti kreirana kori\v s\'cenjem konstruktorskih izraza, tada argument mora biti objekat `CompoundSelection<[T]>`, gde je `[T]` tip te neperzistentne klase.
+
+- Kona\v cno, ako je rezultuju\'ci tip niz objekata, onda se metodu prosle\dj uje objekat `CompoundSelection<Object[]>`.
+
+Ovi objekti se kreiraju pozivima metoda `tuple()`, `construct()` i `array()` nad objektom interfejsa `CriteriaBuilder`, redom. Neka je potrebno izdvojiti godine i oznake svih ispitnih rokova, \v sto se izvodi narednim HQL upitom:
+
+```sql
+SELECT  ir.godina,
+        ir.oznaka
+FROM    IspitniRok ir
 ```
 
-As a convenience, the multiselect() method of the CriteriaQuery interface
-may also be used to set the SELECT clause. The multiselect() method will create the
-appropriate argument type given the result type of the query. This can take three forms
-depending on how the query definition was created.
-
-The first form is for queries that have Object or Object[] as their result type. The list
-of expressions that make up each result are simply passed to the multiselect() method.
+Naredni primer demonstrira kako mo\v zemo imati vi\v sestruke izraze kori\v s\'cenjem upita nad `Tuple`:
 
 ```java
-CriteriaQuery<Object[]> c = cb.createQuery(Object[].class);
-Root<Employee> emp = c.from(Employee.class);
-c.multiselect(emp.get("id"), emp.get("name"));
+CriteriaQuery<Tuple> c  = cb.createTupleQuery();
+Root<IspitniRok> ir     = c.from(IspitniRok.class);
+
+c.select(cb.tuple(ir.get("godina"), 
+                  ir.get("oznaka")));
 ```
 
-Note that, if the query result type is declared as Object instead of Object[], the
-behavior of multiselect() in this form changes slightly. The result is always an instance
-of Object, but if multiple arguments are passed into multiselect() then the result must
-be cast to Object[] in order to access any particular value. If only a single argument is
-passed into multiselect(), then no array is created and the result may be cast directly
-from Object to the desired type. In general, it is more convenient to be explicit about the
-query result type. If you want to work with an array of results, then declaring the query
-result type to be Object[] avoids casting later and makes the shape of the result more
-explicit if the query is invoked separately from the code that creates it.
+Kao pogodnost, metod `multiselect()` iz interfejsa `CriteriaQuery` mo\v ze se tako\dj e koristiti za ispunjavanje istog zahteva. Metod `multiselect()` \'ce kreirati odgovaraju\'ci tip argumenata za dati rezultuju\'ci tip upita, odnosno, zavisno od na\v cina kreiranja upita.
 
-The second form is a close relative of the first form, but for queries that result in
-Tuple. Again, the list of expressions is passed into the multiselect() call.
+Prva forma je za upite koje imaju `Object` ili `Object[]` kao njihov rezultuju\'ci tip. Metodu `multiselect()` se u ovom slu\v caju mo\v ze proslediti lista izraza koje predstavljaju svaki od izraza:
 
 ```java
-CriteriaQuery<Tuple> c = cb.createTupleQuery();
-Root<Employee> emp = c.from(Employee.class);
-c.multiselect(emp.get("id"), emp.get("name"));
+CriteriaQuery<Object[]> c   = cb.createQuery(Object[].class);
+Root<IspitniRok> ir         = c.from(IspitniRok.class);
+
+c.multiselect(ir.get("godina"), 
+              ir.get("oznaka"));
 ```
 
-The third and final form is for queries with constructor expressions that result
-in non-persistent types. The multiselect() method is again invoked with a list of
-expressions, but it uses the type of the query to figure out and automatically create
-the appropriate constructor expression, in this case a data transfer object of type
-EmployeeInfo.
+Note that, if the query result type is declared as `Object` instead of `Object[]`, the behavior of `multiselect()` in this form changes slightly. The result is always an instance of `Object`, but if multiple arguments are passed into `multiselect()` then the result must be cast to `Object[]` in order to access any particular value. If only a single argument is passed into `multiselect()`, then no array is created and the result may be cast directly from `Object` to the desired type. In general, it is more convenient to be explicit about the query result type. If you want to work with an array of results, then declaring the query result type to be `Object[]` avoids casting later and makes the shape of the result more explicit if the query is invoked separately from the code that creates it.
+
+Druga forma je sli\v cna prvoj formi, samo se odnosi na upite koji rezultuju tipom `Tuple`. Ponovo, metodu `multiselect()` se u ovom slu\v caju mo\v ze proslediti lista izraza koje predstavljaju svaki od izraza:
 
 ```java
-CriteriaQuery<EmployeeInfo> c = cb.createQuery(EmployeeInfo.class);
-Root<Employee> emp = c.from(Employee.class);
-c.multiselect(emp.get("id"), emp.get("name"));
+CriteriaQuery<Tuple> c  = cb.createTupleQuery();
+Root<IspitniRok> ir   = c.from(IspitniRok.class);
+
+c.multiselect(ir.get("godina"), 
+              ir.get("oznaka"));
 ```
 
-This is equivalent to the following:
+Tre\'ca i kona\v cna forma je za upite sa konstruktorskih izrazima \v ciji rezultat je neperzistentnog tipa. Metod `multiselect()` se ponovo poziva sa listom izraza, ali koristi tip upita da odredi i automatski kreira odgovaraju\'ci konstruktorski izraz, u ovom slu\v caju primarni klju\v c klase `IspitniRokId`:
 
 ```java
-CriteriaQuery<EmployeeInfo> c = cb.createQuery(EmployeeInfo.class);
-Root<Employee> emp = c.from(Employee.class);
-c.select(cb.construct(EmployeeInfo.class,
-    emp.get("id"),
-    emp.get("name")));
+CriteriaQuery<IspitniRokId> c   = cb.createQuery(IspitniRokId.class);
+Root<IspitniRok> ir             = c.from(IspitniRok.class);
+
+c.multiselect(ir.get("godina"), 
+              ir.get("oznaka"));
 ```
 
-As convenient as the multiselect() method is for constructor expressions,
-there are still cases where you will need to use the construct() method from the
-CriteriaBuilder interface. For example, if the result type of the query is Object[] and it
-also includes a constructor expression for only part of the results, the following would be
-required:
+Ovo je ekvivalentno narednom kodu:
 
 ```java
-CriteriaQuery<Object[]> c = cb.createQuery(Object[].class);
-Root<Employee> emp = c.from(Employee.class);
-c.multiselect(emp.get("id"),
-    cb.construct(EmployeeInfo.class,
-                 mp.get("id"),
-                 emp.get("name")));
+CriteriaQuery<IspitniRokId> c   = cb.createQuery(IspitniRokId.class);
+Root<IspitniRok> ir             = c.from(IspitniRok.class);
+
+c.select(cb.construct(IspitniRokId.class, // Izdvoji primarni kljuc na osnovu kolona:
+         ir.get("godina"),                // 1. godina
+         ir.get("oznaka")));              // 2. godina
+```
+
+Me\dj utim, iako je metod `multiselect()` izuzetno pogodan za upotrebu konstruktorskih izraza, postoje slu\v cajevi kada je neophodno kori\v s\'cenje metoda `construct()` iz interfejsa `CriteriaBuilder`. Na primer, ukoliko je potrebno da upit izra\v cuna i naziv ispitnih rokova pored godine i oznake rokova. U tom slu\v caju, ispitni rokovi koji se konstrui\v su predstavljaju samo deo rezultata, tako da rezultuju\'ci tip upita mora biti tipa `Object[]` i onda on mora da sadr\v zi konstruktorski izraz za konstruisanje instanci klase `IspitniRokId`:
+
+```java
+CriteriaQuery<Object[]> c   = cb.createQuery(Object[].class);
+Root<IspitniRok> ir         = c.from(IspitniRok.class);
+
+c.multiselect(ir.get("naziv"), // Izdvoji naziv roka
+              cb.construct(IspitniRokId.class, // Izdvoji primarni kljuc na osnovu kolona:
+                           ir.get("godina"),   // 1. godina
+                           ir.get("oznaka"))); // 2. oznaka
 ```
 
 ### 12.4.3 Kori\v s\'cenje alijasa
 
-Like JP QL, aliases may also be set on expressions in the SELECT clause, which will then
-be included in the resulting SQL statement. They are of little use from a programming
-perspective as we construct the ORDER BY clause through the use of the Selection
-objects used to construct the SELECT clause.
+Like HQL, aliases may also be set on expressions in the `SELECT` clause, which will then be included in the resulting SQL statement. They are of little use from a programming perspective as we construct the `ORDER BY` clause through the use of the `Selection` objects used to construct the `SELECT` clause.
 
-Aliases are useful when the query has a result type of Tuple. The aliases will be
-available through the resulting Tuple objects. To set an alias, the alias() method of the
-Selection interface (parent to Expression) must be invoked. The following example
-demonstrates this approach:
+Aliases are useful when the query has a result type of `Tuple`. The aliases will be available through the resulting `Tuple` objects. To set an alias, the `alias()` method of the `Selection` interface (parent to `Expression`) must be invoked. The following example demonstrates this approach:
 
 ```java
-CriteriaQuery<Tuple> c= cb.createTupleQuery();
-Root<Employee> emp = c.from(Employee.class);
-c.multiselect(emp.get("id").alias("id"), emp.get("name").
-    alias("fullName"));
+CriteriaQuery<Tuple> c  = cb.createTupleQuery();
+Root<Student> stud      = c.from(Student.class);
+c.multiselect(stud.get("indeks").alias("indeks"), 
+              stud.get("mesto_rodjenja").alias("mesto"));
 ```
 
-This example actually demonstrates two facets of the alias() method. The first is
-that it returns itself, so it can be invoked as part of the call to select()or multiselect().
-The second is, once again, that it returns itself, and is therefore mutating what should
-be an otherwise immutable object. The alias() method is an exception to the rule that
-only the query definition interfaces—CriteriaQuery and Subquery—contain mutating
-operations. Invoking alias() changes the original Selection object and returns it from
-the method invocation. It is invalid to set the alias of a Selection object more than once.
+This example actually demonstrates two facets of the `alias()` method. The first is that it returns itself, so it can be invoked as part of the call to `select()` or `multiselect()`. The second is, once again, that it returns itself, and is therefore mutating what should be an otherwise immutable object. The `alias()` method is an exception to the rule that only the query definition interfaces—`CriteriaQuery` and `Subquery`—contain mutating operations. Invoking `alias()` changes the original `Selection` object and returns it from the method invocation. It is invalid to set the alias of a `Selection` object more than once.
 
-Using the alias when iterating over the query results is as simple as requesting the
-expression by name. Executing the previous query would allow it to be processed as
-follows:
+Using the alias when iterating over the query results is as simple as requesting the expression by name. Executing the previous query would allow it to be processed as follows:
 
 ```java
-TypedQuery<Tuple> q = em.createQuery(c);
+TypedQuery<Tuple> q = session.createQuery(c);
 for (Tuple t : q.getResultList()) {
-    String id = t.get("id", String.class);
-    String fullName = t.get("fullName", String.class);
+    Integer indeks  = t.get("indeks", Integer.class);
+    String mesto    = t.get("mesto", String.class);
     // ...
 }
 ```
 
 ## 12.5 Klauza `FROM`
 
-In the “Query Roots” section, we covered the from() method of the AbstractQuery
-interface and the role of query roots in forming the query definition. We now elaborate
-on that discussion and look at how joins are expressed using the Criteria API.
+U sekciji 12.3.1, diskutovali smo o metodu `from()` iz interfejsa `AbstractQuery` kao i o ulogama korenova upita u formiranju definicije upita. Sada \'cemo pro\v siriti tu diskusiju i prikazati na\v cine na koje se operacije spajanja izra\v zavaju u JPA Criteria API.
 
 ### 12.5.1 Unutra\v snja i spolja\v snja spajanja
 
@@ -455,7 +348,7 @@ Join<Employee,Project> project = emp.join("projects", JoinType.LEFT);
 ```
 
 Had the JoinType.LEFT argument been omitted, the join type would have defaulted
-to be an inner join. Just as in JP QL, multiple joins may be associated with the same
+to be an inner join. Just as in HQL, multiple joins may be associated with the same
 From instance. For example, to navigate across the directs relationship of Employee and 
 then to both the Department and Project entities would require the following, which
 assumes inner joining:
@@ -473,7 +366,7 @@ the source and target of the last join in the statement:
 Join<Employee,Project> project = dept.join("employees").join("projects");
 ```
 
-Joins across collection relationships that use Map are a special case. JP QL uses the
+Joins across collection relationships that use Map are a special case. HQL uses the
 KEY and VALUE keywords to extract the key or value of a Map element for use in other parts
 of the query. In the Criteria API, these operators are handled by the key() and value()
 methods of the MapJoin interface. Consider the following example assuming a Map join
@@ -522,17 +415,17 @@ where_clause ::= WHERE conditional_expression
 
 The key to building up expressions with the Criteria API is the CriteriaBuilder
 interface. This interface contains methods for all of the predicates, expressions, and
-functions supported by the JP QL language as well as other features specific to the
+functions supported by the HQL language as well as other features specific to the
 Criteria API. Table 9-2, Table 9-3, Table 9-4, and Table 9-5 summarize the mapping
-between JP QL operators, expressions, and functions to their equivalent methods on
+between HQL operators, expressions, and functions to their equivalent methods on
 the CriteriaBuilder interface. Note that in some cases there is no direct equal to a
 method and a combination of CriteriaBuilder methods is required to get the same
 result. In other cases, the equivalent criteria method is actually on a class other than
 CriteriaBuilder.
 
-JP QL to CriteriaBuilder Predicate Mapping:
+HQL to CriteriaBuilder Predicate Mapping:
 
-| JP QL Operator | CriteriaBuilder Method |
+| HQL Operator | CriteriaBuilder Method |
 | --- | --- |
 | AND | and() |
 | OR | or() |
@@ -557,9 +450,9 @@ JP QL to CriteriaBuilder Predicate Mapping:
 | IN | in() |
 | NOT IN | not(in()) |
 
-JP QL to CriteriaBuilder Scalar Expression Mapping:
+HQL to CriteriaBuilder Scalar Expression Mapping:
 
-| JP QL Expression | CriteriaBuilder Method |
+| HQL Expression | CriteriaBuilder Method |
 | --- | --- |
 | ALL | all() |
 | ANY | any() |
@@ -572,9 +465,9 @@ JP QL to CriteriaBuilder Scalar Expression Mapping:
 | NULLIF | nullif() |
 | CASE | selectCase() |
 
-JP QL to CriteriaBuilder Function Mapping:
+HQL to CriteriaBuilder Function Mapping:
 
-| JP QL Function | CriteriaBuilder Method |
+| HQL Function | CriteriaBuilder Method |
 | --- | --- |
 | ABS | abs() |
 | CONCAT | concat() |
@@ -591,9 +484,9 @@ JP QL to CriteriaBuilder Function Mapping:
 | UPPER | upper() |
 | TRIM | trim() |
 
-JP QL to CriteriaBuilder Aggregate Function Mapping:
+HQL to CriteriaBuilder Aggregate Function Mapping:
 
-| JP QL Aggregate Function | CriteriaBuilder Method |
+| HQL Aggregate Function | CriteriaBuilder Method |
 | --- | --- |
 | AVG | avg() |
 | SUM | sum(),sumAsLong(),sumAsDouble() |
@@ -602,10 +495,10 @@ JP QL to CriteriaBuilder Aggregate Function Mapping:
 | COUNT | count() |
 | COUNT DISTINCT | countDistinct() |
 
-In addition to the straight translation of JP QL operators, expressions, and functions,
+In addition to the straight translation of HQL operators, expressions, and functions,
 there are some techniques specific to the Criteria API that need to be considered when
 developing expressions. The following sections look at these techniques in detail and
-explore those parts of the Criteria API that have no equivalent in JP QL.
+explore those parts of the Criteria API that have no equivalent in HQL.
 
 ### 12.6.2 Predikati
 
@@ -673,7 +566,7 @@ class. This is necessary to extend the strong typing of the API to NULL values.
 
 ### 12.6.4 Parametri
 
-Parameter handling for Criteria API queries is different from JP QL. Whereas JP QL strings
+Parameter handling for Criteria API queries is different from HQL. Whereas HQL strings
 simply prefix string names with a colon to denote a parameter alias, this technique will
 not work in the Criteria API. Instead, we must explicitly create a ParameterExpression of
 the correct type that can be used in conditional expressions. This is achieved through the
@@ -698,8 +591,8 @@ The following code revises the Listing 9-4 to use this technique:
 CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
 Root<Employee> emp = c.from(Employee.class);
 c.select(emp)
-    .where(cb.equal(emp.get("dept").get("name"),
-                    cb.parameter(String.class, "deptName")));
+ .where(cb.equal(emp.get("dept").get("name"),
+                 cb.parameter(String.class, "deptName")));
 ```
 
 ### 12.6.5 Podupiti
@@ -736,8 +629,8 @@ if (projectName != null) {
     Root<Project> project = sq.from(Project.class);
     Join<Project,Employee> sqEmp = project.join("employees");
     sq.select(sqEmp)
-        .where(cb.equal(project.get("name"),
-                        cb.parameter(String.class, "project")));
+      .where(cb.equal(project.get("name"),
+                      cb.parameter(String.class, "project")));
     criteria.add(cb.in(emp).value(sq));
 }
 
@@ -749,14 +642,15 @@ in Listing 9-2. First, the distinct() method call has been removed as well as th
 the Project entity. We also introduced a new non-correlated subquery against Project.
 Because the subquery from Listing 9-5 declares its own root and does not reference
 anything from the parent query, it runs independently and is therefore non-correlated.
-The equivalent JP QL query with only Project criteria would be:
+The equivalent HQL query with only Project criteria would be:
 
 ```sql
 SELECT e
 FROM Employee e
-WHERE e IN (SELECT emp
-            FROM Project p JOIN p.employees emp
-            WHERE p.name = :project)
+WHERE e IN (SELECT  emp
+            FROM    Project p JOIN 
+                    p.employees emp
+            WHERE   p.name = :project)
 ```
 
 Whenever we write queries that use subqueries, there is often more than one way to
@@ -779,27 +673,28 @@ if (projectName != null) {
 
 By referencing the Employee root from the parent query in the WHERE clause of the
 subquery, we now have a correlated subquery. This time the query takes the following
-form in JP QL:
+form in HQL:
 
 ```sql
-SELECT e
-FROM Employee e
-WHERE EXISTS (SELECT p
-              FROM Project p JOIN p.employees emp
-              WHERE emp = e AND p.name = :name)
+SELECT  e
+FROM    Employee e
+WHERE   EXISTS (SELECT  p
+                FROM    Project p JOIN 
+                        p.employees emp
+                WHERE   emp = e AND p.name = :name)
 ```
 
 We can still take this example further and reduce the search space for the subquery
 by moving the reference to the Employee root to the FROM clause of the subquery and
-joining directly to the list of projects specific to that employee. In JP QL, we would write
+joining directly to the list of projects specific to that employee. In HQL, we would write
 this as follows:
 
 ```sql
-SELECT e
-FROM Employee e
-WHERE EXISTS (SELECT p
-              FROM e.projects p
-              WHERE p.name = :name)
+SELECT  e
+FROM    Employee e
+WHERE   EXISTS (SELECT  p
+                FROM    e.projects p
+                WHERE   p.name = :name)
 ```
 
 In order to re-create this query using the Criteria API, we are confronted with a
@@ -827,12 +722,13 @@ in the FROM clause of a subquery. Consider the following example that returns pr
 containing managers with direct reports earning an average salary higher than a userdefined threshold:
 
 ```sql
-SELECT p
-FROM Project p JOIN p.employees e
-WHERE TYPE(p) = DesignProject AND
-      e.directs IS NOT EMPTY AND
-    (SELECT AVG(d.salary)
-     FROM e.directs d) >= :value
+SELECT  p
+FROM    Project p JOIN 
+        p.employees e
+WHERE   TYPE(p) = DesignProject AND
+        e.directs IS NOT EMPTY AND
+        (SELECT AVG(d.salary)
+         FROM   e.directs d) >= :value
 ```
 
 When creating the Criteria API query definition for this query, we must correlate the
@@ -841,17 +737,17 @@ the average salary. This example also demonstrates the use of the type() method 
 Path interface in order to do a polymorphic comparison of types:
 
 ```java
-CriteriaQuery<Project> c = cb.createQuery(Project.class);
-Root<Project> project = c.from(Project.class);
-Join<Project,Employee> emp = project.join("employees");
-Subquery<Number> sq = c.subquery(Number.class);
-Join<Project,Employee> sqEmp = sq.correlate(emp);
+CriteriaQuery<Project> c        = cb.createQuery(Project.class);
+Root<Project> project           = c.from(Project.class);
+Join<Project,Employee> emp      = project.join("employees");
+Subquery<Number> sq             = c.subquery(Number.class);
+Join<Project,Employee> sqEmp    = sq.correlate(emp);
 Join<Employee,Employee> directs = sqEmp.join("directs");
 c.select(project)
   .where(cb.equal(project.type(), DesignProject.class),
          cb.isNotEmpty(emp.<Collection>get("directs")),
          cb.ge(sq.select(cb.avg(directs.get("salary"))),
-                  cb.parameter(Number.class, "value")));
+               cb.parameter(Number.class, "value")));
 ```
 
 ### 12.6.6 Izraz `IN`
@@ -860,12 +756,12 @@ Unlike other operators, the IN operator requires some special handling in the Cr
 API. The in() method of the CriteriaBuilder interface only accepts a single argument,
 the single-valued expression that will be tested against the values of the IN expression. In
 order to set the values of the IN expression, we must use the CriteriaBuilder.In object
-returned from the in() method. Consider the following JP QL query:
+returned from the in() method. Consider the following HQL query:
 
 ```sql
-SELECT e
-FROM Employee e
-WHERE e.address.state IN ('NY', 'CA')
+SELECT  e
+FROM    Employee e
+WHERE   e.address.state IN ('NY', 'CA')
 ```
 
 To convert this query to the Criteria API, we must invoke the value() method of the
@@ -873,11 +769,12 @@ CriteriaBuilder.In interface to set the state identifiers we are interested in q
 like so:
 
 ```java
-CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
-Root<Employee> emp = c.from(Employee.class);
+CriteriaQuery<Employee> c   = cb.createQuery(Employee.class);
+Root<Employee> emp          = c.from(Employee.class);
+
 c.select(emp)
-    .where(cb.in(emp.get("address")
-                    .get("state")).value("NY").value("CA"));
+ .where(cb.in(emp.get("address")
+                 .get("state")).value("NY").value("CA"));
 ```
 
 Note the chained invocation of the value() method in order to set multiple values
@@ -904,31 +801,35 @@ method of the CriteriaBuilder interface allows more typing options, but for the 
 part it is largely a case of personal preference when deciding which approach to use.
 
 IN expressions that use subqueries are written using a similar approach. For a more
-complex example, in the previous chapter, we demonstrated a JP QL query using an IN
+complex example, in the previous chapter, we demonstrated a HQL query using an IN
 expression in which the department of an employee is tested against a list generated
 from a subquery. The example is reproduced here.
 
 ```sql
-SELECT e
-FROM Employee e
-WHERE e.department IN
- (SELECT DISTINCT d
- FROM Department d JOIN d.employees de JOIN de.project p
- WHERE p.name LIKE 'QA%')
+SELECT  e
+FROM    Employee e
+WHERE   e.department IN (
+            SELECT  DISTINCT d
+            FROM    Department d JOIN 
+                    d.employees de JOIN 
+                    de.project p
+            WHERE   p.name LIKE 'QA%'
+        )
 ```
 
 We can convert this example to the Criteria API, as shown in Listing 9-6.
 
 ```java
-CriteriaQuery<Employee> c = cb.createQuery(Employee.class);
-Root<Employee> emp = c.from(Employee.class);
-Subquery<Department> sq = c.subquery(Department.class);
-Root<Department> dept = sq.from(Department.class);
-Join<Employee,Project> project =
-    dept.join("employees").join("projects");
+CriteriaQuery<Employee> c       = cb.createQuery(Employee.class);
+Root<Employee> emp              = c.from(Employee.class);
+Subquery<Department> sq         = c.subquery(Department.class);
+Root<Department> dept           = sq.from(Department.class);
+Join<Employee,Project> project  = dept.join("employees").join("projects");
+
 sq.select(dept.<Integer>get("id"))
   .distinct(true)
   .where(cb.like(project.<String>get("name"), "QA%"));
+
 c.select(emp)
  .where(cb.in(emp.get("dept").get("id")).value(sq));
 ```
@@ -947,13 +848,14 @@ We begin with the general form of the CASE expression, the most powerful but als
 the most complex.
 
 ```sql
-SELECT p.name,
- CASE WHEN TYPE(p) = DesignProject THEN 'Development'
- WHEN TYPE(p) = QualityProject THEN 'QA'
- ELSE 'Non-Development'
- END
-FROM Project p
-WHERE p.employees IS NOT EMPTY
+SELECT  p.name,
+        CASE 
+            WHEN TYPE(p) = DesignProject THEN 'Development'
+            WHEN TYPE(p) = QualityProject THEN 'QA'
+            ELSE 'Non-Development'
+        END
+FROM    Project p
+WHERE   p.employees IS NOT EMPTY
 ```
 
 The selectCase() method of the CriteriaBuilder interface is used to create
@@ -962,34 +864,35 @@ CriteriaBuilder.Case object that we may use to add the conditional expressions t
 CASE statement. The following example demonstrates this approach:
 
 ```java
-CriteriaQuery<Object[]> c = cb.createQuery(Object[].class);
-Root<Project> project = c.from(Project.class);
+CriteriaQuery<Object[]> c   = cb.createQuery(Object[].class);
+Root<Project> project       = c.from(Project.class);
+
 c.multiselect(project.get("name"),
- cb.selectCase()
- .when(cb.equal(project.type(), DesignProject.class),
- "Development")
- .when(cb.equal(project.type(), QualityProject.class),
- "QA")
- .otherwise("Non-Development"))
-.where(cb.isNotEmpty(project.<List<Employee>>get("employees")));
+              cb.selectCase()
+                .when(cb.equal(project.type(), DesignProject.class),
+                      "Development")
+                .when(cb.equal(project.type(), QualityProject.class),
+                      "QA")
+                .otherwise("Non-Development"))
+ .where(cb.isNotEmpty(project.<List<Employee>>get("employees")));
 ```
 
-The when()and otherwise() methods correspond to the WHEN and ELSE keywords
-from JP QL. Unfortunately, “else” is already a keyword in Java, so “otherwise” must be
+The when() and otherwise() methods correspond to the WHEN and ELSE keywords
+from HQL. Unfortunately, “else” is already a keyword in Java, so “otherwise” must be
 used as a substitute.
 
 The next example simplifies the previous example down to the simple form of the
 CASE statement.
 
 ```sql
-SELECT p.name,
- CASE TYPE(p)
- WHEN DesignProject THEN 'Development'
- WHEN QualityProject THEN 'QA'
- ELSE 'Non-Development'
- END
-FROM Project p
-WHERE p.employees IS NOT EMPTY
+SELECT  p.name,
+        CASE TYPE(p)
+            WHEN DesignProject THEN 'Development'
+            WHEN QualityProject THEN 'QA'
+            ELSE 'Non-Development'
+        END
+FROM    Project p
+WHERE   p.employees IS NOT EMPTY
 ```
 
 In this case, we pass the primary expression to be tested to the selectCase()
@@ -999,21 +902,22 @@ now accept single-valued expressions that are compared to the base expression of
 CASE statement.
 
 ```java
-CriteriaQuery<Object[]> c = cb.createQuery(Object[].class);
-Root<Project> project = c.from(Project.class);
+CriteriaQuery<Object[]> c   = cb.createQuery(Object[].class);
+Root<Project> project       = c.from(Project.class);
+
 c.multiselect(project.get("name"),
- cb.selectCase(project.type())
- .when(DesignProject.class, "Development")
- .when(QualityProject.class, "QA")
- .otherwise("Non-Development"))
-.where(cb.isNotEmpty(project.<List<Employee>>("employees")));
+              cb.selectCase(project.type())
+                .when(DesignProject.class, "Development")
+                .when(QualityProject.class, "QA")
+                .otherwise("Non-Development"))
+ .where(cb.isNotEmpty(project.<List<Employee>>("employees")));
 ```
 
-The last example we cover in this section concerns the JP QL COALESCE expression.
+The last example we cover in this section concerns the HQL COALESCE expression.
 
 ```sql
-SELECT COALESCE(d.name, d.id)
-FROM Department d
+SELECT  COALESCE(d.name, d.id)
+FROM    Department d
 ```
 
 Building a COALESCE expression with the Criteria API requires a helper interface
@@ -1024,21 +928,22 @@ the value() method of to add values to the COALESCE expression. The following ex
 demonstrates this approach:
 
 ```java
-CriteriaQuery<Object> c = cb.createQuery();
-Root<Department> dept = c.from(Department.class);
+CriteriaQuery<Object> c     = cb.createQuery();
+Root<Department> dept       = c.from(Department.class);
+
 c.select(cb.coalesce()
- .value(dept.get("name"))
- .value(dept.get("id")));
+           .value(dept.get("name"))
+           .value(dept.get("id")));
 ```
 
 Convenience versions of the coalesce() method also exist for the case where only
 two expressions are being compared.
 
 ```java
-CriteriaQuery<Object> c = cb.createQuery();
-Root<Department> dept = c.from(Department.class);
+CriteriaQuery<Object> c     = cb.createQuery();
+Root<Department> dept       = c.from(Department.class);
 c.select(cb.coalesce(dept.get("name"),
- dept.get("id")));
+                     dept.get("id")));
 ```
 
 A final note about case expressions is that they are another exception to the rule that
@@ -1048,8 +953,8 @@ value() method adds an additional value to the coalesce list.
 
 ### 12.6.8 Izrazi sa funkcijama
 
-Not to be confused with the built-in functions of JP QL, criteria function expressions are
-the Criteria API equivalent of the FUNCTION keyword in JP QL. They allow native SQL
+Not to be confused with the built-in functions of HQL, criteria function expressions are
+the Criteria API equivalent of the FUNCTION keyword in HQL. They allow native SQL
 stored functions to be mixed with other Criteria API expressions. They are intended for
 cases where a limited amount of native SQL is required to satisfy some requirement but
 you don’t want to convert the entire query to SQL.
@@ -1062,8 +967,8 @@ the query. The following example invokes a database function to capitalize the f
 of each word in a department name:
 
 ```java
-CriteriaQuery<String> c = cb.createQuery(String.class);
-Root<Department> dept = c.from(Department.class);
+CriteriaQuery<String> c     = cb.createQuery(String.class);
+Root<Department> dept       = c.from(Department.class);
 c.select(cb.function("initcap", String.class, dept.get("name")));
 ```
 
@@ -1080,51 +985,59 @@ and desc() methods of the CriteriaBuilder interface, for ascending and descendin
 ordering, respectively. The following example demonstrates the orderBy() method:
 
 ```java
-CriteriaQuery<Tuple> c = cb.createQuery(Tuple.class);
-Root<Employee> emp = c.from(Employee.class);
-Join<Employee,Department> dept = emp.join("dept");
+CriteriaQuery<Tuple> c          = cb.createQuery(Tuple.class);
+Root<Employee> emp              = c.from(Employee.class);
+Join<Employee,Department> dept  = emp.join("dept");
+
 c.multiselect(dept.get("name"), emp.get("name"));
 c.orderBy(cb.desc(dept.get("name")),
- cb.asc(emp.get("name")));
+          cb.asc(emp.get("name")));
 ```
 
 Query ordering through the Criteria API is still subject to the same constraints as JP
 QL. The arguments to asc() and desc() must be single-valued expressions, typically
 formed from the state field of an entity. The order in which the arguments are passed to
-the orderBy() method determines the generation of SQL. The equivalent JP QL for the
+the orderBy() method determines the generation of SQL. The equivalent HQL for the
 query shown in the previous example is as follows:
 
-SELECT d.name, e.name
-FROM Employee e JOIN e.dept d
-ORDER BY d.name DESC, e.name
+```sql
+SELECT      d.name, 
+            e.name
+FROM        Employee e JOIN 
+            e.dept d
+ORDER BY    d.name DESC, 
+            e.name
+```
 
 ### 12.6.10 Klauze `GROUP BY` i `HAVING`
 
 The groupBy() and having() methods of the AbstractQuery interface are the Criteria
-API equivalent of the GROUP BY and HAVING clauses from JP QL, respectively. Both
+API equivalent of the GROUP BY and HAVING clauses from HQL, respectively. Both
 arguments accept one or more expressions that are used to group and filter the data.
 
 Here is how the GROUP BY clause is defined:
 
 ```
-groupby_clause ::= GROUP BY groupby_item {, groupby_item}*
-groupby_item ::= single_valued_path_expression | identification_variable
+groupby_clause  ::= GROUP BY groupby_item {, groupby_item}*
+groupby_item    ::= single_valued_path_expression | identification_variable
 ```
 
 Here is how the HAVING clause is defined:
 
 ```
-having_clause ::= HAVING conditional_expression
+having_clause   ::= HAVING conditional_expression
 ```
 
 By this point in the chapter, the usage pattern for these methods should be more
 intuitive to you. Consider the following example from the previous chapter:
 
 ```sql
-SELECT e, COUNT(p)
-FROM Employee e JOIN e.projects p
-GROUP BY e
-HAVING COUNT(p) >= 2
+SELECT      e, 
+            COUNT(p)
+FROM        Employee e JOIN 
+            e.projects p
+GROUP BY    e
+HAVING      COUNT(p) >= 2
 ```
 
 To re-create this example with the Criteria API, we need to use both aggregate
@@ -1132,10 +1045,15 @@ functions and the grouping methods. The following example demonstrates this
 conversion:
 
 ```java
-CriteriaQuery<Object[]> c = cb.createQuery(Object[].class);
-Root<Employee> emp = c.from(Employee.class);
-Join<Employee,Project> project = emp.join("projects");
+CriteriaQuery<Object[]> c       = cb.createQuery(Object[].class);
+Root<Employee> emp              = c.from(Employee.class);
+Join<Employee,Project> project  = emp.join("projects");
+
 c.multiselect(emp, cb.count(project))
-.groupBy(emp)
-.having(cb.ge(cb.count(project),2));
+ .groupBy(emp)
+ .having(cb.ge(cb.count(project), 2));
 ```
+
+{% include zadatak.html broj="12.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ." %}
+
+{% include zadatak.html broj="12.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ." %}

@@ -273,13 +273,13 @@ returns `Object` arrays in the results. This join results in a projection, thus 
 the `Object` arrays. You will have to access the contents of the `Object` arrays to get the
 `Supplier` and the `Product` objects.
 
-{% include zadatak.html broj="11.1" tekst="Dopuniti zadatak 10.4 tako da implementira ispisivanje podataka o svim ispitnim rokovima." %}
+{% include zadatak.html broj="11.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje podatke o svim ispitnim rokovima." %}
 
 Re\v senje: Zahtev je implementiran u metodu `readispitniRokovi()` klase `Main.java`:
 
 include_source(primeri/poglavlje_11/src/zadatak_11_1/Main.java, java)
 
-{% include zadatak.html broj="11.2" tekst="Dopuniti prethodni zadatak tako da implementira ispisivanje podataka o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
+{% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje podatke o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
 
 Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
 
@@ -785,7 +785,7 @@ public class Artikal {
 }
 ```
 
-{% include zadatak.html broj="11.3" tekst="Dopuniti prethodni zadatak tako da implementira ispisivanje naziva svih smerova. Nakon svakog naziva smera, ispisuju se indeks, ime i prezime svih studenata na tom smeru. Dopuniti ispis o studentu tako da se za svakog studenta ispisuje i prosek." %}
+{% include zadatak.html broj="11.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje nazive svih smerova. Nakon svakog naziva smera, ispisuju se indeks, ime, prezime i prosek svih studenata na tom smeru." %}
 
 Ovaj zahtev je do sada najsloženiji jer uvodi dosta novih klasa i preslikavanja. Za početak, s obzirom da su nam potrebni podaci iz tabela `DOSIJE` i `SMER` koje do sada nismo koristili, potrebno je da kreiramo klase `Student` i `Ispit`, i definišemo preslikavanja između njih i odgovarajućih tabela, kao i između samih klasa.
 
