@@ -320,108 +320,83 @@ for (Tuple t : q.getResultList()) {
 
 ## 12.5 Klauza `FROM`
 
-U sekciji 12.3.1, diskutovali smo o metodu `from()` iz interfejsa `AbstractQuery` kao i o ulogama korenova upita u formiranju definicije upita. Sada \'cemo pro\v siriti tu diskusiju i prikazati na\v cine na koje se operacije spajanja izra\v zavaju u JPA Criteria API.
+U sekciji 12.3.1, diskutovali smo o metodu `from()` iz interfejsa `AbstractQuery` kao i o ulogama korenova upita u formiranju definicije upita. Sada \'cemo pro\v siriti tu diskusiju i prikazati na\v cine na koje se izrazi spajanja izra\v zavaju u JPA Criteria API.
 
 ### 12.5.1 Unutra\v snja i spolja\v snja spajanja
 
-Join expressions are created using the join() method of the From interface, which is
-extended both by Root, which we covered earlier, and Join, which is the object type
-returned by creating join expressions. This means that any query root may join, and
-that joins may chain with one another. The join() method requires a path expression
-argument and optionally an argument to specify the type of join, JoinType.INNER or
-JoinType.LEFT, for inner and outer joins, respectively.
+Izrazi spajanja se kreiraju kori\v s\'cenjem metoda `join()` iz interfejsa `From` koji predstavlja roditelj interfejsa `Root`, o kojem smo diskutovali ranije, kao i interfejsa `Join`, koji predstavlja tip objekata koji se vra\'caju kreiranjem izraza spajanja. Ovo zna\v ci da proizvoljan koren upita mo\v ze da se spaja, kao i da spajanja mogu da se ulan\v cavaju. Metod `join()` zahteva izraz putanje kao argument i opciono, argument kojim se specifikuje tip spajanja: `JoinType.INNER` ili `JoinType.LEFT`, za unutra\v snja ili spolja\v snja spajanja, redom.
 
-When joining across a collection type (except for Map, which we discuss later in this
-chapter), the join will have two parameterized types: the type of the source and the type
-of the target. This maintains the type safety on both sides of the join, and makes it clear
-what types are being joined.
+Kada se vr\v se spajanja unakrst kolekcijskih tipova (sa izuzetkom `Map`), spajanje \'ce imati dva parametarska tipa: tip izvora i tip cilja. Ovim se odr\v zava sigurnost tipova sa obe strane spajanja i 
 
-The join() method is additive, so each call results in a new join being created;
-therefore, the Join instance returned from invoking the method should be retained in
-a local variable for forming path expressions later. Because Join also extends Path, it
-behaves like Root objects when defining paths.
+Metod `join()` je aditivan, \v sto zna\v ci da svaki poziv rezultuje novim spajanjem koji se kreira. Zbog toga, instanca tipa `Join` koja se vra\'ca kao povratna vrednost metoda bi trebalo biti sa\v cuvana kao lokalna promenljiva radi formiranja izraza putanja kasnije.
 
-In Listing 9-2, we demonstrated an outer join from Employee to Project.
+Naredni primer ilustruje spolja\v snje spajanje od `Student` ka `Ispit`:
 
 ```java
-Join<Employee,Project> project = emp.join("projects", JoinType.LEFT);
+Root<Student> stud          = c.from(Student.class);
+Join<Student,Ispit> ispit   = stud.join("indeks", JoinType.LEFT);
 ```
 
-Had the JoinType.LEFT argument been omitted, the join type would have defaulted
-to be an inner join. Just as in HQL, multiple joins may be associated with the same
-From instance. For example, to navigate across the directs relationship of Employee and 
-then to both the Department and Project entities would require the following, which
-assumes inner joining:
+Da smo izostavili argument `JoinType.LEFT`, spajanje bi podrazumevano bilo unutra\v snje. Poput HQL-a, vi\v sestruka spajanja se mogu asocirati za istu `From` instancu. Na primer, za navigaciju kroz `Ispit` i `Smer`, potrebno je koristiti naredni kod, koji pretpostavlja unutra\v snja spajanja:
 
 ```java
-Join<Employee,Employee> directs = emp.join("directs");
-Join<Employee,Project> projects = directs.join("projects");
-Join<Employee,Department> dept = directs.join("dept");
+Root<Student> stud          = c.from(Student.class);
+Join<Student,Ispit> ispit   = stud.join("indeks");
+Join<Student,Smer> smer     = stud.join("id_smera");
 ```
 
-Joins may also be cascaded in a single statement. The resulting join will be typed by
-the source and target of the last join in the statement:
+Spajanja se tako\dj e mogu ulan\v cavati u jednu naredbu. Rezultuju\'ce spajanje \'ce biti tipizirano tipom izvora i tipom cilja poslednjeg spajanja u naredbi:
 
 ```java
-Join<Employee,Project> project = dept.join("employees").join("projects");
+Root<Smer> smer             = c.from(Smer.class);
+Join<Student,Ispit> ispiti  = smer.join("studentiNaSmeru").join("ispiti");
 ```
 
-Joins across collection relationships that use Map are a special case. HQL uses the
-KEY and VALUE keywords to extract the key or value of a Map element for use in other parts
-of the query. In the Criteria API, these operators are handled by the key() and value()
-methods of the MapJoin interface. Consider the following example assuming a Map join
-across the phones relationship of the Employee entity:
+Joins across collection relationships that use `Map` are a special case. HQL uses the `KEY` and `VALUE` keywords to extract the key or value of a `Map` element for use in other parts of the query. In the JPA Criteria API, these operators are handled by the `key()` and `value()` methods of the `MapJoin` interface. Consider the following example assuming a `Map` join across the phones relationship of the `Employee` entity:
 
 ```sql
-SELECT e.name, KEY(p), VALUE(p)
-FROM Employee e JOIN e.phones p
+SELECT  e.name, 
+        KEY(p), 
+        VALUE(p)
+FROM    Employee e JOIN 
+        e.phones p
 ```
 
-To create this query using the Criteria API, we need to capture the result of the join as
-a MapJoin, in this case using the joinMap() method. The MapJoin object has three type
-parameters: the source type, key type, and value type. It can look a little more daunting,
-but makes it explicit what types are involved.
+To create this query using the JPA Criteria API, we need to capture the result of the join as a `MapJoin`, in this case using the `joinMap()` method. The `MapJoin` object has three type parameters: the source type, key type, and value type. It can look a little more daunting, but makes it explicit what types are involved.
 
 ```java
-CriteriaQuery<Object> c = cb.createQuery();
-Root<Employee> emp = c.from(Employee.class);
-MapJoin<Employee,String,Phone> phone = emp.joinMap("phones");
-c.multiselect(emp.get("name"), phone.key(), phone.value());
+CriteriaQuery<Object> c                 = cb.createQuery();
+Root<Employee> emp                      = c.from(Employee.class);
+MapJoin<Employee,String,Phone> phone    = emp.joinMap("phones");
+
+c.multiselect(emp.get("name"), 
+              phone.key(), 
+              phone.value());
 ```
 
-We need to use the joinMap() method in this case because there is no way to
-overload the join() method to return a Join object or MapJoin object when all we are
-passing in is the name of the attribute. Collection, Set, and List relationships are
-likewise handled with the joinCollection(), joinSet(), and joinList() methods for
-those cases where a specific join interface must be used. The strongly typed version of
-the join() method, which we demonstrate later, is able to handle all join types though
-the single join() call.
+We need to use the `joinMap()` method in this case because there is no way to overload the `join()` method to return a `Join` object or `MapJoin` object when all we are passing in is the name of the attribute. `Collection`, `Set`, and `List` relationships are likewise handled with the `joinCollection()`, `joinSet()`, and `joinList()` methods for those cases where a specific join interface must be used. The strongly typed version of
+the `join()` method, which we demonstrate later, is able to handle all join types though the single `join()` call.
 
 ## 12.6 Klauza `WHERE`
 
-As you saw in Table 9-1 and in several examples, the WHERE clause of a query in the
-Criteria API is set through the where() method of the AbstractQuery interface.
-The where() method accepts either zero or more Predicate objects, or a single 
-Expression<Boolean> argument. Each call to where() will render any previously set
-WHERE expressions to be discarded and replaced with the newly passed-in ones.
+Kao \v sto smo videli u nekim primerima, klauza `WHERE` u JPA Criteria API upitu se postavlja metodom `where()` iz interfejsa `AbstractQuery`. Metod `where()` ima dve varijante u zavisnosti od toga \v sta prihvata: 
 
-Here is how the WHERE clause is defined:
+- Nula ili vi\v se `Predicate` objekata 
+- Jedan argument tipa `Expression<Boolean>`
+
+Svaki poziv metoda `where()` \'ce poni\v stiti sve druge `WHERE` klauze koje su postavljene prethodnim pozivima metoda `where()` i konstruisa\'ce nov skup ograni\v cenja na osnovu novoprosle\dj enih kriterijuma.
+
+Definicija `WHERE` klauze je data u nastavku:
 
 ```
 where_clause ::= WHERE conditional_expression
 ```
 
+Sada \'cemo videti na koje na\v cine je mogu\'ce konstruisati ograni\v cenja koja se prosle\dj uju metodu `where()`.
+
 ### 12.6.1 Konstrukcija izraza
 
-The key to building up expressions with the Criteria API is the CriteriaBuilder
-interface. This interface contains methods for all of the predicates, expressions, and
-functions supported by the HQL language as well as other features specific to the
-Criteria API. Table 9-2, Table 9-3, Table 9-4, and Table 9-5 summarize the mapping
-between HQL operators, expressions, and functions to their equivalent methods on
-the CriteriaBuilder interface. Note that in some cases there is no direct equal to a
-method and a combination of CriteriaBuilder methods is required to get the same
-result. In other cases, the equivalent criteria method is actually on a class other than
-CriteriaBuilder.
+Klju\v c za konstruisanje izraza u okviru JPA Criteria API je interfejs `CriteriaBuilder`. Ovaj interfejs sadr\v zi metode za sve predikate, izraze i funkcije koje HQL podr\v zava kao i druge karakteristike specifi\v cne za JPA Criteria API. Naredne tabele sumiraju preslikavanja izme\dj u HQL operatora, izraza i funkcija u njihove ekvivalentne metode interfejsa `CriteriaBuilder`. Primetimo da u nekim slu\v cajevima ne postoji direktna jednakost izme\dj u HQL operatora i metoda, ve\'c je neophodno koristiti kombinaciju metoda iz `CriteriaBuilder` kako bismo ostvarili isti rezultat. U nekim drugim slu\v cajevima, ekvivalentan metod za JPA Criteria API se nalazi u interfejsu koji nije `CriteriaBuilder`.
 
 HQL to CriteriaBuilder Predicate Mapping:
 
@@ -495,27 +470,39 @@ HQL to CriteriaBuilder Aggregate Function Mapping:
 | COUNT | count() |
 | COUNT DISTINCT | countDistinct() |
 
-In addition to the straight translation of HQL operators, expressions, and functions,
-there are some techniques specific to the Criteria API that need to be considered when
-developing expressions. The following sections look at these techniques in detail and
-explore those parts of the Criteria API that have no equivalent in HQL.
+Pored direktnog prevo\dj enja HQL operatora, izraza i funkcija, postoje neke tehnike koje su specifi\v cne za JPA Criteria API koje je potrebno uzeti u obzir prilikom konstrukcije izraza. Slede\'ce sekcije detaljno razmatraju ove tehnike.
 
 ### 12.6.2 Predikati
 
-In Listing 9-2, we passed an array of Predicate objects to the and() method. This has the
-behavior of combining all of the expressions with the AND operator. Equivalent behavior
-for the OR operator exists via the or() method. One shortcut that works for AND operators
-is to pass all of the expressions as arguments to the where() method. Passing multiple
-arguments to where() implicitly combines the expressions using AND operator semantics.
+U narednom primeru, prosledili smo niz objekata `Predicate` metodu `and()`. Ovim se dobija pona\v sanje koje kombinuje sve izraze operatorom `AND`. Ekvivalentno pona\v sanje, samo za operatom `OR`, ostvaruje se metodom `or()`. Postoji pre\v cica koja radi za `AND` operator, a to je da se svi izrazi proslede kao argumenti metodu `where()`. Ovaj pristup \'ce implicitno kombinovati izraze kori\v s\'cenjem semantike operatora `AND`.
 
-The Criteria API also offers a different style of building AND and OR expressions for
-those who wish to build things incrementally rather than as a list. The conjunction()
-and disjunction() methods of the CriteriaBuilder interface create Predicate objects
-that always resolve to true and false, respectively. Once obtained, these primitive
-predicates can then be combined with other predicates to build up nested conditional
-expressions in a tree-like fashion. Listing 9-3 rewrites the predication construction
-portion of the example from Listing 9-2 using the conjunction() method. Note how
-each conditional statement is combined with its predecessor using an and() call.
+```java
+List<Predicate> criteria = new ArrayList<Predicate>();
+if (name != null) {
+    ParameterExpression<String> p = cb.parameter(String.class, "name");
+    criteria.add(cb.equal(emp.get("name"), p));
+}
+if (deptName != null) {
+    ParameterExpression<String> p = cb.parameter(String.class, "dept");
+    criteria.add(cb.equal(emp.get("dept").get("name"), p));
+}
+
+if (criteria.size() == 0) {
+    throw new RuntimeException("no criteria");
+} else if (criteria.size() == 1) {
+    c.where(criteria.get(0));
+} else {
+    c.where(cb.and(criteria.toArray(new Predicate[0])));
+}
+
+TypedQuery<Employee> q = em.createQuery(c);
+if (name != null) { q.setParameter("name", name); }
+if (deptName != null) { q.setParameter("dept", deptName); }
+
+// ...
+```
+
+The Criteria API also offers a different style of building `AND` and `OR` expressions for those who wish to build things incrementally rather than as a list. The `conjunction()` and `disjunction()` methods of the `CriteriaBuilder` interface create `Predicate` objects that always resolve to `true` and `false`, respectively. Once obtained, these primitive predicates can then be combined with other predicates to build up nested conditional expressions in a tree-like fashion. The following example rewrites the predication construction portion of the previous example using the `conjunction()` method. Note how each conditional statement is combined with its predecessor using an `and()` call.
 
 ```java
 Predicate criteria = cb.conjunction();
@@ -530,27 +517,11 @@ if (deptName != null) {
     criteria = cb.and(criteria,
                       cb.equal(emp.get("dept").get("name"), p));
 }
-if (projectName != null) {
-    ParameterExpression<String> p =
-        cb.parameter(String.class, "project");
-    criteria = cb.and(criteria, cb.equal(project.get("name"), p));
-}
-if (city != null) {
-    ParameterExpression<String> p =
-        cb.parameter(String.class, "city");
-    criteria = cb.and(criteria,
-                      cb.equal(emp.get("address").get("city"), p));
-}
-if (criteria.getExpressions().size() == 0) {
-    throw new RuntimeException("no criteria");
-}
+
+// ...
 ```
 
-With respect to other predicate concerns, in Table 9-2 it should be noted that
-there are two sets of methods available for relative comparisons. For example, there is
-greaterThan() and gt(). The two-letter forms are specific to numeric values and are
-strongly typed to work with number types. The long forms must be used for all other
-cases.
+\v Sto se ti\v ce ostalih predikata, u tabelama za predikate iznad treba napomenuti da postoje dva skupa metoda koji su dostupni za relaciona pore\dj enja. Na primer, postoje metodi `greaterThan()` i `gt()`. Metodi koji imaju naziv od dva karaktera su specifi\v cni za numeri\v cke vrednosti i strogo su tipizirani da rade sa brojevima. Metodi koji pripadaju skupu sa du\v zim nazivom se mogu koristiti u svim ostalim slu\v cajevima.
 
 ### 12.6.3 Doslovne vrednosti
 
@@ -560,7 +531,9 @@ objects and Java literals. However, there may be some cases where only an Expres
 object is accepted (in cases where it is assumed you would never pass in a literal value
 or when any of a number of types would be acceptable). If you encounter this situation
 then, to use these expressions with Java literals, the literals must be wrapped using the
-literal() method. NULL literals are created from the nullLiteral() method, which
+literal() method. 
+
+NULL literals are created from the nullLiteral() method, which
 accepts a class parameter and produces a typed version of NULL to match the passed-in
 class. This is necessary to extend the strong typing of the API to NULL values.
 
