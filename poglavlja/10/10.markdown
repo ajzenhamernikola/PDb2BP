@@ -211,7 +211,7 @@ name, make sure you pass that as an argument — like `configure("my-hib-cfg.xml
 
 ## 10.4 Objektno-relaciono preslikavanje jedne klase
 
-{% include zadatak.html broj="10.1" tekst="Napisati Hibernate program kojim se unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele." %}
+{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele." %}
 
 | Kolona | Vrednost |
 | --- | --- |
@@ -477,7 +477,7 @@ public void delete(Object object)
 Argument ovog metoda je trajni objekat. Naravno, postoje i složeniji metodi brisanja
 podataka.
 
-{% include zadatak.html broj="10.2" tekst="Dopuniti prethodni zadatak tako da implementira brisanje podataka o prethodno unetom smeru iz tabele `SMER`." %}
+{% include zadatak.html broj="10.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate bri\v se podatke o smeru sa identifikatorom 300 iz tabele `SMER`." %}
 
 Re\v senje: Kako smo ve\'c napisali OR preslikavanje izme\dj u klase `Smer` i tabele `SMER`, sve \v sto je potrebno da uradimo jeste da kreiramo stati\v cki metod `deleteSmer()` u glavnoj klasi `Main.java` i pozovemo ga u metodi `main`. Prikazujemo dopunjenu klasu `Main.java`:
 
@@ -659,7 +659,7 @@ public class IdClassBook {
 }
 ```
 
-{% include zadatak.html broj="10.3" tekst="Dopuniti prethodni zadatak tako da implementira unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`." %}
+{% include zadatak.html broj="10.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate implementira unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`." %}
 
 Re\v senje: Potrebno je da prvo napravimo klasu
 koja će predstavljati složeni ključ. Nazovimo je `IspitniRokId`. U nastavku je data njena
@@ -694,7 +694,7 @@ Ne zaboravimo da dodamo `IspitniRok` kao anotiranu klasu u konfiguraciju:
 
 include_source(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
 
-{% include zadatak.html broj="10.4" tekst="Dopuniti prethodni zadatak tako da implementira brisanje prethodno unetog ispitnog toka iz tabele `ISPITNI_ROK`." %}
+{% include zadatak.html broj="10.4" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate bri\v se ispitni rok jun 2019. iz tabele `ISPITNI_ROK`." %}
 
 Re\v senje: Sa svim znanjem do sada, ovaj zahtev se trivijalno implementira. Prikazujemo samo
 ažuriranu klasu `Main.java` i skrećemo pažnju na njen metod `deleteIspitniRok()` koji
