@@ -44,6 +44,7 @@ public class Main {
 
     private static void obrisiNeuspesnaPolaganja(Connection con, Scanner ulaz)
             throws SQLException, IOException {
+        // Koristimo TYPE_SCROLL_SENSITIVE jer upit sadrzi ORDER BY klauzu.
         Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         String sql = ucitajSqlIzDatoteke();
         ResultSet kursor = stmt.executeQuery(sql);
