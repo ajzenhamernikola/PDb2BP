@@ -270,6 +270,8 @@ Re\v senje: Da bismo implementirali date zahteve, potrebno je da pamtimo koje sm
 
 include_source(primeri/poglavlje_9/src/zadatak_9_4/Main.java, java)
 
+include_source(primeri/poglavlje_9/src/zadatak_9_4/upit.sql, sql)
+
 ## 9.3 Povezivanje na više baza podataka
 
 Upravljanje podacima nad više baza podataka u JDBC aplikacijama je značajno jednostavnije
