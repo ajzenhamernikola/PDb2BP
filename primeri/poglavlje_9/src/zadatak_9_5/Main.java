@@ -137,7 +137,7 @@ public class Main {
         int indeks = 0;
         Statement stmt = con.createStatement();
         ResultSet rez = stmt.executeQuery(
-                "SELECT  MAX(INDEKS) " + 
+                "SELECT  MIN(INDEKS) " + 
                 "FROM    DOSIJE");
 
         boolean dohvacenIndeks = rez.next();
@@ -151,7 +151,7 @@ public class Main {
 
         int brojObrisanih = stmt.executeUpdate(
                 "DELETE  FROM ISPIT " + 
-                "WHERE   INDEKS = (SELECT MAX(INDEKS) FROM DOSIJE)");
+                "WHERE   INDEKS = (SELECT MIN(INDEKS) FROM DOSIJE)");
         System.out.println("Broj obrisanih redova: " + brojObrisanih);
 
         stmt.close();

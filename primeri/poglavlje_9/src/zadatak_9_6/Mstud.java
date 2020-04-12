@@ -34,7 +34,7 @@ public class Mstud extends Database {
 
         Statement stmt = con.createStatement();
 
-        ResultSet rez = stmt.executeQuery("SELECT max(indeks) FROM dosije ");
+        ResultSet rez = stmt.executeQuery("SELECT min(indeks) FROM dosije ");
 
         boolean dohvacenIndeks = rez.next();
         if (!dohvacenIndeks) {
@@ -47,7 +47,7 @@ public class Mstud extends Database {
 
         int brojObrisanih = stmt.executeUpdate(
                 "DELETE FROM ispit " + 
-                "WHERE indeks = (SELECT max(indeks) FROM dosije)");
+                "WHERE indeks = (SELECT min(indeks) FROM dosije)");
 
         System.out.println("Broj obrisanih redova: " + brojObrisanih);
 

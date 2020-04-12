@@ -295,7 +295,7 @@ Naredni primer ilustruje korišćenje dve baze podataka: `VSTUD` i `MSTUD`.
 2. Iz baze mstud izdvaja indeks, ime i prezime studenata koji su položili sve predmete koji nose više od `B` bodova.\n
 3. Zatim, zahteva od korisnika da unese ocenu `O` (ceo broj od 6 do 10).\n
 4. Iz baze vstud izlistava indeks, naziv, ocenu, godinu i oznaku ispitnog roka za sve studente koji nikada nisu dobili ocenu manju nego što je ocena `O`.\n
-5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa maksimalnim brojem indeksa `I` iz dosije, i vraća `I`.\n
+5. Nakon ispisivanja tih podataka, u bazi mstud, iz tabele ispit briše sva polaganja za studenta sa najmanjim brojem indeksa `I` iz dosije, i vraća `I`.\n
 6. Na kraju, u bazi vstud, u tabeli predmet za sve predmete koje je položio student sa brojem indeksa `I`, uvećava broj bodova za jedan (osim ako je broj bodova veći od 10, tada ostavlja nepromenjeno stanje)." %}
 
 Re\v senje: Datoteka `Main.java` implementira navedene funkcionalnosti, dok prate\'ce `*.sql` datoteke sadr\v ze SQL naredbe koje se koriste u re\v senju.
