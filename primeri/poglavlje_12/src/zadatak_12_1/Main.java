@@ -41,7 +41,7 @@ public class Main {
             Root<Student> st = criteria.from(Student.class);
             criteria.select(st);
             // Bez duplikata
-            criteria.distinct(false);
+            criteria.distinct(true);
             // Cije ime ili prezime pocinju na slovo 'P'
             Predicate p1 = cb.or(cb.like(st.get("ime"), "P%"), 
                                  cb.like(st.get("prezime"), "P%"));
@@ -93,7 +93,7 @@ public class Main {
             Root<Student> st = criteria.from(Student.class);
             // Izdvojiti informacije o mestu stanovanja, imenu, prezimenu i indeksu
             criteria.multiselect(st.get("mestoStanovanja"), st.get("ime"), st.get("prezime"), st.get("indeks"));
-            criteria.distinct(false);
+            criteria.distinct(true);
             
             // Cije ime ili prezime pocinju na slovo 'P'
             Predicate p1 = cb.or(cb.like(st.get("ime"), "P%"), 
