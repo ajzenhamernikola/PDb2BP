@@ -82,10 +82,10 @@ class Main {
 
         // Zatvaramo sesiju
         session.close();
-	}
+    }
 	
-	private static void updateSmer() {
-		Session session = HibernateUtil.getSessionFactory().openSession();
+    private static void updateSmer() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
 
         // Ucitavanje (dohvatanje) smera na osnovu primarnog kljuca
         Smer s = session.get(Smer.class, 300);
@@ -115,7 +115,7 @@ class Main {
         } finally {
             session.close();
         }
-        }
+    }
 
     private static void deleteSmer() {
         Session session = HibernateUtil.getSessionFactory().openSession();
