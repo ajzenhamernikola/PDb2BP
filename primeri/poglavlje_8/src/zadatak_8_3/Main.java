@@ -13,19 +13,20 @@ public class Main {
     }
 
     public static void main(String argv[]) {
-        Connection con = null;
         String url = "jdbc:db2://localhost:50001/vstud";
 
-        try {
-            con = DriverManager.getConnection(url, "student", "abcdef");
-            
+        try (
+        		Connection con = DriverManager.getConnection(url, "student", "abcdef");
+        		Scanner ulaz = new Scanner(System.in);
+    		) 
+        {
             // JDBC koristi iskljucivo dinamicke SQL naredbe,
             // tako da se u JDBC ne koriste maticne promenljive.
             // S obzirom da su vrednosti za bodove u klauzama SET i WHERE
             // nepoznate do faze izvrsavanja,
             // potrebno je da koristimo parametarske oznake na tim mestima.
             String updateStr = 
-                "UPDATE PREDMET" + 
+                "UPDATE PREDMET " + 
                 "SET    BODOVI = ? " + 
                 "WHERE  BODOVI = ?";
             // Zbog toga moramo da koristimo interfejs PreparedStatement,
@@ -35,10 +36,8 @@ public class Main {
             // Postavljamo odgovarajuce vrednosti za parametarske oznake
             // na osnovu procitanih vrednosti sa standardnog ulaza.
             int x, y;
-            try (Scanner ulaz = new Scanner(System.in)) {
-                x = ulaz.nextInt();
-                y = ulaz.nextInt();
-            }
+            x = ulaz.nextInt();
+            y = ulaz.nextInt();
             
             // Prvu parametarsku oznaku menjamo celim brojem y.
             pUpd.setInt(1, y);
@@ -52,31 +51,15 @@ public class Main {
             System.out.println("Broj azuriranih redova: " + numRows);
 
             pUpd.close();
-
-            con.close();
         } catch (SQLException e) {
             e.printStackTrace();
 
             System.out.println("SQLCODE: " + e.getErrorCode() + "\n" + "SQLSTATE: " + e.getSQLState() + "\n"
                     + "PORUKA: " + e.getMessage());
 
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
-
             System.exit(1);
         } catch (Exception e) {
             e.printStackTrace();
-
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
 
             System.exit(2);
         }

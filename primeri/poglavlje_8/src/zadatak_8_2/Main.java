@@ -12,12 +12,9 @@ public class Main {
     }
 
     public static void main(String argv[]) {
-        Connection con = null;
         String url = "jdbc:db2://localhost:50001/vstud";
 
-        try {
-            con = DriverManager.getConnection(url, "student", "abcdef");
-            
+        try (Connection con = DriverManager.getConnection(url, "student", "abcdef");) {
             // Zelimo da izvrsimo INSERT naredbu
             // u kojoj su sve informacije poznate.
             // To znaci da mozemo koristiti kombinaciju
@@ -37,31 +34,15 @@ public class Main {
             System.out.println("Broj unetih redova: " + insertCount);
 
             stmt.close();
-
-            con.close();
         } catch (SQLException e) {
             e.printStackTrace();
 
             System.out.println("SQLCODE: " + e.getErrorCode() + "\n" + "SQLSTATE: " + e.getSQLState() + "\n"
                     + "PORUKA: " + e.getMessage());
 
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
-
             System.exit(1);
         } catch (Exception e) {
             e.printStackTrace();
-
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
 
             System.exit(2);
         }

@@ -15,17 +15,16 @@ public class Main {
     }
 
     public static void main(String argv[]) {
-        // Objekat koji ce sadrzati konekciju
-        Connection con = null;
         // URL za JDBC konekciju tipa 4
         String url = "jdbc:db2://localhost:50001/vstud";
 
-        try {
-            // Kreiramo konekciju na bazi podataka zadatoj u promenljivoj url,
-            // koriscenjem metoda DriverManager.getConnection.
-            // Argumenti za korisnicko ime i lozinku su obavezni!
-            con = DriverManager.getConnection(url, "student", "abcdef");
-
+        // Objekat koji ce sadrzati konekciju
+        // Kreiramo konekciju na bazi podataka zadatoj u promenljivoj url,
+        // koriscenjem metoda DriverManager.getConnection.
+        // Argumenti za korisnicko ime i lozinku su obavezni!
+        // try-with-resources vodi racuna o otvorenim resursima
+        // i zatvara ih na kraju try-catch bloka
+        try (Connection con = DriverManager.getConnection(url, "student", "abcdef");) {
             // Kreiramo objekat naredbe (Statement)
             Statement stmt = con.createStatement();
 
@@ -63,9 +62,6 @@ public class Main {
             rs.close();
             // Zatvaramo naredbu
             stmt.close();
-
-            // Raskidamo konekciju sa bazom podataka
-            con.close();
         }
         // Obrada SQL gresaka
         catch (SQLException e) {
@@ -74,14 +70,6 @@ public class Main {
 
             System.out.println("SQLCODE: " + e.getErrorCode() + "\n" + "SQLSTATE: " + e.getSQLState() + "\n"
                     + "PORUKA: " + e.getMessage());
-            
-            // Raskidamo konekciju sa bazom podataka
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
 
             // Signaliziramo neuspesan zavrsetak programa
             System.exit(1);
@@ -90,14 +78,6 @@ public class Main {
         catch (Exception e) {
             e.printStackTrace();
             
-            // Isto kao u prethodnoj catch klauzi
-            try {
-                if (null != con) {
-                    con.close();
-                }
-            } catch (SQLException e2) {
-            }
-
             // Signaliziramo neuspesan zavrsetak programa
             System.exit(2);
         }
