@@ -42,6 +42,23 @@ class Smer {
     @Column(name = "opis", nullable = true)
     private String Opis;
 
+
+    public Smer() {
+	}
+    
+    public Smer(int id_smera, String oznaka, String naziv, Integer semestara, Integer bodovi, Integer nivo,
+			String zvanje, String opis) {
+		this.id_smera = id_smera;
+		Oznaka = oznaka;
+		Naziv = naziv;
+		Semestara = semestara;
+		Bodovi = bodovi;
+		Nivo = nivo;
+		Zvanje = zvanje;
+		Opis = opis;
+	}
+
+
     // Automatski generisani dohvatacki i postavljacki metodi:
     // 1. Desni klik na prazan deo koda
     // 2. Source > Generate Getters and Setters...
@@ -52,7 +69,7 @@ class Smer {
         return id_smera;
     }
 
-    public void setId_smera(int id_smera) {
+	public void setId_smera(int id_smera) {
         this.id_smera = id_smera;
     }
 
@@ -112,4 +129,11 @@ class Smer {
         Opis = opis;
     }
 
+	@Override
+	public String toString() {
+		return "Smer [id_smera=" + id_smera + ", Oznaka=" + Oznaka + ", Naziv=" + Naziv + ", Semestara=" + Semestara
+				+ ", Bodovi=" + Bodovi + ", Nivo=" + Nivo + ", Zvanje=" + Zvanje + ", Opis=" + Opis + "]";
+	}
+
+    
 }
