@@ -6,6 +6,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
+// Anotacija @Table je neophodna jer se ime klase i ime tabele razlikuju.
 @Table(name = "ispitni_rok")
 class IspitniRok {
     // Za primarni kljuc koristimo instancu klase IspitniRokId,

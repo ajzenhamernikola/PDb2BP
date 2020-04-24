@@ -6,7 +6,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 // Svaki trajni objekat mora biti dekorisan anotacijom @Entity. 
-// Anotacija @Table je neophodna jer se ime klase i ime tabele razlikuju.
+// Anotacija @Table nije neophodna jer se ime klase i ime tabele ne razlikuju.
 @Entity
 @Table(name = "SMER")
 class Smer {
