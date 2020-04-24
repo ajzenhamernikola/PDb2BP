@@ -1,4 +1,4 @@
-package zadatak_10_4;
+package zadatak_10_2;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -8,7 +8,9 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "ispitni_rok")
 class IspitniRok {
-    // Primarni kljuc
+    // Za primarni kljuc koristimo instancu klase IspitniRokId,
+    // s obzirom da ova tabela ima slozeni kljuc.
+    // Pogledati klasu IspitniRokId za jos informacija.
 
     @Id
     private IspitniRokId id = null;
@@ -65,6 +67,8 @@ class IspitniRok {
         return Tip;
     }
 
+    // Zelimo da podrzimo automatsko biranje tipa
+    // ukoliko korisnik prosledi null.
     public void setTip(String tip) {
         if (tip == null) {
             Tip = "B";

@@ -11,8 +11,8 @@ class HibernateUtil {
     static {
         try {
             StandardServiceRegistry registry = new StandardServiceRegistryBuilder().configure().build();
-            sessionFactory = new MetadataSources(registry).addAnnotatedClass(Smer.class).buildMetadata()
-                    .buildSessionFactory();
+            sessionFactory = new MetadataSources(registry).addAnnotatedClass(Smer.class)
+                    .addAnnotatedClass(IspitniRok.class).buildMetadata().buildSessionFactory();
         } catch (Throwable e) {
             System.err.println("Session factory error");
             e.printStackTrace();
