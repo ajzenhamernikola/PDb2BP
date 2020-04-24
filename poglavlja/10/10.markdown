@@ -213,12 +213,12 @@ name, make sure you pass that as an argument — like `configure("my-hib-cfg.xml
 
 ## 10.4 Objektno-relaciono preslikavanje jedne klase
 
-{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate redom:
-1. unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele,
-2. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
-3. ažurira podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
-4. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`, 
-5. briše podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
+{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate redom:\n
+1. unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele,\n
+2. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`,\n
+3. ažurira podatke o smeru sa identifikatorom `300` iz tabele `SMER`,\n
+4. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`, \n
+5. briše podatke o smeru sa identifikatorom `300` iz tabele `SMER`,\n
 6. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`." %}
 
 | Kolona | Vrednost |
