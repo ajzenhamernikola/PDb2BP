@@ -102,6 +102,18 @@ public static void main(String argv[]) {
 }
 ```
 
+Možemo koristiti i try-with-resources naredbu u okviru koje ćemo otvoriti konekciju. Naredba se stara o otvorenim resursima i na kraju ih automatski zatvara. Neophodno je da deklarisani resursi implementiraju interfejs `AutoClosable`. 
+
+```java
+public static void main(String argv[]) {
+    String url = "jdbc:db2://localhost:50001/vstud";
+    try (Connection con = DriverManager.getConnection(url, "student", "abcdef")) {
+
+        // Do something...
+    }
+}
+```
+
 ## 8.2 Obrada SQL grešaka
 
 Just like any Java program, in JDBC, exception handling is done using the try-catch

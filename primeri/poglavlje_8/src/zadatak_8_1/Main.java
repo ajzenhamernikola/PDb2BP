@@ -24,7 +24,7 @@ public class Main {
         // Argumenti za korisnicko ime i lozinku su obavezni!
         // try-with-resources vodi racuna o otvorenim resursima
         // i zatvara ih na kraju try-catch bloka
-        try (Connection con = DriverManager.getConnection(url, "student", "abcdef");) {
+        try (Connection con = DriverManager.getConnection(url, "student", "abcdef")) {
             // Kreiramo objekat naredbe (Statement)
             Statement stmt = con.createStatement();
 

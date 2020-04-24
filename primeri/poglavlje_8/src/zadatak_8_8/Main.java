@@ -27,7 +27,7 @@ public class Main {
         String url = "jdbc:db2://localhost:50001/vstud";
         ArrayList<StatistikaPolaganja> statistike = new ArrayList<>();
 
-        try (Connection con = DriverManager.getConnection(url, "student", "abcdef");) {
+        try (Connection con = DriverManager.getConnection(url, "student", "abcdef")) {
             
             kreiraj_tabelu(con);
             sakupi_statistiku(con, statistike);

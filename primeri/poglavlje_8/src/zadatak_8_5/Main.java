@@ -14,7 +14,7 @@ public class Main {
     public static void main(String argv[]) {
     	String url = "jdbc:db2://localhost:50001/vstud";
 
-        try (Connection con = DriverManager.getConnection(url, "student", "abcdef");) {
+        try (Connection con = DriverManager.getConnection(url, "student", "abcdef")) {
             
             Statement stmt = con.createStatement();
             String queryStr = 

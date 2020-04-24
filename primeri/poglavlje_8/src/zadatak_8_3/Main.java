@@ -18,8 +18,7 @@ public class Main {
         try (
         		Connection con = DriverManager.getConnection(url, "student", "abcdef");
         		Scanner ulaz = new Scanner(System.in);
-    		) 
-        {
+    		) {
             // JDBC koristi iskljucivo dinamicke SQL naredbe,
             // tako da se u JDBC ne koriste maticne promenljive.
             // S obzirom da su vrednosti za bodove u klauzama SET i WHERE
