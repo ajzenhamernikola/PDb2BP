@@ -680,16 +680,16 @@ koristiti ovaj metod nego implementirati svoju heš funkciju.
 
 Cela implementacija je data u nastavku:
 
-include_source(primeri/poglavlje_10/src/zadatak_10_3/IspitniRokId.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_2/IspitniRokId.java, java)
 
 Zatim je potrebno specifikovati instancu ove klase kao primarni ključ klase `IspitniRok.java`, 
 koju takođe kreiramo:
 
-include_source(primeri/poglavlje_10/src/zadatak_10_3/IspitniRok.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_2/IspitniRok.java, java)
 
 Ne zaboravimo da dodamo `IspitniRok` kao anotiranu klasu u konfiguraciju:
 
-include_source(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_2/HibernateUtil.java, java)
 
 Definisane klase se sada jednostavno koriste u metodima `insertIspitniRok()` i `deleteIspitniRok()` proširene klase `Main.java` iz prethodnog primera:
 
