@@ -213,7 +213,8 @@ name, make sure you pass that as an argument — like `configure("my-hib-cfg.xml
 
 ## 10.4 Objektno-relaciono preslikavanje jedne klase
 
-{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate redom:\n
+{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate redom: \n
+\n
 1. unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele,\n
 2. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`,\n
 3. ažurira podatke o smeru sa identifikatorom `300` iz tabele `SMER`,\n
