@@ -70,52 +70,52 @@ class Main {
 		Session session = HibernateUtil.getSessionFactory().openSession();
 		
         // Ucitavanje (dohvatanje) smera na osnovu primarnog kljuca
-		Smer s = session.get(Smer.class, 300);
-		
-		// Provera da li postoji odgovarajuci slog u tabeli
-		if (s != null) {
-			System.out.println(s);
-		}
-		else {
-			System.out.println("Smer ne postoji!");
-		}
-		
-		// Zatvaramo sesiju
-		session.close();
+        Smer s = session.get(Smer.class, 300);
+
+        // Provera da li postoji odgovarajuci slog u tabeli
+        if (s != null) {
+            System.out.println(s);
+        }
+        else {
+            System.out.println("Smer ne postoji!");
+        }
+
+        // Zatvaramo sesiju
+        session.close();
 	}
 	
 	private static void updateSmer() {
 		Session session = HibernateUtil.getSessionFactory().openSession();
 
         // Ucitavanje (dohvatanje) smera na osnovu primarnog kljuca
-		Smer s = session.get(Smer.class, 300);
-		
-		Transaction TR = null;
-		
-		try {
-			TR = session.beginTransaction();
-			
-			if (s != null) {
-				// Azuriranje odgovarajucih polja
-				s.setBodovi(180);
-				s.setSemestara(6);
-			
-				// Potvrdjivanje izmena i zavrsavanje transakcije
-				TR.commit();
-				System.out.println("Smer azuriran!");
-			} else {
-				System.out.println("Smer ne postoji!");
-			}
-		} catch (Exception e) {
-			System.out.println("Azuriranje smera nije uspelo! Ponistavanje transakcije!");
-			
-			if (TR != null) {
-				TR.rollback();
-			}
-		} finally {
-			session.close();
-		}
-	}
+        Smer s = session.get(Smer.class, 300);
+
+        Transaction TR = null;
+
+        try {
+            TR = session.beginTransaction();
+            
+            if (s != null) {
+                // Azuriranje odgovarajucih polja
+                s.setBodovi(180);
+                s.setSemestara(6);
+            
+                // Potvrdjivanje izmena i zavrsavanje transakcije
+                TR.commit();
+                System.out.println("Smer azuriran!");
+            } else {
+                System.out.println("Smer ne postoji!");
+            }
+        } catch (Exception e) {
+            System.out.println("Azuriranje smera nije uspelo! Ponistavanje transakcije!");
+            
+            if (TR != null) {
+                TR.rollback();
+            }
+        } finally {
+            session.close();
+        }
+        }
 
     private static void deleteSmer() {
         Session session = HibernateUtil.getSessionFactory().openSession();
