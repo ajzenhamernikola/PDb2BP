@@ -60,13 +60,15 @@ implementiraju nad poznatom bazom podataka `VSTUD`):
 | Opis  | Novi smer na Matematickom fakultetu | 
 
 {:start="2"}
-2. Brisanje podataka o prethodno unetom smeru iz tabele `SMER`.
-3. Unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`.
-4. Brisanje podataka o prethodno unetom ispitnom roku iz tabele `ISPITNI_ROK`.
-5. Ispisivanje podataka o svim ispitnim rokovima.
-6. Ispisivanje podataka o ispitnom roku čija se oznaka roka i godina roka unose sa standarnog ulaza.
-7. Ispisivanje naziva svih smerova. Nakon svakog naziva smera, ispisuju se indeks, ime i prezime svih studenata na tom smeru. Dopuniti ispis o studentu tako da se za svakog studenta ispisuje i prosek.
-8. Za zadati indeks studenta ispisati nazive svih položenih predmeta i dobijene ocene. Implementirati dva metoda — jedan koji ne koristi Hibernate JPA Criteria API i drugi koji ga koristi.
+2. Čitanje podataka o prethodno unetom smeru iz tabele `SMER`.
+3. Ažuriranje podataka o prethodno unetom smeru iz tabele `SMER`. 
+4. Brisanje podataka o prethodno unetom smeru iz tabele `SMER`.
+5. Unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`.
+6. Brisanje podataka o prethodno unetom ispitnom roku iz tabele `ISPITNI_ROK`.
+7. Ispisivanje podataka o svim ispitnim rokovima.
+8. Ispisivanje podataka o ispitnom roku čija se oznaka roka i godina roka unose sa standarnog ulaza.
+9. Ispisivanje naziva svih smerova. Nakon svakog naziva smera, ispisuju se indeks, ime i prezime svih studenata na tom smeru. Dopuniti ispis o studentu tako da se za svakog studenta ispisuje i prosek.
+10. Za zadati indeks studenta ispisati nazive svih položenih predmeta i dobijene ocene. Implementirati dva metoda — jedan koji ne koristi Hibernate JPA Criteria API i drugi koji ga koristi.
 
 Takođe, omogućiti da obrada svakog zahteva predstavlja zasebnu transakciju.
 
@@ -211,7 +213,13 @@ name, make sure you pass that as an argument — like `configure("my-hib-cfg.xml
 
 ## 10.4 Objektno-relaciono preslikavanje jedne klase
 
-{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele." %}
+{% include zadatak.html broj="10.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate redom:
+1. unosi podatak o novom smeru u tabeli `SMER` sa podacima iz naredne tabele,
+2. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
+3. ažurira podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
+4. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`, 
+5. briše podatke o smeru sa identifikatorom `300` iz tabele `SMER`,
+6. čita podatke o smeru sa identifikatorom `300` iz tabele `SMER`." %}
 
 | Kolona | Vrednost |
 | --- | --- |
@@ -329,11 +337,11 @@ import org.hibernate.Transaction;
 class Main {
     
     public static void main(String[] args) {
-        System.out.println("Pocetak rada\n");
+        System.out.println("Pocetak rada...\n");
         
         insertSmer();
         
-        System.out.println("Zavrsetak rada\n");
+        System.out.println("Zavrsetak rada.\n");
         
         // Zatvaranje fabrike sesija
         HibernateUtil.getSessionFactory().close();
@@ -404,10 +412,6 @@ Transakcije se u Hibernate radnom okviru predstavljaju klasom `Transaction`. We 
 
 We perform the required work in a transaction, then issue a commit on this transaction. At this stage, the entities are persisted to the database. While persisting, if for whatever reason there are any errors, the Hibernate runtime will catch and throw a `HibernateException` (which is an unchecked `RuntimeException`). We then have to catch the exception and roll back the transaction.
 
-Cela implementacija klase `Main` data je u nastavku.
-
-include_source(primeri/poglavlje_10/src/zadatak_10_1/Main.java, java)
-
 ## 10.7 Dohvatanje jednog sloga
 
 S obzirom da smo u prethodnom primeru postavili sva preslikavanja i pripremne korake,
@@ -477,11 +481,9 @@ public void delete(Object object)
 Argument ovog metoda je trajni objekat. Naravno, postoje i složeniji metodi brisanja
 podataka.
 
-{% include zadatak.html broj="10.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate bri\v se podatke o smeru sa identifikatorom 300 iz tabele `SMER`." %}
+Cela implementacija klase `Main` data je u nastavku.
 
-Re\v senje: Kako smo ve\'c napisali OR preslikavanje izme\dj u klase `Smer` i tabele `SMER`, sve \v sto je potrebno da uradimo jeste da kreiramo stati\v cki metod `deleteSmer()` u glavnoj klasi `Main.java` i pozovemo ga u metodi `main`. Prikazujemo dopunjenu klasu `Main.java`:
-
-include_source(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_1/Main.java, java)
 
 ## 10.9 Složeni ključ
 
@@ -659,7 +661,7 @@ public class IdClassBook {
 }
 ```
 
-{% include zadatak.html broj="10.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate implementira unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`." %}
+{% include zadatak.html broj="10.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate implementira unos podataka o novom ispitnom roku (jun 2019. godine) u tabelu `ISPITNI_ROK`, a zatim briše podatke o unetom ispitnom roku iz tabele `ISPITNI_ROK`." %}
 
 Re\v senje: Potrebno je da prvo napravimo klasu
 koja će predstavljati složeni ključ. Nazovimo je `IspitniRokId`. U nastavku je data njena
@@ -685,19 +687,10 @@ koju takođe kreiramo:
 
 include_source(primeri/poglavlje_10/src/zadatak_10_3/IspitniRok.java, java)
 
-Definisane klase se sada jednostavno koriste u metodu `insertIspitniRok()` proširene klase
-`Main.java` iz prethodnog primera:
-
-include_source(primeri/poglavlje_10/src/zadatak_10_3/Main.java, java)
-
 Ne zaboravimo da dodamo `IspitniRok` kao anotiranu klasu u konfiguraciju:
 
 include_source(primeri/poglavlje_10/src/zadatak_10_3/HibernateUtil.java, java)
 
-{% include zadatak.html broj="10.4" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate bri\v se ispitni rok jun 2019. iz tabele `ISPITNI_ROK`." %}
+Definisane klase se sada jednostavno koriste u metodima `insertIspitniRok()` i `deleteIspitniRok()` proširene klase `Main.java` iz prethodnog primera:
 
-Re\v senje: Sa svim znanjem do sada, ovaj zahtev se trivijalno implementira. Prikazujemo samo
-ažuriranu klasu `Main.java` i skrećemo pažnju na njen metod `deleteIspitniRok()` koji
-ilustruje rešenje ovog zahteva.
-
-include_source(primeri/poglavlje_10/src/zadatak_10_4/HibernateUtil.java, java)
+include_source(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
