@@ -4,15 +4,16 @@ import java.util.List;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
 class Main {
 	
 	public static void main(String[] args) {
-		System.out.println("Pocetak rada\n");
+		System.out.println("Pocetak rada...\n");
 		
 		readIspitniRokovi();
 		
-		System.out.println("Zavrsetak rada\n");
+		System.out.println("Zavrsetak rada.\n");
 		HibernateUtil.getSessionFactory().close();
 	}
 
@@ -30,13 +31,13 @@ class Main {
             // Takodje, pored samog HQL upita, 
             // metodu createQuery prosledjujemo klasu koja predstavlja entitet rezultata.
             // Drugim recima, kazemo Hibernate-u da zelimo da dohvatimo listu ispitnih rokova.
-            org.hibernate.query.Query<IspitniRok> upit = 
+            Query<IspitniRok> upit = 
                     session.createQuery(hql, IspitniRok.class);
             // Pozivom metoda list() dohvatamo zeljeni rezultat
             List<IspitniRok> ispitniRokovi = upit.list();
             // Iteriranje kroz listu
             for(IspitniRok ir : ispitniRokovi) {
-                System.out.println(ir.getNaziv());
+                System.out.println(ir);
             }
 
             TR.commit();
