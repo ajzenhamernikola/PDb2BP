@@ -6,7 +6,6 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -41,7 +40,6 @@ public class Smer {
     // Primetimo da u klasi Student nemamo referencu na klasu Smer,
     // sto ovu vezu cini jednosmernom.
     @OneToMany
-    @JoinColumn(name = "id_smera")
     private List<Student> studentiNaSmeru = new ArrayList<>();
 
     public int getId_smera() {
