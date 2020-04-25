@@ -92,4 +92,9 @@ public class IspitniRok {
         this.ispiti = ispiti;
     }
 
+	@Override
+	public String toString() {
+		return "IspitniRok [id=" + id + ", Naziv=" + Naziv + ", Pocetak=" + Pocetak + ", Kraj=" + Kraj + ", Tip=" + Tip
+				+ ", ispiti=" + ispiti + "]";
+	}
 }
