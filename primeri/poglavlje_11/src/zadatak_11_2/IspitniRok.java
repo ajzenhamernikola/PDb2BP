@@ -73,4 +73,9 @@ class IspitniRok {
         Tip = tip;
     }
 
+	@Override
+	public String toString() {
+		return "IspitniRok [id=" + id + ", Naziv=" + Naziv + ", Pocetak=" + Pocetak + ", Kraj=" + Kraj + ", Tip=" + Tip
+				+ "]";
+	}
 }

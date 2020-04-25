@@ -62,4 +62,9 @@ class IspitniRokId implements Serializable {
     public int hashCode() {
         return Objects.hash(this.godina, this.oznaka);
     }
+
+	@Override
+	public String toString() {
+		return "IspitniRokId [godina=" + godina + ", oznaka=" + oznaka + "]";
+	}
 }
