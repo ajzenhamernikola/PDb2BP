@@ -30,6 +30,10 @@ public class Ispit {
     // Resavanje asocijativnih veza izmedju klasa
 
     // Kreiranje veze izmedju Ispit i Student
+    // Posto tabela Ispit sadrzi vise od jednog stranog kljuca
+    // moramo da navedemo anotaciju @JoinColumn i da definisemo
+    // vrednosti za sve opcije ili kombinaciju @MapsId i @JoinColumn
+    // s tim da onda mozemo izostaviti opcije insertable i updatable
     @ManyToOne
     @MapsId("indeks")
     @JoinColumn(name="indeks", referencedColumnName="indeks")
