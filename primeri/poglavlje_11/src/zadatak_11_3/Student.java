@@ -94,6 +94,8 @@ public class Student {
     public double prosek() {
         double ukupno = 0;
         int broj_polozenih = 0;
+        // Pozivom getIspiti() vrsi se citanje podataka o ispitima 
+        // iz baze i njihovo smestanje u listu.
         List<Ispit> ispiti = this.getIspiti();
         for (Ispit ispit : ispiti) {
             // Izdvajamo informacije samo o polozenim ispitima
