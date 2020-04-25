@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
 public class Main {
 
@@ -26,7 +27,7 @@ public class Main {
 
             // Kreiramo HQL upit koji izdvaja sve smerove
             String hql = "from Smer";
-            org.hibernate.query.Query<Smer> upit = 
+            Query<Smer> upit = 
                     session.createQuery(hql, Smer.class);
             // Dohvatamo rezultat u listu smerovi,
             // i proveravamo da li su svi elementi objekti klase Smer
@@ -40,7 +41,7 @@ public class Main {
             // koja prolazi smerovima.
             // Drugim recima, koristimo ugnezdjene kursore.
             hql = "from Student where id_smera = :id";
-            org.hibernate.query.Query<Student> upit2 = 
+            Query<Student> upit2 = 
                     session.createQuery(hql, Student.class);
 
             // Spoljasnja petlja: ispisivanje smerova
