@@ -4,15 +4,16 @@ import java.util.Scanner;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
 class Main {
 	
 	public static void main(String[] args) {
-		System.out.println("Pocetak rada\n");
+		System.out.println("Pocetak rada...\n");
 		
 		readIspitniRok();
 		
-		System.out.println("Zavrsetak rada\n");
+		System.out.println("Zavrsetak rada.\n");
 		HibernateUtil.getSessionFactory().close();
 	}
 
@@ -20,18 +21,13 @@ class Main {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction TR = null;
         
-        try {
+        try (Scanner ulaz = new Scanner(System.in)) {
             TR = session.beginTransaction();
             
-            Integer godina = null;
-            String oznaka = null;
-            
-            try (Scanner ulaz = new Scanner(System.in)) {
-                System.out.println("Unesite godinu roka:");
-                godina = ulaz.nextInt();
-                System.out.println("Unesite oznaku roka:");
-                oznaka = ulaz.next();
-            }
+            System.out.println("Unesite godinu roka:");
+            Integer godina = ulaz.nextInt();
+            System.out.println("Unesite oznaku roka:");
+            String oznaka = ulaz.next();
             
             // HQL upit za izdvajanje entiteta tipa IspitniRok
             // sa odredjenom godinom i oznakom.
@@ -39,14 +35,14 @@ class Main {
             // tako se u WHERE klauzi navode ATRIBUTI, a ne KOLONE.
             String hql = "FROM IspitniRok WHERE id.godina = :godina AND id.oznaka = :oznaka";
             // Pripremanje upita
-            org.hibernate.query.Query<IspitniRok> upit = 
+            Query<IspitniRok> upit = 
                     session.createQuery(hql, IspitniRok.class);
             // Postavljanje vrednosti za imenovane parametarske oznake
             upit.setParameter("godina", godina);
             upit.setParameter("oznaka", oznaka);
             // Izvrsavanje upita i listanje podataka
             IspitniRok ispitniRok = upit.getSingleResult();
-            System.out.println(ispitniRok.getNaziv());
+            System.out.println(ispitniRok);
 
             TR.commit();
         } catch (Exception e) {
