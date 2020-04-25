@@ -6,6 +6,8 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -20,14 +22,21 @@ public class Student {
 
     // Kolone od znacaja
 
-    @Column(name = "id_smera", nullable = false)
-    private Integer idSmera;
-
     @Column(name = "ime", nullable = false)
     private String ime;
 
     @Column(name = "prezime", nullable = false)
     private String prezime;
+
+
+    // Kreiramo dvosmernu asocijativnu vezu izmedju klasa Smer i Student.
+    // Posto tabela Dosije sadrzi strani kljuc id_smera koji referise na Smer
+    // potrebno je da se u klasi Smer definise vrednost za opciju mappedBy.
+    // Dodatno, zbog stranog kljuca moramo dodati anotaciju @JoinColumn kako
+    // bismo ogranicili koriscenje ove reference na citanje.
+    @ManyToOne
+    @JoinColumn(name="id_smera", referencedColumnName="id_smera", insertable=false, updatable=false)
+    private Smer smer;
 
     // Da bismo izracunali prosek polozenih predmeta za studenta,
     // potrebno nam je da dohvatimo informacije o njegovim ispitima.
@@ -49,14 +58,6 @@ public class Student {
         this.indeks = indeks;
     }
 
-    public Integer getId_smera() {
-        return idSmera;
-    }
-
-    public void setId_smera(Integer id_smera) {
-        this.idSmera = id_smera;
-    }
-
     public String getIme() {
         return ime;
     }
@@ -73,15 +74,23 @@ public class Student {
         this.prezime = prezime;
     }
 
-    public List<Ispit> getIspiti() {
-        return ispiti;
-    }
+    public Smer getSmer() {
+		return smer;
+	}
 
-    public void setIspiti(List<Ispit> ispiti) {
-        this.ispiti = ispiti;
-    }
+	public void setSmer(Smer smer) {
+		this.smer = smer;
+	}
 
-    // Metod koji racuna prosek studenta
+	public List<Ispit> getIspiti() {
+		return ispiti;
+	}
+
+	public void setIspiti(List<Ispit> ispiti) {
+		this.ispiti = ispiti;
+	}
+
+	// Metod koji racuna prosek studenta
     public double prosek() {
         double ukupno = 0;
         int broj_polozenih = 0;

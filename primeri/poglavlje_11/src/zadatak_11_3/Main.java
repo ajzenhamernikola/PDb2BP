@@ -10,11 +10,11 @@ import org.hibernate.query.Query;
 public class Main {
 
     public static void main(String[] args) {
-        System.out.println("Pocetak rada\n");
+        System.out.println("Pocetak rada...\n");
 
         readSmeroviIStudenti();
 
-        System.out.println("Zavrsetak rada\n");
+        System.out.println("Zavrsetak rada.\n");
         HibernateUtil.getSessionFactory().close();
     }
 

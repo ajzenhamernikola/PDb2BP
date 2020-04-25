@@ -36,10 +36,11 @@ public class Smer {
     @Column(name = "opis", nullable = true)
     private String Opis;
 
-    // Kreiramo asocijativnu vezu izmedju klasa Smer i Student.
-    // Primetimo da u klasi Student nemamo referencu na klasu Smer,
-    // sto ovu vezu cini jednosmernom.
-    @OneToMany
+    // Kreiramo dvosmernu asocijativnu vezu izmedju klasa Smer i Student.
+    // Posto tabela Dosije sadrzi strani kljuc id_smera koji referise na Smer
+    // potrebno je da se u klasi Smer postavljamo opciju mappedBy na naziv polja
+    // tipa Smer u klasi Student.
+    @OneToMany(mappedBy="smer")
     private List<Student> studentiNaSmeru = new ArrayList<>();
 
     public int getId_smera() {
