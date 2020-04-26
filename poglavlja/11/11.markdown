@@ -644,6 +644,8 @@ Jednostavnije rečeno, ne želimo da menjamo podatke u tabeli `ODELJENJE` menjan
 
 Napomenimo jo\v s i da, ukoliko tabela ima vi\v se stranih klju\v ceva, onda je kori\v s\'cenje anotacije `@JoinColumn` neophodno da bi se navelo koje kolone u\v cestvuju u formiranju ograni\v cenja stranog klju\v ca. Naravno, ukoliko se `@JoinColumn` koristi u kombinaciji sa `@MapsId`, onda nije neophodno navesti opcije `insertable` i `updatable`.
 
+Ova anotacija se još koristi i kada se zbog bidirekcione veze duplicira strani ključ. U tom slučaju se navode sve četiri opcije.
+
 ### 11.2.5 Strani ključevi ka složenim ključevima
 
 Slična situacija se javlja kada je potrebno mapirati asocijativnu vezu složenog stranog ključa. Pogledajmo DDL za naredne dve tabele:
