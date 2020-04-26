@@ -1,8 +1,11 @@
 package zadatak_11_2;
 
+import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
@@ -31,6 +34,9 @@ class Smer {
 	
 	@Column (name = "opis", nullable = true)
 	private String Opis;
+	
+	@OneToMany(mappedBy="smer")
+	private List<Student> studenti;
 
 	public int getId_smera() {
 		return id_smera;
@@ -95,5 +101,12 @@ class Smer {
 	public void setOpis(String opis) {
 		Opis = opis;
 	}
-	
+
+	public List<Student> getStudenti() {
+		return studenti;
+	}
+
+	public void setStudenti(List<Student> studenti) {
+		this.studenti = studenti;
+	}
 }
