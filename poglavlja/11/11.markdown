@@ -279,12 +279,6 @@ Re\v senje: Zahtev je implementiran u metodu `readispitniRokovi()` klase `Main.j
 
 include_source(primeri/poglavlje_11/src/zadatak_11_1/Main.java, java)
 
-{% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje podatke o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
-
-Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
-
-include_source(primeri/poglavlje_11/src/zadatak_11_2/Main.java, java)
-
 ## 11.2 Asocijativne veze i strani ključevi
 
 Jedan od najznačajnijih elemenata relacionih baza podataka jesu tzv. _asocijativne veze_ koje se ostvaruju između tabela. Na šta mislimo pod tim pojmom? Neka su nam date dve tabele `STUDENT` i `KNJIGA` \v cije su sheme date u nastavku:
@@ -645,6 +639,13 @@ Jednostavnije rečeno, ne želimo da menjamo podatke u tabeli `ODELJENJE` menjan
 Napomenimo jo\v s i da, ukoliko tabela ima vi\v se stranih klju\v ceva, onda je kori\v s\'cenje anotacije `@JoinColumn` neophodno da bi se navelo koje kolone u\v cestvuju u formiranju ograni\v cenja stranog klju\v ca. Naravno, ukoliko se `@JoinColumn` koristi u kombinaciji sa `@MapsId`, onda nije neophodno navesti opcije `insertable` i `updatable`.
 
 Ova anotacija se još koristi i kada se zbog bidirekcione veze duplicira strani ključ. U tom slučaju se navode sve četiri opcije.
+
+{% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje podatke o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
+
+Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_2/Main.java, java)
+
 
 ### 11.2.5 Strani ključevi ka složenim ključevima
 
