@@ -43,7 +43,8 @@ class Main {
             TR.commit();
         } catch (Exception e) {
             System.err.println("Postoji problem sa ispisivanjem ispitnih rokova! Ponistavanje transakcije!");
-        
+            e.printStackTrace();
+            
             if (TR != null) {
                 TR.rollback();
             }
