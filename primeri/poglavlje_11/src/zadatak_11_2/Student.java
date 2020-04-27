@@ -9,7 +9,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "dosije")
+@Table(name = "DOSIJE")
 public class Student {
     // Primarni kljuc
 
@@ -19,13 +19,13 @@ public class Student {
 
     // Kolone od znacaja
 
-    @Column(name = "ime", nullable = false)
+    @Column(name = "IME", nullable = false)
     private String ime;
 
-    @Column(name = "prezime", nullable = false)
+    @Column(name = "PREZIME", nullable = false)
     private String prezime;
 
-    @Column(name = "mesto_rodjenja")
+    @Column(name = "MESTO_RODJENJA")
     private String mesto;
 
 
@@ -35,7 +35,7 @@ public class Student {
     // Dodatno, zbog stranog kljuca moramo dodati anotaciju @JoinColumn kako
     // bismo ogranicili koriscenje ove reference na citanje.
     @ManyToOne
-    @JoinColumn(name="id_smera", referencedColumnName="id_smera", insertable=false, updatable=false)
+    @JoinColumn(name="ID_SMERA", referencedColumnName="ID_SMERA", insertable=false, updatable=false)
     private Smer smer;
 
     // Get/set metodi

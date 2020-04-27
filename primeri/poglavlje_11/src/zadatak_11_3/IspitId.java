@@ -17,10 +17,10 @@ public class IspitId implements Serializable {
 
     private IspitniRokId id_roka;
 
-    @Column(name = "indeks")
+    @Column(name = "INDEKS")
     private Integer indeks;
 
-    @Column(name = "id_predmeta")
+    @Column(name = "ID_PREDMETA")
     private Integer id_predmeta;
 
     // Podrazumevani konstruktor za Serializable

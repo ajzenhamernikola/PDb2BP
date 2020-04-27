@@ -11,25 +11,25 @@ class Smer {
     @Id
     private int id_smera;
 
-    @Column(name = "oznaka", nullable = false)
+    @Column(name = "OZNAKA", nullable = false)
     private String Oznaka;
 
-    @Column(name = "naziv", nullable = false)
+    @Column(name = "NAZIV", nullable = false)
     private String Naziv;
 
-    @Column(name = "semestara", nullable = false)
+    @Column(name = "SEMESTARA", nullable = false)
     private Integer Semestara;
 
-    @Column(name = "bodovi", nullable = false)
+    @Column(name = "BODOVI", nullable = false)
     private Integer Bodovi;
 
-    @Column(name = "id_nivoa", nullable = false)
+    @Column(name = "ID_NIVOA", nullable = false)
     private Integer Nivo;
 
-    @Column(name = "zvanje", nullable = false)
+    @Column(name = "ZVANJE", nullable = false)
     private String Zvanje;
 
-    @Column(name = "opis", nullable = true)
+    @Column(name = "OPIS", nullable = true)
     private String Opis;
 
     public int getId_smera() {

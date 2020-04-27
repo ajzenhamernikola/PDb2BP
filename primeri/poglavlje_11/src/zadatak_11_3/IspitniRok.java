@@ -10,7 +10,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "ispitni_rok")
+@Table(name = "ISPITNI_ROK")
 public class IspitniRok {
     // Primarni kljuc
 
@@ -19,16 +19,16 @@ public class IspitniRok {
 
     // Ostale kolone
 
-    @Column(name = "naziv", nullable = false)
+    @Column(name = "NAZIV", nullable = false)
     private String Naziv;
 
-    @Column(name = "pocetak_prijavljivanja", nullable = false)
+    @Column(name = "POCETAK_PRIJAVLJIVANJA", nullable = false)
     private String Pocetak;
 
-    @Column(name = "kraj_prijavljivanja", nullable = false)
+    @Column(name = "KRAJ_PRIJAVLJIVANJA", nullable = false)
     private String Kraj;
 
-    @Column(name = "tip", nullable = false)
+    @Column(name = "TIP", nullable = false)
     private String Tip = "B";
 
     // Kreiranje veze izmedju IspitniRok i Ispit.

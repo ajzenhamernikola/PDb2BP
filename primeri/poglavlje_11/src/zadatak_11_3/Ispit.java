@@ -10,7 +10,7 @@ import javax.persistence.MapsId;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "ispit")
+@Table(name = "ISPIT")
 public class Ispit {
     // Primarni kljuc
     // U ovom slucaju cemo koristiti drugi pristup kreiranju primarnog kljuca,
@@ -24,7 +24,7 @@ public class Ispit {
     @Column
     private Integer ocena;
 
-    @Column(name = "status_prijave")
+    @Column(name = "STATUS_PRIJAVE")
     private String status;
 
     // Resavanje asocijativnih veza izmedju klasa
@@ -36,7 +36,7 @@ public class Ispit {
     // s tim da onda mozemo izostaviti opcije insertable i updatable
     @ManyToOne
     @MapsId("indeks")
-    @JoinColumn(name="indeks", referencedColumnName="indeks")
+    @JoinColumn(name="INDEKS", referencedColumnName="INDEKS")
     private Student student;
 
     // Problem je sto se u primarnom kljucu javlja "potkljuc" IspitniRokId,
