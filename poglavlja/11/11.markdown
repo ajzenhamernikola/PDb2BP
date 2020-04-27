@@ -642,7 +642,16 @@ Ova anotacija se još koristi i kada se zbog bidirekcione veze duplicira strani 
 
 {% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje imena i prezimena studenata kao i naziv smera za sve studente koji su rođeni u mestu koje se unosi sa standardnog ulaza i upisali su smer koji ima broj bodova koji se unosi sa standardnog ulaza." %}
 
-Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
+Re\v senje: Tabelu `DOSIJE` do sad nismo koristili pa je potrebno da kreiramo odgovarajuću klasu i definišemo preslikavanje u tabelu `DOSIJE`, a onda i vezu sa klasom `Smer`. Vezu definišemo koa više-ka-jedan u klasi `Student` jer više studenata mogu upisati isti smer. Pošto tabela dosije sadrži polje `id_smera`, a dodavanjem ove veze dupliciramo podatke (polje `Smer smer`  takođe sadrži informaciju o identifikatoru) potrebno je dodati i anotaciju `@JoinColumn` za polje `smer`:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_2/Student.java, java)
+
+Ova veza je definisana u klasi `Smer` kao jedan-ka-više, s obzirom da jedan smer može sadržati više studenata:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_2/Smer.java, java)
+
+
+Zahtev je implementiran u metodu `readStudenti()` klase `Main.java`:
 
 include_source(primeri/poglavlje_11/src/zadatak_11_2/Main.java, java)
 
@@ -790,19 +799,7 @@ public class Artikal {
 
 {% include zadatak.html broj="11.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje nazive svih smerova. Nakon svakog naziva smera, ispisuju se indeks, ime, prezime i prosek svih studenata na tom smeru." %}
 
-Ovaj zahtev je do sada najsloženiji jer uvodi dosta novih klasa i preslikavanja. Za početak, s obzirom da su nam potrebni podaci iz tabela `DOSIJE` i `ISPIT` koje do sada nismo koristili, potrebno je da kreiramo klase `Student` i `Ispit`, i definišemo preslikavanja između njih i odgovarajućih tabela, kao i između samih klasa.
-
-Krenimo od klase `Student`:
-
-include_source(primeri/poglavlje_11/src/zadatak_11_3/Student.java, java)
-
-S obzirom da je potrebno da izračunamo prosek položenih predmeta za datog studenta, definišemo metod `prosek()` koji koristi listu svih ispita studenta. Za listu ispita smo morali da napravimo odgovarajuće preslikavanje izme\dj u klasa `Student` i `Ispit`. S obzirom da jedan student može imati više ispita, koristimo vezu jedan-ka-više. Dodatno, moramo da navedemo po čemu se vrši "spajanje" između klasa, i to je u ovom slučaju, po koloni `indeks`.
-
-Ono što je još bilo potrebno uraditi jeste kreiranje veze između klasa `Smer` i `Student`. Ova veza je definisana u klasi `Smer` kao jedan-ka-više, s obzirom da jedan smer može sadržati više studenata:
-
-include_source(primeri/poglavlje_11/src/zadatak_11_3/Smer.java, java)
-
-Ovo je bilo relativno jednostavno uraditi. Problematika se javlja u implementaciji klase `Ispit`. Za početak, dajmo njenu celu definiciju, pa ćemo obratiti pažnju na neke detalje:
+Ovaj zahtev je do sada najsloženiji jer uvodi dosta novih klasa i preslikavanja. Za početak, s obzirom da su nam potrebni podaci iz tabele `ISPIT` koju do sada nismo koristili, potrebno je da kreiramo klasu `Ispit`, i definišemo preslikavanja između njih i odgovarajućih tabela, kao i između samih klasa. Za početak, dajmo njenu celu definiciju, pa ćemo obratiti pažnju na neke detalje:
 
 include_source(primeri/poglavlje_11/src/zadatak_11_3/Ispit.java, java)
 
@@ -827,6 +824,12 @@ Druga veza je prema klasi `IspitniRok`. Ukoliko pogledamo kako je sve do sada po
 Naravno, ovo podrazumeva izmenu i u klasi `IspitniRok`, gde sada definišemo vezu između ispitnih rokova i ispita — jedan ispitni rok ima više ispita, te koristimo anotaciju `@OneToMany` za polje tipa `java.util.List<Ispit>`. S obzirom da je ova veza dvosmerna, moramo reći koja klasa je odgovorna za održavanje takve veze (tj. za održavanje referencijalnog integriteta stranim ključem). S obzirom da klasa `Ispit` odr\v zava tu vezu, onda u klasi `IspitniRok` postavljamo opciju `mappedBy`, kao što je i urađeno u klasi `IspitniRok`:
 
 include_source(primeri/poglavlje_11/src/zadatak_11_3/IspitniRok.java, java)
+
+Dopunimo i klasu `Student`:
+
+include_source(primeri/poglavlje_11/src/zadatak_11_3/Student.java, java)
+
+S obzirom da je potrebno da izračunamo prosek položenih predmeta za datog studenta, definišemo metod `prosek()` koji koristi listu svih ispita studenta. Za listu ispita smo morali da napravimo odgovarajuće preslikavanje izme\dj u klasa `Student` i `Ispit`. S obzirom da jedan student može imati više ispita, koristimo vezu jedan-ka-više. Dodatno, moramo da navedemo po čemu se vrši "spajanje" između klasa, i to je u ovom slučaju, po koloni `indeks`.
 
 Konačno, da bismo završili implementaciju, potrebno je da registrujemo anotirane klase u klasi `HibernateUtil` i kreiramo metod u klasi `Main` koji testira implementirane klase i metode:
 
