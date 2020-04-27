@@ -25,7 +25,7 @@ public class Student {
     @Column(name = "prezime", nullable = false)
     private String prezime;
 
-    @Column(name = "mesto_rodjenja", nullable = false)
+    @Column(name = "mesto_rodjenja")
     private String mesto;
 
 
