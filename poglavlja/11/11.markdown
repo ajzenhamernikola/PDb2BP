@@ -640,7 +640,7 @@ Napomenimo jo\v s i da, ukoliko tabela ima vi\v se stranih klju\v ceva, onda je 
 
 Ova anotacija se još koristi i kada se zbog bidirekcione veze duplicira strani ključ. U tom slučaju se navode sve četiri opcije.
 
-{% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje podatke o ispitnom roku \v cija se oznaka i godina unose sa standardnog ulaza." %}
+{% include zadatak.html broj="11.2" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate ispisuje imena i prezimena studenata kao i naziv smera za sve studente koji su rođeni u mestu koje se unosi sa standardnog ulaza i upisali su smer koji ima broj bodova koji se unosi sa standardnog ulaza." %}
 
 Re\v senje: Zahtev je implementiran u metodu `readispitniRok()` klase `Main.java`:
 
