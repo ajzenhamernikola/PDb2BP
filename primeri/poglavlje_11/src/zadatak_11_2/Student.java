@@ -14,7 +14,6 @@ public class Student {
     // Primarni kljuc
 
     @Id
-    @Column
     private Integer indeks;
 
     // Kolone od znacaja
