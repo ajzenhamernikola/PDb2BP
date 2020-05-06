@@ -7,7 +7,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinColumns;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 @Entity
@@ -57,7 +56,7 @@ public class Ispit {
     @ManyToOne
     private IspitniRok ispitniRok;
     
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name="id_predmeta",referencedColumnName="id_predmeta", insertable=false, updatable=false)
     private Predmet predmet;
 
