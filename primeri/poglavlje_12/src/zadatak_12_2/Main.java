@@ -51,9 +51,12 @@ public class Main {
             Join<Ispit, Predmet> predmet = ispit.join("predmet");
             
             criteria.select(ispit);
-            criteria.where(cb.gt(ispit.get("ocena"), new Integer(5)));
-            criteria.where(cb.like(ispit.get("status"), "o"));
-            criteria.where(cb.equal(student.get("indeks"), indeks));
+            criteria.where(cb.and(
+            		cb.gt(ispit.get("ocena"), new Integer(5)), 
+            		cb.like(ispit.get("status"), "o"), 
+            		cb.equal(student.get("indeks"), indeks)
+            		)
+    		);
             criteria.orderBy(cb.asc(predmet.get("naziv")));
             
             List<Ispit> results = session.createQuery(criteria).getResultList();
