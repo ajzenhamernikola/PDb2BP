@@ -968,7 +968,7 @@ c.multiselect(stud.get("indeks"), cb.count(ispit))
                     cb.literal(new Long(30))));
 ```
 
-{% include zadatak.html broj="12.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate i JPA Criteria API-ja izdvaja podatke o studentima bez duplikata \v cija imena i prezimena po\v cinju slovom `P` i koji \v zive u Beogradu ili Kragujevcu. Rezultat urediti po mestu stanovanja opadaju\'ce, pa po imenu i prezimenu rastu\'ce. Ispisati mesto stanovanja, indeks, ime i prezime za date studente." %}
+{% include zadatak.html broj="12.1" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate i JPA Criteria API-ja izdvaja podatke o studentima bez duplikata \v cija imena ili prezimena po\v cinju slovom `P` i koji \v zive u Beogradu ili Kragujevcu. Rezultat urediti po mestu stanovanja opadaju\'ce, pa po imenu i prezimenu rastu\'ce. Ispisati mesto stanovanja, indeks, ime i prezime za date studente." %}
 
 Re\v senje: Dajemo dva re\v senja. Prvo od njih koristi pristup sa metodom `select()` u kojem se izdvajaju objekti klase `Student`. Drugo od njih koristi pristup sa metodom `multiselect()` da izdvoji samo informacije od zna\v caja.
 
