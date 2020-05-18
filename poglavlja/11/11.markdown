@@ -835,3 +835,12 @@ Konačno, da bismo završili implementaciju, potrebno je da registrujemo anotira
 
 include_source(primeri/poglavlje_11/src/zadatak_11_3/HibernateUtil.java, java)
 include_source(primeri/poglavlje_11/src/zadatak_11_3/Main.java, java)
+
+
+## 11.3 Zadaci za vežbu
+
+{% include zadatak.html broj="11.4" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate za svaki smer na osnovnim akademskim studijama izdvaja listu obaveznih predmeta. Prvo ispisati sve podatke o smeru, a zatim šifru, naziv i broj bodova svih obaveznih predmeta za taj smer." %}
+
+{% include zadatak.html broj="11.5" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate za svaki predmet ispisuje šifru  i naziv, a zatim i spisak studenata koji su upisali taj predmet u godini koja se unosi sa standardnog ulaza. Rezultat urediti prema prezimenu i imenu studenta rastuće." %}
+
+{% include zadatak.html broj="11.6" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate za svaki smer koji je u poslednjih 10 godina upisalo više od 30 studenata izdvajaju podaci o najmlađem studentu koji je upisao taj smer. Za najmlađeg studenta po smeru izdvojiti naziv smera koji studira, indeks, ime i prezime studenta, datum upisa na fakultet, broj položenih predmeta i prosečnu ocenu zaokruženu na 2 decimale. Rezultat urediti prema nazivu smera." %}
