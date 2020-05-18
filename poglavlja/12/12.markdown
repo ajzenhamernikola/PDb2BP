@@ -982,3 +982,13 @@ include_source(primeri/poglavlje_12/src/zadatak_12_2/Predmet.java, java)
 include_source(primeri/poglavlje_12/src/zadatak_12_2/Ispit.java, java)
 include_source(primeri/poglavlje_12/src/zadatak_12_2/HibernateUtil.java, java)
 include_source(primeri/poglavlje_12/src/zadatak_12_2/Main.java, java)
+
+
+
+## 12.7 Zadaci za vežbu
+
+{% include zadatak.html broj="12.3" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate i JPA Criteria API-ja izdvaja sve podatke o studentima koji su upisali fakultet godine koja se unosi sa standardnog ulaza." %}
+
+{% include zadatak.html broj="12.4" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate i JPA Criteria API-ja za svaki predmet izdvaja  šifru i naziv, a zatim i spisak uslovnih predmeta. Za svaki uslovni predmet izdvojiti šifru, naziv i broj bodova." %}
+
+{% include zadatak.html broj="12.5" tekst="Napisati Java aplikaciju koja kori\v s\'cenjem biblioteke Hibernate i JPA Criteria API-ja za studenta, čiji se indeks unosi sa standardnog ulaza, pravi izveštaj o položenim ispitima i uspehu po upisanim školskim godinama. Za svaku upisanu godinu ispisati naziv predmeta, datum polaganja i ocenu, a zatim prosečnu ocenu." %}
