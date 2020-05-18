@@ -700,12 +700,12 @@ include_source(primeri/poglavlje_10/src/zadatak_10_2/Main.java, java)
 ## 10.10 Zadaci za vežbu
 
 {% include zadatak.html broj="10.4" tekst="Napisati Java aplikaciju koja kori\v s'cenjem biblioteke Hibernate redom:
-1. Unosi podatak o novom novou kvalifikacije u tabelu `NIVO_KVALIFIKACIJE` sa podacima iz naredne tabele. 
-2. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
-3. Ažurira stepen za nivo kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`. Stepen postaviti na vrednost `III`
-4. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
-5. Briše podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
-6. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
+  1. Unosi podatak o novom novou kvalifikacije u tabelu `NIVO_KVALIFIKACIJE` sa podacima iz naredne tabele. 
+  2. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
+  3. Ažurira stepen za nivo kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`. Stepen postaviti na vrednost `III`
+  4. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
+  5. Briše podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
+  6. Ispisuje podatake o novou kvalifikacije sa identifikatorom `42` iz tabele `NIVO_KVALIFIKACIJE`.
 
 Svaki zahtev implementirati kao posebnu transakciju." %}
 
@@ -716,12 +716,12 @@ Svaki zahtev implementirati kao posebnu transakciju." %}
 | Stepen | II |
 
 {% include zadatak.html broj="10.5" tekst="Napisati Java aplikaciju koja kori\v s'cenjem biblioteke Hibernate redom:
-1. Unosi podatak o novom predmetu u tabelu `PREDMET` sa identifikatorom predmeta `id` i ostalim podacima koji se unose sa standardnog ulaza.
-2. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
-3. Proverava da li korisnik želi da ažurira broj bodova za predmet sa identifikatorom `id` u tabeli `PREDMET`. Ukoliko korisnih odgovori potvrdno, izvršava odgovarajuće ažuriranje. Novi broj bodova unosi se sa standardnog ulaza.
-4. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
-5. Briše podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
-6. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
+  1. Unosi podatak o novom predmetu u tabelu `PREDMET` sa identifikatorom predmeta `id` i ostalim podacima koji se unose sa standardnog ulaza.
+  2. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
+  3. Proverava da li korisnik želi da ažurira broj bodova za predmet sa identifikatorom `id` u tabeli `PREDMET`. Ukoliko korisnih odgovori potvrdno, izvršava odgovarajuće ažuriranje. Novi broj bodova unosi se sa standardnog ulaza.
+  4. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
+  5. Briše podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
+  6. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
 
 Svaki zahtev implementirati kao posebnu transakciju. " %}
 
