@@ -718,7 +718,7 @@ Svaki zahtev implementirati kao posebnu transakciju." %}
 {% include zadatak.html broj="10.5" tekst="Napisati Java aplikaciju koja kori\v s'cenjem biblioteke Hibernate redom:\n
   1. Unosi podatak o novom predmetu u tabelu `PREDMET` sa identifikatorom predmeta `id` i ostalim podacima koji se unose sa standardnog ulaza.\n
   2. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.\n
-  3. Proverava da li korisnik želi da ažurira broj bodova za predmet sa identifikatorom `id` u tabeli `PREDMET`. Ukoliko korisnih odgovori potvrdno, izvršava odgovarajuće ažuriranje. Novi broj bodova unosi se sa standardnog ulaza.\n
+  3. Proverava da li korisnik želi da ažurira broj bodova za predmet sa identifikatorom `id` u tabeli `PREDMET`. Ukoliko korisnik odgovori potvrdno, izvršava odgovarajuće ažuriranje. Novi broj bodova unosi se sa standardnog ulaza.\n
   4. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.\n
   5. Briše podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.\n
   6. Ispisuje podatake o predmetu sa identifikatorom `id` iz tabele `PREDMET`.
