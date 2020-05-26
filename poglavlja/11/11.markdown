@@ -518,7 +518,7 @@ CREATE TABLE STUDENTKNJIGALINK (
 )
 ```
 
-Korišćenje spojne tabele se ostvaruje korišćenjem anotacije `@JoinTable`, koju ćemo samo pomenuti bez daljeg diskutovanja o njoj.
+Korišćenje spojne tabele se ostvaruje korišćenjem anotacije `@JoinTable`, o kojoj \'ce biti re\v ci u nastavku.
 
 ### 11.2.3 Veza više-ka-više
 
@@ -559,11 +559,18 @@ class Knjiga {
     private Integer id_knjige;
     
     @ManyToMany
+    @JoinTable(
+        name = "STUDENTKNJIGALINK", 
+        joinColumns = { @JoinColumn(name = "ID_KNJIGE") }, 
+        inverseJoinColumns = { @JoinColumn(name = "ID_STUDENTA") }
+    )
     private List<Student> studenti;
     
     // Get/set metodi
 }
 ```
+
+Anotacija `@JoinTable` u prethodnom fragmentu koda ukazuje na to da ce biti kreirana spojna tabela pod nazivom `STUDENTKNJIGALINK`. Atributom `joinColumns` anotacije `@JoinTable` se postavljaju kolone stranog kljuca spojne tabele koje referi\v su na primarni klju\v c entiteta koji je odgovoran za odrzavanje asocijacije (ovde je to `Knjiga`). Nasuprot tome, atributom `inverseJoinColumns` se postavljaju kolone stranog klju\v ca spojne tabele koje referi\v su na primarni klju\v c _onog drugog_ entiteta (ovde je to `Student`).
 
 ### 11.2.4 Strani ključevi u složenim primarnim ključevima
 
