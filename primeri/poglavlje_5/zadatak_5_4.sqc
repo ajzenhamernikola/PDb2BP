@@ -103,6 +103,8 @@ int main()
             {
                 break;
             }
+
+            broj_obradjenih = 0; 
         }
     }
 
