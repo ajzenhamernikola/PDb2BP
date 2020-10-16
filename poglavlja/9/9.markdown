@@ -241,7 +241,7 @@ while(true) {
     }
 }
 
-// ∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗
+// *********************************************************
 // Izvan main funkcije:
 private static ResultSet otvoriKursor(Statement stmt, String sql) throws SQLException {
     ResultSet kursor = stmt.executeQuery(sql);

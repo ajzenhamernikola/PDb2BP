@@ -13,7 +13,7 @@ char datum_rodjenja[11];
 short ind_datum_rodjenja;
 EXEC SQL END DECLARE SECTION;
 
-void is_error(const char∗ str)
+void is_error(const char* str)
 {
     if(SQLCODE < 0)
     {

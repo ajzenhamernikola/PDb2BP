@@ -155,7 +155,7 @@ database dialect we are using (IBM DB2, in this case). Similarly, `connection.us
 and `connection.password` specifies the username and password for connecting to a database.
 
 If you are following the `hibernate.properties` file approach, note that all the properties
-are prefixed with "`hibernate`" and follow a pattern — `hibernate.∗ = value`.
+are prefixed with "`hibernate`" and follow a pattern — `hibernate.* = value`.
 
 ## 10.3 Fabrika sesija
 

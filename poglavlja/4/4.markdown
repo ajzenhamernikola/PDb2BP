@@ -305,7 +305,7 @@ Procedura za alociranje dovoljne veličine prostora glasi:
 Drugim rečima, količina prostora koju treba alocirati je (`SQLD` je odgovarajući broj matičnih promenljivih opisanih pojavljivanjima `SQLVAR`):
 
 ```c
-16 + (SQLD ∗ sizeof(struct sqlvar))
+16 + (SQLD * sizeof(struct sqlvar))
 ```
 
 Na raspolaganju nam je makro `SQLDASIZE` koji će izračunati ovu vrednost za nas, uzimajući u obzir specifičnosti platforme. Njegov obavezni argument je upravo vrednost `SQLD`. Dodatno, `SQLD` mora biti postavljen na vrednost veću ili jednaku nuli i manju od ili jednaku `SQLN`.

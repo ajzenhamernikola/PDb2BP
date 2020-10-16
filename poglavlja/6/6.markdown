@@ -211,7 +211,7 @@ Međutim, za razliku od RR, na ovom nivou izolacije proces koji izvršava isti u
 Osim ekskluzivnih katanaca, proces na RS nivou izolovanosti dobija bar deljive katance na svim podacima koji su prihvaćeni. Na primer, neka se u procesu P izvršava naredni upit:
 
 ```sql
-SELECT  ∗
+SELECT  *
 FROM    SMER
 WHERE   ID_NIVOA = 10
 ```

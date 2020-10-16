@@ -9,7 +9,7 @@ sqlint32 maxIndeks;
 EXEC SQL END DECLARE SECTION;
 
 // Definicija funkcije za obradu gresaka
-void is_error(const char∗ str)
+void is_error(const char* str)
 {
     if(SQLCODE < 0)
     {

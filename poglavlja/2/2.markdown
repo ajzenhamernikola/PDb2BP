@@ -239,7 +239,7 @@ Naredni deo koda ilustruje najjednostavniji način provere da li je došlo do gr
 
 EXEC SQL INCLUDE SQLCA;
 
-void is_error(const char∗ str)
+void is_error(const char* str)
 {
     if(SQLCODE < 0)
     {
