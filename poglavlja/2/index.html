@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Osnovni koncepti programiranja C/SQL aplikacija | Programiranje Db2 baza podataka</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="Osnovni koncepti programiranja C/SQL aplikacija" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<meta property="og:description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<link rel="canonical" href="https://theikeofficial.github.io//PDb2BP/poglavlja/2/" />
+<meta property="og:url" content="https://theikeofficial.github.io//PDb2BP/poglavlja/2/" />
+<meta property="og:site_name" content="Programiranje Db2 baza podataka" />
+<script type="application/ld+json">
+{"description":"Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi","@type":"WebPage","url":"https://theikeofficial.github.io//PDb2BP/poglavlja/2/","headline":"Osnovni koncepti programiranja C/SQL aplikacija","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/PDb2BP/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://theikeofficial.github.io//PDb2BP/feed.xml" title="Programiranje Db2 baza podataka" /></head>
+<body><header class="site-header" role="banner"
+    style="background-image: url(/PDb2BP/resources/header.png); height: 300px; background-repeat: repeat-x;"><a class="site-title" rel="author" href="/PDb2BP/"
+        style="display: flex; position: relative; top: 125px; background-color: white; width: 100%; height: 86px;flex-wrap: wrap; justify-content: center; align-items: center; line-height: 0px; font-size: 36px;">
+        
+        
+        <span style="font-weight: bold;">PROGRAMIRANJE&nbsp;</span>
+        
+        <span style="font-weight: bold;">DB2&nbsp;</span>
+        
+        <span style="font-weight: bold;">BAZA&nbsp;</span>
+        
+        <span style="font-weight: bold;">PODATAKA&nbsp;</span>
+        
+    </a>
+</header><main class="page-content" aria-label="Content">
+        <div class="wrapper" style="max-width: calc(1100px - (30px * 2));">
+            <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">2. Osnovni koncepti programiranja C/SQL aplikacija</h1>
+  </header>
+
+  <div class="post-content">
+    <p>U ovom poglavlju ćemo se detaljnije upustiti u diskusiju konstrukcije aplikacija, napisanih u programskom jeziku C, koje koriste Db2 RSUBP. S obzirom da pretprostavljamo da imamo podešeno okruženje, govorićemo o prevođenju od izvornog koda do izvršne aplikacije i uvešćemo elemente neophodne za kompilaciju naših programa, kao što su Db2 pretprocesorske naredbe, upravljanje greškama, ugnežđavanje najrazličitijih vrsta upita i druge. Sve ovo će biti demonstrirano kroz veliki broj primera koji podrazumevaju da postoji baza podataka VSTUD. Opis ove baze podataka možete pronaći u dodatku A.</p>
+
+<h2 id="21-prevođenje-programa">2.1 Prevođenje programa</h2>
+
+<p>Pre nego što započnemo diskusiju o načinu konstrukcije C/SQL aplikacija, neophodno je da se upoznamo sa specifičnostima prevođenja C/SQL aplikacija. Za početak, potrebno je da razumemo da Db2 očekuje da naši programi budu napisani u datotekama čije su ekstenzije <code class="language-plaintext highlighter-rouge">.sqc</code>. U ovim datotekama se, dakle, nalazi izvorni kod napisan u programskom jeziku C u kojem su ugnežđeni SQL upiti. Izvorni kodovi napisani na ovaj način definišu jednu SQL-ugnežđenu aplikaciju.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> Za aplikaciju kažemo da je <span style="font-style: italic;">SQL-ugnežđena</span> (engl. <span style="font-style: italic;">SQL-embedded</span>) ukoliko postoji barem jedna SQL naredba koja je ugnežđena u matični jezik, kao što su C, C++, Java, i dr. </p>
+</div>
+
+<p>Proces prevođenja C programa sa ugnežđenim SQL naredbama obično podrazumeva korake koji su dati u nastavku. Ovi koraci pretpostavljaju da u terminalu iz kojeg se pozivaju postoji definisana <em>promenljiva okruženja</em> (engl. <em>environment variable</em>) čiji je identifikator <code class="language-plaintext highlighter-rouge">DB2PATH</code>, a čija je vrednost putanja na kojoj je instaliran Db2 SUBP. Pretpostavimo da je na našem operativnom sistemu ova lokacija <code class="language-plaintext highlighter-rouge">/opt/ibm/db2/V11.5/</code>. Dodatno, pretpostavimo da je naš sistem 64-bitni. U slučaju da nije, onda je potrebno zameniti sva pojavljivanja niske <code class="language-plaintext highlighter-rouge">lib64</code> niskom <code class="language-plaintext highlighter-rouge">lib32</code> u koracima ispod:</p>
+
+<ol>
+  <li>Ostvarivanje konekcije na bazu podataka. Ovo podrazumeva pokretanje naredne naredbe iz terminala:</li>
+</ol>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>db2 connect to IMEBAZE user KORISNIK using LOZINKA
+</code></pre></div></div>
+
+<ol start="2">
+  <li>Pretprocesiranje aplikacije koju izvodi specijalan program koji se naziva db2 pretprocesor. Ovaj program kao ulaz prihvata napisanu <code class="language-plaintext highlighter-rouge">.sqc</code> datoteku, a kao izlaz konstruiše dve datoteke:</li>
+</ol>
+
+<ul>
+  <li>
+    <p>Datoteku sa ekstenzijom <code class="language-plaintext highlighter-rouge">.c</code> koja sadrži “čisti” izvorni C kod. U ovoj datoteci su sve naredbe Db2 API-ja zamenjene pozivima C funkcija, dok je kod napisan od strane razvijača prepisan u izvornoj formi.</p>
+  </li>
+  <li>
+    <p>Datoteku sa ekstenzijom <code class="language-plaintext highlighter-rouge">.bnd</code> koja sadrži samo SQL upite.</p>
+  </li>
+</ul>
+
+<p>Ovo podrazumeva pokretanje naredne naredbe iz terminala:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>db2 PRECOMPILE IMEDATOTEKE.sqc BINDFILE
+</code></pre></div></div>
+
+<ol start="3">
+  <li>Ako je kreirana <code class="language-plaintext highlighter-rouge">IMEDATOTEKE.bnd</code> datoteka (korišćenjem <code class="language-plaintext highlighter-rouge">BINDFILE</code> opcije u <code class="language-plaintext highlighter-rouge">PRECOMPILE</code> naredbi u koraku 2), vrši se vezivanje te datoteke sa bazom podataka da bi se kreirao aplikacioni paket.</li>
+</ol>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Vezivanje</span> predstavlja proces kojim se od datoteke sa ekstenzijom <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">.bnd</span> kreira paket koji se čuva u bazi podataka. </p>
+</div>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Paket</span> sadrži izvršivu formu svakog SQL upita iz izvornog koda aplikacije. Za svaku SQL naredbu se čuvaju razne informacije, kao što su: koji se postojeći indeksi koriste, načini njihovog korišćenja, pristupi tabelama i dr. U suštini, paket predstavlja pristupni plan podacima i igra ključnu ulogu u komunikaciji klijentske aplikacije i Db2 servera. </p>
+</div>
+
+<p>Ovo podrazumeva pokretanje naredne naredbe iz terminala:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>db2 BIND IMEDATOTEKE.bnd
+</code></pre></div></div>
+
+<ol start="4">
+  <li>Kompiliranje modifikovanog aplikacionog izvornog koda i izvornih datoteka koji ne sadrže ugnežđeni SQL da bi se kreirale objektne datoteke (jedna ili više njih, zavisno od modularnosti koda; kod nas će uglavnom biti jedna objektna datoteka po primeru). Potrebno je kompilatoru specifikovati gde se nalaze zaglavlja koje nam Db2 sistem nudi. Ovo podrazumeva pokretanje naredne naredbe iz terminala:</li>
+</ol>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cc <span class="nt">-I</span><span class="nv">$DB2PATH</span>/include <span class="nt">-c</span> IMEDATOTEKE.c
+</code></pre></div></div>
+
+<ol start="5">
+  <li>Linkovanje aplikacionih objektnih datoteka sa Db2 bibliotekama i bibliotekama matičnog jezika da bi se kreirao izvršni program. Ovo podrazumeva pokretanje naredne naredbe iz terminala:</li>
+</ol>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cc <span class="nt">-o</span> IMEDATOTEKE IMEDATOTEKE.o <span class="nt">-Wl</span>,-rpath,<span class="nv">$DB2PATH</span>/lib64 <span class="nt">-L</span><span class="nv">$DB2PATH</span>/lib64 <span class="nt">-ldb2</span>
+</code></pre></div></div>
+
+<p>S obzirom da je ovaj proces poprilično linearan za svaku aplikaciju koju ćemo pisati (uz jednocifren broj izuzetaka), dobro bi bilo automatizovati ga. U tu svrhu, kreirali smo skript <code class="language-plaintext highlighter-rouge">prevodjenje</code> čiji je sadržaj dat u nastavku.</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_2/prevodjenje</code>:</p>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+
+<span class="nv">DB2PATH</span><span class="o">=</span><span class="s2">"/opt/ibm/db2/V11.5"</span>
+<span class="nv">EXTRA_LFLAG</span><span class="o">=</span><span class="s2">"-Wl,-rpath,</span><span class="k">${</span><span class="nv">DB2PATH</span><span class="k">}</span><span class="s2">/lib64"</span>
+
+<span class="k">if</span> <span class="o">(</span><span class="nb">test</span> <span class="nv">$# </span><span class="nt">-lt</span> 3<span class="o">)</span>
+<span class="k">then
+    </span>db2 connect to <span class="nv">$2</span> user student using abcdef
+<span class="k">else
+    </span>db2 connect to <span class="nv">$2</span> user <span class="nv">$3</span> using <span class="nv">$4</span>
+<span class="k">fi
+
+</span>db2 precompile <span class="nv">$1</span>.sqc bindfile
+db2 <span class="nb">bind</span> <span class="nv">$1</span>.bnd
+cc <span class="nt">-I</span><span class="nv">$DB2PATH</span>/include <span class="nt">-c</span> <span class="nv">$1</span>.c
+cc <span class="nt">-o</span> <span class="nv">$1</span> <span class="nv">$1</span>.o <span class="nv">$EXTRA_LFLAG</span> <span class="nt">-L</span><span class="nv">$DB2PATH</span>/lib64 <span class="nt">-ldb2</span>
+
+
+</code></pre></div></div>
+
+<p>Ovaj skript u svojoj osnovnoj varijanti zahteva 4 argumenta:</p>
+
+<ol>
+  <li>
+    <p>Naziv datoteke koji se prevodi bez ekstenzije <code class="language-plaintext highlighter-rouge">.sqc</code> (u prethodnim koracima vrednost <code class="language-plaintext highlighter-rouge">IMEDATOTEKE</code>).</p>
+  </li>
+  <li>
+    <p>Naziv baze podataka na koju se vrši konekcija (u prethodnim koracima vrednost
+<code class="language-plaintext highlighter-rouge">IMEBAZE</code>).</p>
+  </li>
+  <li>
+    <p>Naziv korisnika sa kojim se pristupa bazi podataka (u prethodnim koracima vrednost <code class="language-plaintext highlighter-rouge">KORISNIK</code>).</p>
+  </li>
+  <li>
+    <p>Lozinka za pristup bazi podataka za korisnika <code class="language-plaintext highlighter-rouge">KORISNIK</code> iz koraka 3 (u prethodnim koracima vrednost <code class="language-plaintext highlighter-rouge">LOZINKA</code>).</p>
+  </li>
+</ol>
+
+<h2 id="22-osnovni-elementi-programiranja-csql-aplikacija">2.2 Osnovni elementi programiranja C/SQL aplikacija</h2>
+
+<p>Kao što smo videli do sada, prilikom prevođenja naših C/SQL programa, očekujemo da je prvi korak procesiranje izvornog koda od strane Db2 pretprocesora. Tokom ovog procesa, DB2 pretprocesor prolazi kroz izvorni kod .sqc datoteke i izvršava određene akcije kada naiđe na određene DB2 naredbe. Ovakvih naredbi ima dosta, a mi ćemo objasniti neke od njih.</p>
+
+<p>Sve DB2 procesorske naredbe počinju ključnim rečima <code class="language-plaintext highlighter-rouge">EXEC SQL</code>, za kojima slede SQL naredbe. U daljem tekstu ćemo podrazumevati postojanje ovih ključnih reči ukoliko se ne navedu eksplicitno.</p>
+
+<h3 id="221-naredba-include">2.2.1 Naredba <code class="language-plaintext highlighter-rouge">INCLUDE</code></h3>
+
+<p>Naredba <code class="language-plaintext highlighter-rouge">INCLUDE</code> služi za uključivanje zaglavlja u izvorni kod programa.</p>
+
+<p>Razlikuje se od standardne C pretprocesorske direktive <code class="language-plaintext highlighter-rouge">#include</code> po tome što se izvršava tokom pretprocesiranja od strane DB2 pretprocesora. Za razliku od nje, direktiva <code class="language-plaintext highlighter-rouge">#include</code> se izvršava tokom prevođenja C programa. Ovo je ključna razlika jer želimo da neka zaglavlja budu dostupna pre nego što se dođe do faze prevođenja C programa.</p>
+
+<p>Da bismo mogli da radimo sa SQL upitima, potrebno je da uključimo zaglavlje <code class="language-plaintext highlighter-rouge">SQLCA.h</code> (<em>SQL Communication Area</em>) i to u fazi DB2 pretprocesiranja, što se čini naredbom:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Primetimo da se ne navodi ekstenzija datoteke. Zaglavlje <code class="language-plaintext highlighter-rouge">SQLCA.h</code> predstavlja kolekciju promenljivih koje se ažuriraju pri izvršavanju svakog SQL upita. Kako se budemo susretali sa raznim zahtevima, tako ćemo objašnjavati svaku od neophodnih promenljivih koje su nam dostupne uključivanjem ovog zaglavlja.</p>
+
+<h3 id="222-naredbe-begin-declare-section-i-end-declare-section">2.2.2 Naredbe <code class="language-plaintext highlighter-rouge">BEGIN DECLARE SECTION</code> i <code class="language-plaintext highlighter-rouge">END DECLARE SECTION</code></h3>
+
+<p>Vrlo često će nam biti neophodno da koristimo promenljive da bismo smeštali rezultate izvršavanja SQL naredbi ili da bismo rezultate nekih izračunavanja u matičnom jeziku koristili kao ulaz SQL naredbi. Međutim, za razliku od regularnih promenljivih u višim programskim jezicima, programiranje SQL naredbi koje zahtevaju korišćenje promenljivih zahteva uvođenje pojma matične promenljive.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Matične promenljive</span> su promenljive koje su definisane u višem programskom jeziku, a koje se ugnežđavaju u SQL naredbe da bi se iskoristile njihove vrednosti ili da bi se rezultati SQL naredbi smestili u njih. </p>
+</div>
+
+<p>U programskom jeziku C, da bismo deklarisali ovakve promenljive, potrebno je da njihove deklaracije smestimo između para naredbi <code class="language-plaintext highlighter-rouge">BEGIN DECLARE SECTION</code> i <code class="language-plaintext highlighter-rouge">END DECLARE SECTION</code>. Na primer:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="kt">double</span> <span class="n">prosek</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Par ovih naredbi je moguće smestiti na bilo koje mesto u kodu gde bismo mogli da deklarišemo i standardne C promenljive. U našem slučaju, mi ćemo deklarisati matične promenljive u globalnom opsegu, ali, naravno, to ne mora biti slučaj.</p>
+
+<p>Postoje neka pravila koja se moraju ispoštovati pri korišćenju ovih naredbi. Naredbe <code class="language-plaintext highlighter-rouge">BEGIN DECLARE SECTION</code> i <code class="language-plaintext highlighter-rouge">END DECLARE SECTION</code> moraju biti uparene, i nije ih je moguće ugnežđavati. Takođe, nije moguće ugnežđavati SQL naredbe između para ovih naredbi. Promenljive koje se deklarišu izvan sekcija definisanih parom ovim naredbama ne smeju imati isti identifikator kao i matične promenljive u tim sekcijama. Naravno, sve promenljive koje se koriste u SQL upitima moraju biti deklarisane u sekciji definisanoj nekim parom ovih naredbi.</p>
+
+<p>Kako se sada ovako definisane matične promenljive koriste? Matičnu promenljivu možemo koristiti u izračunavanjima u matičnom jeziku kao i bilo koje druge promenljive, na primer:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">printf</span><span class="p">(</span><span class="s">"Prosecna ocena studenata je %lf</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">prosek</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Ukoliko želimo da iskoristimo matičnu promenljivu u SQL naredbi, onda ispred identifikatora promenljive moramo staviti karakter dvotačke, na primer:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> 
+    <span class="n">SELECT</span>  <span class="n">AVG</span><span class="p">(</span><span class="n">CAST</span><span class="p">(</span><span class="n">OCENA</span> <span class="n">AS</span> <span class="n">DOUBLE</span><span class="p">))</span> 
+    <span class="n">INTO</span>    <span class="o">:</span><span class="n">prosek</span> 
+    <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h3 id="223-db2-tipovi-promenljivih">2.2.3 DB2 tipovi promenljivih</h3>
+
+<p>Kao što znamo, programski jezik C definiše određeni broj osnovnih tipova. Neki od ovih tipova korespondiraju sa DB2 tipovima kolona u tabelama. U narednoj tabeli prikazan je pregled nekih najčešćih tipova kolona u DB2, kao i odgovarajući C tipovi. Ovi tipovi se mogu koristiti za deklaraciju matičnih promenljivih. Kada DB2 pretprocesor naiđe na deklaraciju matične promenljive, on određuje prikladni SQL tip. RSUBP zatim koristi ovu vrednost za konverziju podataka koji se razmenjuju između aplikacije i njega. Napomenimo da se tipovi označeni zvezdicom preporučuju u odnosu na druge zbog kompatibilnosti između operativnih sistema.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>DB2 tip kolone</th>
+      <th>C tip</th>
+      <th>Opis DB2 tipa</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">SMALLINT</code></td>
+      <td><code class="language-plaintext highlighter-rouge">short</code> <br /> <code class="language-plaintext highlighter-rouge">short int</code> <br /> <code class="language-plaintext highlighter-rouge">sqlint16</code></td>
+      <td>16-bitni označeni ceo broj</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">INTEGER</code></td>
+      <td><code class="language-plaintext highlighter-rouge">int</code> <br /> <code class="language-plaintext highlighter-rouge">long</code> <br /> <code class="language-plaintext highlighter-rouge">long int</code> <br /> <code class="language-plaintext highlighter-rouge">sqlint32</code>*</td>
+      <td>32-bitni označeni ceo broj</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">BIGINT</code></td>
+      <td><code class="language-plaintext highlighter-rouge">long long</code> <br /> <code class="language-plaintext highlighter-rouge">long</code> <br /> <code class="language-plaintext highlighter-rouge">__int64</code> <br /> <code class="language-plaintext highlighter-rouge">sqlint64</code>*</td>
+      <td>64-bitni označeni ceo broj</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">REAL</code></td>
+      <td><code class="language-plaintext highlighter-rouge">float</code></td>
+      <td>Broj u pokretnom zarezu jednostruke preciznosti</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">DOUBLE</code></td>
+      <td><code class="language-plaintext highlighter-rouge">double</code></td>
+      <td>Broj u pokretnom zarezu dvostruke preciznosti</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">DECIMAL(p,s)</code></td>
+      <td>Nema precizan ekvivalentan tip; koristiti <code class="language-plaintext highlighter-rouge">double</code></td>
+      <td>Pakovan decimalni zapis</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">CHAR(1)</code></td>
+      <td><code class="language-plaintext highlighter-rouge">char</code></td>
+      <td>Jedan karakter</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">CHAR(n)</code></td>
+      <td>Nema precizan ekvivalentan tip; koristiti <code class="language-plaintext highlighter-rouge">char[n+1]</code> gde je <code class="language-plaintext highlighter-rouge">n</code> dovoljno veliko da sadrži podatak, tj. <code class="language-plaintext highlighter-rouge">1 &lt;= n &lt;= 254</code></td>
+      <td>Niska nepromenljive dužine</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">VARCHAR(n)</code></td>
+      <td><code>struct tag {<br />&nbsp;&nbsp;&nbsp;&nbsp;short int; <br />&nbsp;&nbsp;&nbsp;&nbsp;char[n]; <br />}</code><br />gde je <code class="language-plaintext highlighter-rouge">1 &lt;= n &lt;= 32672</code></td>
+      <td>Niska promenljive dužine bez terminirajuće nule sa 2-bajtnim indikatorom dužine</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">DATE</code></td>
+      <td>Nula-terminirajuća karakterna forma</td>
+      <td>Dopustiti barem 11 karaktera da bi se smestio terminirajući karakter</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">DATE</code></td>
+      <td><code class="language-plaintext highlighter-rouge">VARCHAR</code> strukturna forma</td>
+      <td>Dopustiti barem 10 karaktera</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">TIME</code></td>
+      <td>Nula-terminirajuća karakterna forma</td>
+      <td>Dopustiti barem 9 karaktera da bi se smestio terminirajući karakter</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">TIME</code></td>
+      <td><code class="language-plaintext highlighter-rouge">VARCHAR</code> strukturna forma</td>
+      <td>Dopustiti barem 8 karaktera</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">TIMESTAMP(p)</code></td>
+      <td>Nula-terminirajuća karakterna forma</td>
+      <td>Dopustiti barem 20-33 karaktera da bi se smestio terminirajući karakter</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">TIMESTAMP(p)</code></td>
+      <td><code class="language-plaintext highlighter-rouge">VARCHAR</code> strukturna forma</td>
+      <td>Dopustiti barem 19-32 karaktera</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="224-naredba-select-into">2.2.4 Naredba SELECT INTO</h3>
+
+<p>U ovom poglavlju ćemo demonstrirati najjednostavniji slučaj dohvatanja podataka iz baze podataka - u pitanju je slučaj kada <em>rezultat SQL upita sadrži najviše 1 red</em>. Da bismo izvršili ovakve upite, potrebno je da koristimo naredbu <code class="language-plaintext highlighter-rouge">SELECT INTO</code>. Njena sintaksa odgovara regularnoj <code class="language-plaintext highlighter-rouge">SELECT</code> naredbi, sa time da se za svaku kolonu u jednom redu rezultata navodi u koju se matičnu promenljivu taj rezultat smešta. Na primer, neka su definisane naredne dve matične promenljive:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">prviIspit</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">poslednjiIspit</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Ukoliko želimo da iz tabele <code class="language-plaintext highlighter-rouge">ISPIT</code> dohvatimo datume o prvom i poslednjem ispitu, to možemo uraditi narednom naredbom:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> 
+    <span class="n">SELECT</span>  <span class="n">MIN</span><span class="p">(</span><span class="n">COALESCE</span><span class="p">(</span><span class="n">DATUM_PISMENOG</span><span class="p">,</span> <span class="n">DATUM_USMENOG</span><span class="p">)),</span> 
+            <span class="n">MAX</span><span class="p">(</span><span class="n">COALESCE</span><span class="p">(</span><span class="n">DATUM_PISMENOG</span><span class="p">,</span> <span class="n">DATUM_USMENOG</span><span class="p">))</span> 
+    <span class="n">INTO</span>    <span class="o">:</span><span class="n">prviIspit</span><span class="p">,</span>
+            <span class="o">:</span><span class="n">poslednjiIspit</span>
+    <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h3 id="225-indikatorske-promenljive">2.2.5 Indikatorske promenljive</h3>
+
+<p>Jedno pitanje koje se prirodno postavlja u radu sa SQL podacima jeste kako se rukuje podacima za koje znamo da mogu imati nedostajuće vrednosti u bazi podataka. Na primer, u tabeli <code class="language-plaintext highlighter-rouge">DOSIJE</code> kolone <code class="language-plaintext highlighter-rouge">datum_rodjenja</code> i <code class="language-plaintext highlighter-rouge">ime_oca</code> mogu imati nedostajuće vrednosti. Potrebno je da se na neki način indikuje ukoliko se naiđe na vrednost <code class="language-plaintext highlighter-rouge">NULL</code>. Za to nam služe indikatorske promenljive.</p>
+
+<p>Kako su ove promenljive deljenje između RSUBP-a i višeg programskog jezika, to je i njih potrebno deklarisati kao matične promenljive. Ove promenljive uzimaju SQL tip vrednosti <code class="language-plaintext highlighter-rouge">SMALLINT</code>, odnosno, možemo koristiti tip <code class="language-plaintext highlighter-rouge">short</code> u C kodu.</p>
+
+<p>Indikatorska promenljiva se u SQL naredbi navodi odmah nakon matične promenljive. S obzirom da je i ona sama matična promenljiva, moramo je prefiksovati karakterom dvotačke. Na primer:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>  <span class="n">NULLKOLONA</span>
+<span class="k">INTO</span>    <span class="p">:</span><span class="n">maticnaPromenljiva</span> <span class="p">:</span><span class="n">indikatorskaPromenljiva</span>
+
+<span class="p">...</span>
+</code></pre></div></div>
+
+<p>Ispitivanje da li je neka vrednost <code class="language-plaintext highlighter-rouge">NULL</code> ili ne, može se izvršiti proverom vrednosti  indikatorske promenljive. Ako je njena vrednost negativan broj, dohvaćena vrednost je <code class="language-plaintext highlighter-rouge">NULL</code> i odgovarajuću matičnu promenljivu ne bi trebalo koristiti. U suprotnom, matična promenljiva  sadrži odgovarajuću vrednost iz tabele. RSUBP neće promeniti vrednost matične promenljive u slučaju da je dohvaćena vrednost <code class="language-plaintext highlighter-rouge">NULL</code>. Primer provere nedostajuće vrednosti se može ilustrovati narednim delom koda:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">(</span><span class="n">indikatorskaPromenljiva</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Podatak ne postoji!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Dohvacen je podatak: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">maticnaPromenljiva</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="226-obrada-grešaka">2.2.6 Obrada grešaka</h3>
+
+<p>Pri radu sa Db2 SQL bazom podataka, možemo očekivati da će se potencijalno pojaviti tri vrste grešaka:</p>
+
+<ol>
+  <li>
+    <p>Upozorenjem <code class="language-plaintext highlighter-rouge">NOT FOUND</code> se signalizira da upitom nije pronađen nijedan red u tabeli koji je zadovoljavajući.</p>
+  </li>
+  <li>
+    <p>Upozorenjem <code class="language-plaintext highlighter-rouge">SQLWARNING</code> se signalizira da postoji neka akcija koja nije očekivana ili da potencijalno postoji nekakav propust.</p>
+  </li>
+  <li>
+    <p>Greškom <code class="language-plaintext highlighter-rouge">SQLERROR</code> se signalizira da postoji veliki problem koji je neophodno rešiti.</p>
+  </li>
+</ol>
+
+<p>DB2 sistem nam nudi razne načine za obradu grešaka. U osnovi svih ovih načina nalazi se zaglavlje <code class="language-plaintext highlighter-rouge">SQLCA.h</code> i razne promenljive, strukture i funkcije koje ona nudi. Komunikacija sa DB2 sistemom je moguća zato što, prilikom pretprocesiranja programa, Db2 pretprocesor umeće deklaracije raznih matičnih promenljivih na mesto <code class="language-plaintext highlighter-rouge">INCLUDE</code> naredbe. Sistem zatim komunicira sa našim programom koristeći promenljive za postavljanje zastavica prilikom upozorenja, kodova za greške i drugih informacija za dijagnozu.</p>
+
+<p>Nakon izvršavanja svake SQL naredbe, sistem daje povratni kod kroz C makroe <code class="language-plaintext highlighter-rouge">SQLCODE</code> i <code class="language-plaintext highlighter-rouge">SQLSTATE</code>. <code class="language-plaintext highlighter-rouge">SQLCODE</code> predstavlja makro koji se razvija celi broj koja na neki način sumira izvršavanje SQL naredbe, dok je <code class="language-plaintext highlighter-rouge">SQLSTATE</code> makro koji se razvija u nisku od 5 karaktera, koja detaljnije opisuje česte kodove za greške među različitim softverskim rešenjima vezane za relacione baze od strane IBM-a. Mi ćemo se najčešće oslanjati na makro <code class="language-plaintext highlighter-rouge">SQLCODE</code> prilikom obrade grešaka.</p>
+
+<p>U zavisnosti od vrednosti u koju se razvije makro <code class="language-plaintext highlighter-rouge">SQLCODE</code>, razlikujemo naredna tri slučaja:</p>
+
+<ul>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">SQLCODE = 0</code>: Naredba se uspešno izvršila i nije došlo do greške.</p>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">SQLCODE &gt; 0</code>: Došlo je do nekakvog upozorenja od strane RSUBP, ali naredba je svakako izvršena. Specijalno, ukoliko je kod upozorenja <code class="language-plaintext highlighter-rouge">+100</code>, to znači da nije pronađen željeni podatak u bazi (u slučaju upita koji vraćaju jednu vrednost) ili da se došlo do kraja čitanja (u slučaju upita koji vraćaju više vrednosti).</p>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">SQLCODE &lt; 0</code>: Došlo je do nekakve greške i naredba nije izvršena.</p>
+  </li>
+</ul>
+
+<p>Da bismo otkrili šta znaci određena greška, potrebno je da u komandnoj liniji izvršimo komandu:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>db2 ? sql&lt;KOD GRESKE BEZ MINUSA&gt;
+</code></pre></div></div>
+
+<p>Na primer, ukoliko želimo da vidimo šta znači greška čiji je kod <code class="language-plaintext highlighter-rouge">-502</code>, potrebno je da izvršimo:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>db2 ? sql502
+</code></pre></div></div>
+
+<p>Naredni deo koda ilustruje najjednostavniji način provere da li je došlo do greške. Definišemo funkciju <code class="language-plaintext highlighter-rouge">is_error</code> koja će izvršavati proveru grešaka i njihovu obradu. Ova funkcija se poziva nakon svake SQL naredbe koja dolazi do izražaja u fazi izvršavanja. Funkcija kao argument prihvata nisku koja sadrži opis SQL naredbe nakon koje se poziva. Ovo ima smisla zbog toga što, u slučaju da dođe do greške, možemo vrlo jednostavno videti u kom delu izvornog koda je došlo do greške.</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Greska %d: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Konekcija na bazu podataka"</span><span class="p">);</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Prekidanje konekcije sa bazom podataka"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="227-tok-pisanja-programa">2.2.7 Tok pisanja programa</h3>
+
+<p>Ovo poglavlje završavamo sekcijom koja opisuje koji su to osnovni koraci u programiranju C/SQL aplikacija na jednostavnom uvodnom primeru.</p>
+
+<p>Pisanje C programa sa ugnežđenim SQL naredbama obično podrazumeva naredne korake:</p>
+
+<ol>
+  <li>Uključivanje potrebnih zaglavlja</li>
+  <li>Deklaracija matičnih promenljivih</li>
+  <li>Povezivanje na bazu podataka</li>
+  <li>Izvršavanje SQL naredbi</li>
+  <li>Obrada SQL grešaka</li>
+  <li>Ostvarivanje transakcija</li>
+  <li>Prekidanje konekcije sa bazom podataka</li>
+</ol>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.1</p>
+    Napisati C/SQL program koji ispisuje maksimalni indeks iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>.
+</div>
+
+<p>Rešenje. Potrebno je da pratimo prethodno opisane korake za pisanje C programa. U ovom primeru, ignorisaćemo korak 6. Na njega ćemo posvetiti posebnu pažnju u poglavljima koji slede. Dakle, krenimo redom:</p>
+
+<p><strong>Uključivanje potrebnih zaglavlja</strong></p>
+
+<p>Ovaj korak bi trebalo da nam bude jasan do sada:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p><strong>Deklaracija matičnih promenljivih</strong></p>
+
+<p>Kako je indeks definisan tipom <code class="language-plaintext highlighter-rouge">INTEGER</code>, možemo birati neki od tipova <code class="language-plaintext highlighter-rouge">int</code>, <code class="language-plaintext highlighter-rouge">long</code>, <code class="language-plaintext highlighter-rouge">long int</code> ili <code class="language-plaintext highlighter-rouge">sqlint32</code>. Pošto je preporučeno koristiti tip <code class="language-plaintext highlighter-rouge">sqlint32</code> zbog kompatibilnosti između operativnih sistema različite bit-nosti, matičnu promenljivu koja će sadržati traženi indeks deklarišemo na sledeći način:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">maxIndeks</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Ostale korake ćemo izvršavati u funkciji <code class="language-plaintext highlighter-rouge">int main()</code>.</p>
+
+<p><strong>Povezivanje na bazu podataka</strong></p>
+
+<p>Da bismo se povezali na bazu podataka, koristićemo SQL naredbu oblika</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CONNECT</span> <span class="k">TO</span> <span class="n">imeBP</span> <span class="k">USER</span> <span class="n">imeKorisnika</span> <span class="k">USING</span> <span class="n">korisnickaLozinka</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>U našem slučaju:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p><strong>Izvršavanje SQL naredbi</strong></p>
+
+<p>U ovom koraku je potrebno da napišemo odgovarajući SQL upit za izračunavanje najvećeg indeksa iz tabele <code class="language-plaintext highlighter-rouge">ISPIT</code> i da rezultat smestimo u prethodno definisanu matičnu promenljivu <code class="language-plaintext highlighter-rouge">maxIndeks</code>. Zatim, potrebno je da ispišemo rezultat. To se može uraditi narednim delom koda:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> 
+    <span class="n">SELECT</span>  <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> 
+    <span class="n">INTO</span>    <span class="o">:</span><span class="n">maxIndeks</span> 
+    <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"Najveci indeks je %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">maxIndeks</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p><strong>Obrada SQL grešaka</strong></p>
+
+<p>Pretpostavljamo da imamo definisanu funkciju <code class="language-plaintext highlighter-rouge">is_error</code>, kao u podsekciji 2.2.6. Nakon svake <code class="language-plaintext highlighter-rouge">EXEC SQL</code> naredbe pozivamo funkciju <code class="language-plaintext highlighter-rouge">is_error</code> kojoj prosleđujemo nisku koja sadrži opis te SQL naredbe.</p>
+
+<p><strong>Prekidanje konekcije sa bazom podataka</strong></p>
+
+<p>Prekidanje konekcije je vrlo jednostavno. Dovoljno je izvršiti SQL naredbu <code class="language-plaintext highlighter-rouge">CONNECT RESET</code>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Time smo ispunili zahtev zadatka. U nastavku je dato celokupno rešenje.</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_2/zadatak_2_1.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="c1">// Deklaracija potrebnih maticnih promenljivih</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">maxIndeks</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="c1">// Definicija funkcije za obradu gresaka</span>
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Greska %d: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">// Konekcija na bazu</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Konekcija na bazu podataka"</span><span class="p">);</span>
+
+    <span class="c1">// Izdvajamo maksimalni indeks i smestamo u maticnu promenljivu maxIndeks</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> 
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">maxIndeks</span> 
+        <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Izdvajanje podatka o najvecem indeksu"</span><span class="p">);</span>
+
+    <span class="c1">// Ispisujemo podatak koji se sada nalazi u maticnoj promenljivoj maxIndeks</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Najveci indeks je %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">maxIndeks</span><span class="p">);</span>
+
+    <span class="c1">// Diskonekcija sa baze</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Prekidanje konekcije sa bazom podataka"</span><span class="p">);</span>
+    
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Prevođenje rešenja zadatka 2.1 se vrši pomoću naredne naredbe koja se poziva u terminalu:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./prevodjenje zadatak_2_1 vstud student abcdef
+</code></pre></div></div>
+
+<p>Tokom ovog procesa možemo videti da li je došlo do nekih grešaka u fazi prevođenja. Ukoliko je sve prošlo kako treba, kreirana je izvršna datoteka <code class="language-plaintext highlighter-rouge">zadatak_2_1</code> koja se pokreće kao i svaki drugi izvršni C program:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./zadatak_2_1
+</code></pre></div></div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.2</p>
+    Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta sa maksimalnim indeksom iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_2/zadatak_2_2.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">ime</span><span class="p">[</span><span class="mi">26</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">prezime</span><span class="p">[</span><span class="mi">26</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">ime_oca</span><span class="p">[</span><span class="mi">51</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">ind_ime_oca</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">datum_rodjenja</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">ind_datum_rodjenja</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Greska %d: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Konekcija na bazu podataka"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">INDEKS</span><span class="p">,</span> 
+                <span class="n">IME</span><span class="p">,</span> 
+                <span class="n">PREZIME</span><span class="p">,</span> 
+                <span class="n">IME_OCA</span><span class="p">,</span> 
+                <span class="n">DATUM_RODJENJA</span>
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">indeks</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">ime</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">prezime</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">ime_oca</span> <span class="o">:</span><span class="n">ind_ime_oca</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">datum_rodjenja</span> <span class="o">:</span><span class="n">ind_datum_rodjenja</span>
+        <span class="n">FROM</span>    <span class="n">DOSIJE</span>
+        <span class="n">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="p">(</span><span class="n">SELECT</span> <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> <span class="n">FROM</span> <span class="n">DOSIJE</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Izdvajanje podatka o studentu sa najvecim indeksom"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">INDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+        <span class="n">indeks</span><span class="p">,</span> <span class="n">ime</span><span class="p">,</span> <span class="n">prezime</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">ind_ime_oca</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="s">"null"</span> <span class="o">:</span> <span class="n">ime_oca</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">ind_datum_rodjenja</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="s">"null"</span> <span class="o">:</span> <span class="n">datum_rodjenja</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Prekidanje konekcije sa bazom podataka"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.3</p>
+    Napisati C/SQL program koji ispisuje indeks, ime, prezime, ime oca (ukoliko je navedeno u bazi) i datum rođenja (ukoliko je navedeno u bazi) za studenta čiji se broj indeksa učitava sa standardnog ulaza.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_2/zadatak_2_3.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">ime</span><span class="p">[</span><span class="mi">26</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">prezime</span><span class="p">[</span><span class="mi">26</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">ime_oca</span><span class="p">[</span><span class="mi">51</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">ind_ime_oca</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">datum_rodjenja</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">ind_datum_rodjenja</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Greska %d: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Konekcija na bazu podataka"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite broj indeksa: "</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">indeks</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">INDEKS</span><span class="p">,</span> 
+                <span class="n">IME</span><span class="p">,</span> 
+                <span class="n">PREZIME</span><span class="p">,</span> 
+                <span class="n">IME_OCA</span><span class="p">,</span> 
+                <span class="n">DATUM_RODJENJA</span>
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">indeks</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">ime</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">prezime</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">ime_oca</span> <span class="o">:</span><span class="n">ind_ime_oca</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">datum_rodjenja</span> <span class="o">:</span><span class="n">ind_datum_rodjenja</span>
+        <span class="n">FROM</span>    <span class="n">DOSIJE</span>
+        <span class="n">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="o">:</span><span class="n">indeks</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Izdvajanje podatka o studentu sa ucitanim indeksom"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">INDEKS:%i IME:%s PREZIME:%s IME_OCA:%s DAT_RODJENJA:%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+        <span class="n">indeks</span><span class="p">,</span> <span class="n">ime</span><span class="p">,</span> <span class="n">prezime</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">ind_ime_oca</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="s">"null"</span> <span class="o">:</span> <span class="n">ime_oca</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">ind_datum_rodjenja</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="s">"null"</span> <span class="o">:</span> <span class="n">datum_rodjenja</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Prekidanje konekcije sa bazom podataka"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="228-naredbe-insert-update-i-delete">2.2.8 Naredbe <code class="language-plaintext highlighter-rouge">INSERT</code>, <code class="language-plaintext highlighter-rouge">UPDATE</code> i <code class="language-plaintext highlighter-rouge">DELETE</code></h3>
+
+<p>Do sada smo diskutovali o programima u kojima smo dohvatali tačno jedan red u tabeli (ili, eventualno, nijedan), korišćenjem naredbe <code class="language-plaintext highlighter-rouge">SELECT INTO</code>. U nastavku slede zadatak u kojem ćemo demonstrirati upotrebu naredbe <code class="language-plaintext highlighter-rouge">INSERT</code>, zatim pretražujućih varijanti naredbi <code class="language-plaintext highlighter-rouge">UPDATE</code> i <code class="language-plaintext highlighter-rouge">DELETE</code>.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> Naredbe <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">UPDATE</span> ili <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">DELETE</span> zovemo <span style="font-style: italic;">pretražujućim</span> ukoliko se podaci koji se ažuriraju, odnosno, brišu pronalaze na osnovu nekih uslova restrikcije u klauzi <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">WHERE</span>. </p>
+</div>
+
+<p>Ove naredbe se jednostavno implementiraju njihovim navođenjem nakon <code class="language-plaintext highlighter-rouge">EXEC SQL</code>.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.4</p>
+    Napisati C/SQL program u kojem su implementirane naredne funkcije. Napisati i funkciju <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">int main()</span> koja testira napisane funkcije.<br />
+- Napisati funkciju <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">void unesi_novi_predmet()</span> koja sa standardnog ulaza učitava podatke o identifikatoru, šifri, nazivu, bodovima i broju semestara za novi predmet na fakultetu. Potrebno je uneti te podatke u tabelu <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">PREDMET</span>. Nakon toga, odgovarajućom naredbom proveriti da li su podaci dobro uneti i ispisati ih.<br />
+- Napisati funkciju <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">void izmeni_novi_predmet()</span> koja izvršava ažuriranje podataka za novouneseni predmet, tako što se broj bodova duplo povećava i nakon čega se podaci izlistavaju ponovo.<br />
+- Napisati funkciju <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">void obrisi_novi_predmet()</span> koja briše novouneseni predmet iz baze podataka.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_2/zadatak_2_4.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">id_predmeta</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">sifra</span><span class="p">[</span><span class="mi">21</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">naziv</span><span class="p">[</span><span class="mi">201</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">broj_semestara</span><span class="p">;</span>
+<span class="kt">short</span> <span class="n">bodovi</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Greska %d: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Deklaracije funkcija za svaki deo zadatka </span>
+<span class="kt">void</span> <span class="nf">unesi_novi_predmet</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">izmeni_novi_predmet</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">obrisi_novi_predmet</span><span class="p">();</span>
+
+<span class="c1">// Glavni deo zadatka</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Konekcija na bazu"</span><span class="p">);</span>
+
+    <span class="n">unesi_novi_predmet</span><span class="p">();</span>
+    <span class="n">izmeni_novi_predmet</span><span class="p">();</span>
+    <span class="n">obrisi_novi_predmet</span><span class="p">();</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Diskonekcija sa baze"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Definicije funkcija za svaki deo zadatka</span>
+<span class="kt">void</span> <span class="nf">unesi_novi_predmet</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Identifikator predmeta:"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">id_predmeta</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Sifra predmeta:"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">sifra</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Naziv predmeta:"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">naziv</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Semestara slusanja predmeta:"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%hd"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">broj_semestara</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Bodovi predmeta:"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%hd"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">bodovi</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">PREDMET</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="o">:</span><span class="n">id_predmeta</span><span class="p">,</span> <span class="o">:</span><span class="n">sifra</span><span class="p">,</span> <span class="o">:</span><span class="n">naziv</span><span class="p">,</span> <span class="o">:</span><span class="n">broj_semestara</span><span class="p">,</span> <span class="o">:</span><span class="n">bodovi</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Unos podataka o predmetu"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">ID_PREDMETA</span><span class="p">,</span> 
+                <span class="n">SIFRA</span><span class="p">,</span> 
+                <span class="n">NAZIV</span><span class="p">,</span> 
+                <span class="n">BROJ_SEMESTARA</span><span class="p">,</span> 
+                <span class="n">BODOVI</span>
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">id_predmeta</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">sifra</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">naziv</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">broj_semestara</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">bodovi</span>
+        <span class="n">FROM</span>    <span class="n">PREDMET</span>
+        <span class="n">WHERE</span>   <span class="n">ID_PREDMETA</span> <span class="o">=</span> <span class="o">:</span><span class="n">id_predmeta</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Izlistavanje podataka"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">ID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+        <span class="n">id_predmeta</span><span class="p">,</span> <span class="n">sifra</span><span class="p">,</span> <span class="n">naziv</span><span class="p">,</span> <span class="n">broj_semestara</span><span class="p">,</span> <span class="n">bodovi</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">izmeni_novi_predmet</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">UPDATE</span>  <span class="n">PREDMET</span>
+        <span class="n">SET</span>     <span class="n">BODOVI</span> <span class="o">=</span> <span class="n">BODOVI</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="n">WHERE</span>   <span class="n">ID_PREDMETA</span> <span class="o">=</span> <span class="o">:</span><span class="n">id_predmeta</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Azuriranje podataka o predmetu"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">ID_PREDMETA</span><span class="p">,</span> 
+                <span class="n">SIFRA</span><span class="p">,</span> 
+                <span class="n">NAZIV</span><span class="p">,</span> 
+                <span class="n">BROJ_SEMESTARA</span><span class="p">,</span> 
+                <span class="n">BODOVI</span>
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">id_predmeta</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">sifra</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">naziv</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">broj_semestara</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">bodovi</span>
+        <span class="n">FROM</span>    <span class="n">PREDMET</span>
+        <span class="n">WHERE</span>   <span class="n">ID_PREDMETA</span> <span class="o">=</span> <span class="o">:</span><span class="n">id_predmeta</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Izlistavanje podataka"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">ID:%d SIFRA:%s NAZIV:%s SEMSLUS:%hd BODOVI:%hd</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> 
+        <span class="n">id_predmeta</span><span class="p">,</span> <span class="n">sifra</span><span class="p">,</span> <span class="n">naziv</span><span class="p">,</span> <span class="n">broj_semestara</span><span class="p">,</span> <span class="n">bodovi</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">obrisi_novi_predmet</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DELETE</span> 
+        <span class="n">FROM</span>    <span class="n">PREDMET</span>
+        <span class="n">WHERE</span>   <span class="n">ID_PREDMETA</span> <span class="o">=</span> <span class="o">:</span><span class="n">id_predmeta</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Brisanje podataka o predmetu"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Uspesno su obrisani podaci o predmetu</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="25-zadaci-za-vežbu">2.5 Zadaci za vežbu</h2>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.5</p>
+    Napisati C/SQL program koji ispisuje podatke za predmet čiji je identifikator <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">640</span>.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.6</p>
+    Napisati C/SQL program koji ispisuje broj studenata koji su upisali studije u godini koja se unosi sa standardnog ulaza.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.7</p>
+    Napisati C/SQL program koji za svaku ocenu od 6 do 10 ispisuje ime i prezime studenta koji je poslednji položio neki ispit sa tom ocenom. U slučaju da ima više takvih studenata, klauzom <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">LIMIT 1</span> naredbe <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">SELECT INTO</span> se osigurati da rezultat vrati najviše 1 rezultat. (Pomoć: Koristiti <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">for</span> petlju za menjanje vrednosti matične promenljive koja sadrži ocenu, pa u svakoj iteraciji dohvatiti informaciju za tekuću vrednost te matične promenljive.)
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.8</p>
+    Napisati C/SQL program kojim se dodaje da je za polaganje predmeta čiji je identifikator <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">720</span> uslov da se položi predmet čiji je identifikator <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">655</span>.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.9</p>
+    Napisati C/SQL program kojim se u tabelu <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">NIVO_KVALIFIKACIJE</span> dodaje novi nivo čiji se identifikator, naziv i stepen unose sa standardnog ulaza.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.10</p>
+    Napisati C/SQL program kojim se svim obaveznim predmetima na smeru <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'Informatika'</span> povećava broj semestra za 1.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.11</p>
+    Napisati C/SQL program kojim se, za sve položene ispite čiji se naziv predmeta unosi sa standardnog ulaza, ocena uvećava za 1.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.12</p>
+    Napisati C/SQL program kojim se u tabeli <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">USLOVNI_PREDMET</span> brišu svi redovi koji se odnose na predmete koji su uslovni da bi se položio predmet čiji se identifikator unosi sa standardnog ulaza.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 2.13</p>
+    Napisati C/SQL program kojim se brišu svi podaci o ispitima za studenta čiji se indeks unosi sa standardnog ulaza.
+</div>
+
+  </div>
+
+</article>
+
+        </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/PDb2BP/"></data>
+
+    <div class="wrapper">
+
+        <div class="row">
+            <h2 class="footer-heading">Programiranje Db2 baza podataka</h2>
+        </div>
+
+        <div class="footer-col-wrapper">
+            <div class="row">
+                <div class="col-6">
+                    <ul class="contact-list">
+                        <li class="p-name">Programiranje Db2 baza podataka</li><li><a class="u-email" href="mailto:nikola_ajzenhamer@math.rs">nikola_ajzenhamer@math.rs</a></li></ul>
+                </div>
+                <div class="col-6">
+                    <p>Elektronska knjiga &quot;Programiranje Db2 baza podataka&quot; dostupna besplatno na adresi&nbsp;<a
+                            href="/PDb2BP/">https://theikeofficial.github.io//PDb2BP/</a>.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</footer><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Implementiranje transakcija | Programiranje Db2 baza podataka</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="Implementiranje transakcija" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<meta property="og:description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<link rel="canonical" href="https://theikeofficial.github.io//PDb2BP/poglavlja/5/" />
+<meta property="og:url" content="https://theikeofficial.github.io//PDb2BP/poglavlja/5/" />
+<meta property="og:site_name" content="Programiranje Db2 baza podataka" />
+<script type="application/ld+json">
+{"description":"Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi","@type":"WebPage","url":"https://theikeofficial.github.io//PDb2BP/poglavlja/5/","headline":"Implementiranje transakcija","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/PDb2BP/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://theikeofficial.github.io//PDb2BP/feed.xml" title="Programiranje Db2 baza podataka" /></head>
+<body><header class="site-header" role="banner"
+    style="background-image: url(/PDb2BP/resources/header.png); height: 300px; background-repeat: repeat-x;"><a class="site-title" rel="author" href="/PDb2BP/"
+        style="display: flex; position: relative; top: 125px; background-color: white; width: 100%; height: 86px;flex-wrap: wrap; justify-content: center; align-items: center; line-height: 0px; font-size: 36px;">
+        
+        
+        <span style="font-weight: bold;">PROGRAMIRANJE&nbsp;</span>
+        
+        <span style="font-weight: bold;">DB2&nbsp;</span>
+        
+        <span style="font-weight: bold;">BAZA&nbsp;</span>
+        
+        <span style="font-weight: bold;">PODATAKA&nbsp;</span>
+        
+    </a>
+</header><main class="page-content" aria-label="Content">
+        <div class="wrapper" style="max-width: calc(1100px - (30px * 2));">
+            <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">5. Implementiranje transakcija</h1>
+  </header>
+
+  <div class="post-content">
+    <p>Transakcije predstavljaju izuzetno važan alat za svakog programera koji koristi baze podataka u svojim aplikacijama. Svaka iole kompleksnija operacija nad podacima zahteva korišćenje transakcija da bi se takva operacija uspešno implementirala. Pritom, postoji veliki broj pitanja i potencijalnih problema koji se otvaraju prilikom korišćenja  transakcija. U ovoj sekciji ćemo se upoznati sa različitim naredbama za rad sa transakcijama u DB2 sistemu za upravljanje relacionim bazama podataka. Započnimo ovaj deo teksta narednom definicijom.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Transakcija</span> (engl. <span style="font-style: italic;">transaction</span>) predstavlja logičku jedinicu posla pri radu sa podacima. </p>
+</div>
+
+<p>Transakcija predstavlja niz radnji koji ne narušava uslove integriteta. Sa stanovišta korisnika, izvršavanje transakcije je atomično. Po izvršenju kompletne transakcije stanje baze treba da bude konzistentno, tj. da su ispunjeni uslovi integriteta. Dakle, posmatrana kao jedinica posla, transakcija prevodi jedno konzistentno stanje baze u drugo takvo stanje baze, dok u međukoracima transakcije konzistentnost podataka može biti i narušena. Transakcija na taj način predstavlja i bezbedno sredstvo za interakciju korisnika sa bazom.</p>
+
+<h2 id="51-operacije-potvrđivanja-i-poništavanja-izmena-u-bazi-podataka">5.1 Operacije potvrđivanja i poništavanja izmena u bazi podataka</h2>
+
+<p>Pre nego što započnemo detaljnu diskusiju o implementaciji transakcija, obratićemo pažnju na jedan realan primer izvršavanja programa koji implementira prebacivanje novca sa jednog računa na drugi. Ovaj primer će nam služiti kao glavna motivacija zašto je potrebno da razumemo rad sa transakcijama. Pre nego što demonstriramo primer, dajmo narednu definiciju.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Atomična</span> (engl. <span style="font-style: italic;">atomic</span>) operacija je ona operacija koju nije moguće podeliti na više manjih operacija (tj. u pitanju je nedeljiva operacija). </p>
+</div>
+
+<p>Premeštaj novca sa jednog računa na drugi se može implementirati narednim nizom atomičnih operacija (radi čuvanja prostora, iz narednog niza eliminišemo razne provere, kao što su provera da li korisnik može da prebaci novac između računa, provera da li ima dovoljno sredstava na prvom računu, itd.):</p>
+
+<ol>
+  <li>Dohvati red u tabeli koji predstavlja prvi račun.</li>
+  <li>Umanji iznos u tom redu za traženu sumu.</li>
+  <li>Dohvati red u tabeli koji predstavlja drugi račun.</li>
+  <li>Uvećaj iznos u tom redu za traženu sumu.</li>
+</ol>
+
+<p>Pretpostavimo da SUBP operacije iz ovih koraka implementira na takav način da se neposredno nakon njihovog izvršavanja sve izmene trajno upisuju u bazu podataka. Naredna slika ilustruje jedno moguće izvršavanje programa koji implementira ove korake. U tom izvršavanju, program prvo naredbom <code class="language-plaintext highlighter-rouge">SELECT</code> dohvata red u tabeli koji predstavlja prvi račun (koji je na početku imao 100 000 jedinica valute). Zatim, u drugom koraku, naredbom <code class="language-plaintext highlighter-rouge">UPDATE</code> umanjuje iznos u tom redu za traženu sumu (10 000 jedinica valute). Iz nekog razloga (nestanak struje, prekid mrežne komunikacije, itd.), nakon 2. koraka, program prijavljuje grešku i operativni sistem ga prekida. Međutim, kao što je prikazano na slici, stanje baze je takvo da je prvom računu umanjen iznos i informacija o tome da novac nije uspešno prebačen na drugi račun se izgubila. Drugim rečima, baza se nalazi u <em>nekonzistentnom</em> stanju. Zbog toga, važno je zapamtiti da <strong>SUBP nikada ne implementira operacije izmena tako da njihovi efekti budu trajno upisani u bazu podataka neposredno nakon njihovog izvršavanja</strong>.</p>
+
+<p style="max-width: 500px; display: block; margin: auto;"><img src="/PDb2BP/poglavlja/5/Slike/CitanjePrePotvrdjivanja.png" alt="Nepravilna implementacija transakcija može dovesti do kršenja pravila u poslovnom domenu" /></p>
+
+<p>Sada je validno postaviti pitanje - u kom trenutku se informacije o izmenama zaista upisuju u bazu podataka? Db2 baza podataka definiše naredne dve operacije za rad sa izmenama u bazi podataka.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Potvrđivanje</span> (engl <span style="font-style: italic;">commit</span>) predstavlja trajno upisivanje izmena u bazu podataka koje su do tada bile izvršene nad tom bazom podataka. Sve načinjene izmene se trajno pamte u bazi podataka i svi ostali procesi dobijaju mogućnost da vide načinjene izmene. </p>
+</div>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Poništavanje</span> (engl <span style="font-style: italic;">rollback</span>) predstavlja vraćanje stanje baze podataka u ono u kojem se baza podataka našla pre izvršavanja izmena koje su do tada bile izvršene nad tom bazom podataka. Izvršavanjem ove naredbe možemo poništiti sve one akcije koje do trenutka poništavanja nisu prethodno bile potvrđene. </p>
+</div>
+
+<p>Da bismo dodatno razumeli koje su to izmene u bazi podataka koje se potvrđuju, odnosno, poništavaju ovim operacijama, potrebno je da definišemo pojam jedinice posla.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Jedinica posla</span> (engl. <span style="font-style: italic;">unit of work</span>, skr. <span style="font-style: italic;">UOW</span>) predstavlja nadoknadivu sekvencu operacija u okviru aplikacionog procesa. </p>
+</div>
+
+<p>Jedinica posla se inicijalizuje prilikom pokretanja aplikacionog procesa ili kada se prethodna jedinica posla završila posledicom operacije koja nije prekid aplikacionog procesa. Jedinica posla se završava operacijom potvrđivanja ili poništavanja izmena ili završetkom aplikacionog procesa. Operacije potvrđivanja i poništavanja izmena utiču samo da one promene u bazi podataka koje su izvršene tokom te jedinice posla koja se završava.</p>
+
+<p>Inicijalizacija i završetak jedinice posla definišu tačke konzistentnosti u okviru aplikacionog procesa. Razmotrimo prethodni primer bankarske transakcije u kojoj se vrši premeštaj sredstava sa jednog računa na drugi račun. Kao što smo rekli, nakon drugog koraka (oduzimanja sredstava) podaci su nekonzistentni. Tek nakon izvršavanja četvrtog koraka (uvećavanje sredstava) konzistentnost je obnovljena, što je prikazano na narednoj slici:</p>
+
+<p><img src="/PDb2BP/poglavlja/5/Slike/uow1.png" alt="&quot;Grafički prikaz jedne jedinice posla tokom vremena. Ova jedinica posla se uspešno izvršila i sve izmene koje predstavljaju deo te jedinice posla se uspešno potvrđuju u bazi podataka.&quot;" style="display: block; margin: auto;" /></p>
+
+<p>Kada se oba koraka izvrše, može se iskoristiti operacija potvrđivanja izmena da bi se završila jedinica posla. Ako dođe do greške pre nego što se jedinica posla uspešno završi, SUBP će poništiti sve nepotvrđene izmene da bi vratio stanje baze podataka u konzistentno, što je prikazano na narednoj slici:</p>
+
+<p><img src="/PDb2BP/poglavlja/5/Slike/uow2.png" alt="&quot;Grafički prikaz jedne jedinice posla tokom vremena. U ovoj jedinici posla je došlo do greške, čime je neophodno da se izmene koje su načinjene u bazi podataka ponište.&quot;" style="display: block; margin: auto;" /></p>
+
+<p>Dakle, rešenje problema prenosa novca bismo implementirali narednim koracima:</p>
+
+<ol>
+  <li>(Implicitno) Započni novu jedinicu posla (bilo započinjanjem novog procesa, prethodnim izvršavanjem naredba potvrđivanja ili poništavanja, itd.).</li>
+  <li>Dohvati red u tabeli koji predstavlja prvi račun.</li>
+  <li>Umanji iznos u tom redu za traženu sumu.</li>
+  <li>Dohvati red u tabeli koji predstavlja drugi račun.</li>
+  <li>Uvećaj iznos u tom redu za traženu sumu.</li>
+  <li>Potvrdi izmene u bazi podataka.</li>
+</ol>
+
+<p>Naravno, nakon svakog koraka je neophodno izvršiti proveru grešaka. U slučaju greške u bilo kom trenutku, program mora da izvrši poništavanje izmena, čime se stanje baze vraća u ono koje je bilo pre 1. koraka, dakle, u konzistentno stanje.</p>
+
+<p>SQL jezik definiše dve naredbe koje odgovaraju opisanim operacijama:</p>
+
+<ul>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">COMMIT</code> implementira operaciju potvrđivanja izmena.</p>
+  </li>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">ROLLBACK</code> implementira operaciju poništavanja izmena.</p>
+  </li>
+</ul>
+
+<p>O ovim naredbama i njihovim bočnim efektima ćemo detaljnije govoriti u sekcijama <a href="#54-potvrđivanje-izmena">5.4</a> i <a href="#55-poništavanje-izmena">5.5</a>. Međutim, diskusija koju smo izložili do sada je dovoljna za demonstraciju najosnovnijeg efekta ovih naredbi.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.1</p>
+    Napisati C/SQL program koji redom:<br />
+<br />
+1. Pronalazi i ispisuje najveći indeks iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>.<br />
+2. Briše studenta sa pronađenim indeksom iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span> i ispisuje poruku korisniku o uspešnosti brisanja.<br />
+3. Ponovo pronalazi i ispisuje najveći indeks iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>.<br />
+4. Pita korisnika da li želi da potvrdi ili poništi izmene. U zavisnosti od korisnikovog odgovora, aplikacija potvrđuje ili poništava izmene uz ispisivanje poruke korisniku.<br />
+5. Ponovo pronalazi i ispisuje najveći indeks iz tabele <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>.<br />
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_1.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"SQLCODE %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+    
+        <span class="c1">// U funkciju za obradu greske dodajemo naredbu ROLLBACK</span>
+        <span class="c1">// da bismo ponistili eventualne izmene u bazi podataka</span>
+        <span class="c1">// ukoliko zaista dodje do greske.</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">SELECT</span>  <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> 
+        <span class="n">INTO</span>    <span class="o">:</span><span class="n">indeks</span> 
+        <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Select 1"</span><span class="p">);</span>
+    
+    <span class="c1">// Ako nema studenata u tabeli ispit</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Maksimalni indeks je %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">indeks</span><span class="p">);</span>
+
+        <span class="c1">// Brisanje studenta sa najvecim indeksom iz tabele ispit</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">DELETE</span> 
+            <span class="n">FROM</span>    <span class="n">ISPIT</span> 
+            <span class="n">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="o">:</span><span class="n">indeks</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Delete"</span><span class="p">);</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Uspesno je obrisan podatak"</span><span class="p">);</span>
+
+        <span class="c1">// Ispisivanje najveceg indeksa iz tabele ispit</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">SELECT</span>  <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">indeks</span> 
+            <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Select 2"</span><span class="p">);</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Maximalni indeks je %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">indeks</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Tabela je prazna!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+        
+        <span class="c1">// Pitamo korisnika za dalju akciju</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Izaberite jednu od dve akcije:</span><span class="se">\n</span><span class="s">"</span>
+            <span class="s">"1. Potvrdjivanje izmena</span><span class="se">\n</span><span class="s">"</span>
+            <span class="s">"2. Ponistavanje izmena</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+        <span class="kt">short</span> <span class="n">odgovor</span><span class="p">;</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">odgovor</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">odgovor</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="c1">// Potvrdjujemo izmene naredbom COMMIT</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="c1">// Ponistavamo izmene naredbom ROLLBACK</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Rollback"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Vasa akcija je izvrsena!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        
+        <span class="c1">// Ispisujemo najveci indeks ponovo</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">SELECT</span>  <span class="n">MAX</span><span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">indeks</span> 
+            <span class="n">FROM</span>    <span class="n">ISPIT</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Select 3"</span><span class="p">);</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Maximalni indeks je %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">indeks</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Tabela je prazna!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>        
+    <span class="p">}</span>
+    <span class="k">else</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Tabela je prazna!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// U slucaju uspesnog izvrsavanja programa,</span>
+    <span class="c1">// potvrdjujemo sve akcije koje je nas program izvrsio</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit - kraj programa"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Vrlo je bitno primetiti naredne dve stvari u kodu:</p>
+
+<ul>
+  <li>
+    <p>U slučaju uspešnog izvršavanja programa, pre nego što zatvorimo konekciju sa bazom podataka, izvršavamo SQL naredbu <code class="language-plaintext highlighter-rouge">COMMIT</code> kako bismo potvrdili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.</p>
+  </li>
+  <li>
+    <p>U slučaju da dođe do greške prilikom izvršavanja programa, pre nego što izađemo iz programa i prijavimo neuspeh, u funkciji <code class="language-plaintext highlighter-rouge">is_error</code> izvršavamo naredbu <code class="language-plaintext highlighter-rouge">ROLLBACK</code> kako bismo poništili sve izmene koje je naša aplikacija eventualno izvršila nad bazom podataka.</p>
+  </li>
+</ul>
+
+<p>Ovo je dobra praksa i mi ćemo usvojiti ovaj način rada u našim C/SQL programima.</p>
+
+<h2 id="52-složena-sql-naredba">5.2 Složena SQL naredba</h2>
+
+<p>U ovoj sekciji ćemo diskutovati o načinima za izvršavanje više SQL naredbi kao jedne naredbe, tzv. složene SQL naredbe. Složene SQL naredbe predstavljaju osnovu rada sa transakcijama, o čemu će biti detaljnije reči u nastavku teksta.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Složena SQL naredba</span> (engl. <span style="font-style: italic;">compound SQL</span>) predstavlja sekvencu SQL naredbi ograđenu odgovarajućim ključnim rečima kojim se definiše jedan blok izvršavanja. </p>
+</div>
+
+<p>Postoje tri tipa složenih SQL naredbi:</p>
+
+<ol>
+  <li>
+    <p><em>Linijske</em> (engl. <em>inline</em>) - Složena SQL linijska naredba je složena SQL naredba koja je umetnuta linijski tokom faze izvršavanja u okviru druge SQL naredbe. Složene SQL linijske naredbe imaju svojstvo atomičnosti; ako izvršavanje bilo koje pojedinačne SQL naredbe podigne grešku, cela naredba se poništava.</p>
+  </li>
+  <li>
+    <p><em>Ugnežđene</em> (engl. <em>embedded</em>) - Ovaj tip naredbi kombinuje jednu ili više SQL naredbi (odnosno, podnaredbi) u jedan izvršivi blok.</p>
+  </li>
+  <li>
+    <p><em>Kompilirane</em> (engl. <em>compiled</em>) - Predstavlja sekvencu SQL naredbi koje se izvršavaju sa lokalnim opsegom za promenljive, uslove, kursore i pokazivače na slogove (engl. <em>handle</em>).</p>
+  </li>
+</ol>
+
+<p>Mi ćemo u daljem tekstu razmatrati isključivo složene SQL ugnežđene naredbe, tako da podrazumevamo ovaj tip kada kažemo “složena SQL naredba”. Sintaksa ovih naredbi je data u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">BEGIN</span> <span class="n">COMPOUND</span> <span class="p">(</span><span class="k">ATOMIC</span><span class="o">|</span><span class="k">NOT</span> <span class="k">ATOMIC</span><span class="p">)</span> <span class="k">STATIC</span>
+<span class="p">[</span><span class="n">STOP</span> <span class="k">AFTER</span> <span class="k">FIRST</span> <span class="o">&lt;</span><span class="n">MATICNA_PROMENLJIVA</span><span class="o">&gt;</span> <span class="n">STATEMENTS</span><span class="p">]</span>
+
+<span class="o">&lt;</span><span class="n">SQL_NAREDBA</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="o">&lt;</span><span class="n">SQL_NAREDBA</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="c1">-- ...</span>
+<span class="o">&lt;</span><span class="n">SQL_NAREDBA</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="k">END</span> <span class="n">COMPOUND</span>
+</code></pre></div></div>
+
+<p>U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije složene SQL naredbe, ta naredba može imati različite varijante koji utiču na način izvršavanja:</p>
+
+<ul>
+  <li>
+    <p>Atomičnost - tačno jedna od naredne dve opcije se navode</p>
+
+    <ul>
+      <li>
+        <p>ATOMIC - Specifikuje da, ako bilo koja od podnaredbi u okviru složene SQL naredbe bude izvršena neuspešno, onda se sve izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe, bilo one uspešne izvršene ili ne, poništavaju.</p>
+      </li>
+      <li>
+        <p>NOT ATOMIC - Specifikuje da, bez obzira na neuspešno izvršavanje podnaredbi, složena SQL naredba neće poništiti izmene u bazi podataka koje su nastale efektom bilo koje druge podnaredbe.</p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>Statičnost - navodi se naredna naredba</p>
+
+    <ul>
+      <li>STATIC - Specifikuje da će sve matične promenljive za sve podnaredbe zadržati njihove originalne vrednosti. Na primer, ukoliko se u SQL složenoj naredbi nađe naredba:</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>  <span class="k">MAX</span><span class="p">(</span><span class="n">OCENA</span><span class="p">)</span> 
+<span class="k">INTO</span>    <span class="p">:</span><span class="n">ocena</span> 
+<span class="k">FROM</span>    <span class="n">ISPIT</span>
+</code></pre></div></div>
+
+<p>koja je praćena naredbom</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">UPDATE</span>  <span class="n">ISPIT</span> 
+<span class="k">SET</span>     <span class="n">NAPOMENA</span> <span class="o">=</span> <span class="s1">'Ovo je najveca ocena medju ispitima'</span>
+<span class="k">WHERE</span>   <span class="n">OCENA</span> <span class="o">=</span> <span class="p">:</span><span class="n">ocena</span>
+</code></pre></div></div>
+
+<p>onda će naredba <code class="language-plaintext highlighter-rouge">UPDATE</code> koristiti vrednost matične promenljive <code class="language-plaintext highlighter-rouge">ocena</code> koju je ta promenljiva imala na početku bloka koji je definisan složenom SQL naredbom, a ne vrednost koja je dobijena naredbom <code class="language-plaintext highlighter-rouge">SELECT INTO</code>. Time je transakcija koja se ostvaruje tom SQL složenom naredbom, za koju bismo možda očekivali da bude korektna, zapravo neispravno implementirana, zato što se oslanja na međuvrednost koju dobija promenljiva <code class="language-plaintext highlighter-rouge">ocena</code> naredbom <code class="language-plaintext highlighter-rouge">SELECT INTO</code>. Dodatno, ako se vrednost iste promenljive postavlja od strane više SQL podnaredbi, onda će na kraju bloka ta promenljiva sadržati vrednost koju je postavila poslednja SQL podnaredba.</p>
+
+<p>Napomenimo da u DB2 sistemu nestatičko ponašanje nije podržano. To znači da bi trebalo posmatrati kao da se podnaredbe izvršavaju nesekvencijalno i podnaredbe ne bi trebalo da imaju međuzavisnosti.</p>
+
+<ul>
+  <li>Opcionom klauzom <code class="language-plaintext highlighter-rouge">STOP AFTER FIRST</code> specifikujemo da će se izvršiti samo određeni broj podnaredbi. Matična promenljiva <code class="language-plaintext highlighter-rouge">&lt;MATICNA_PROMENLJIVA&gt;</code> tipa <code class="language-plaintext highlighter-rouge">short</code> sadrži ceo broj <em>N</em> kojim se specifikuje koliko prvih <em>N</em> podnaredbi će biti izvršeno.</li>
+</ul>
+
+<p>Nakon opisanih opcija, potrebno je navesti nula ili više SQL naredbi <code class="language-plaintext highlighter-rouge">&lt;SQL_NAREDBA&gt;</code>. SQL naredbe koje je moguće navesti kao deo složenih SQL naredbi su sve izvršive naredbe, osim narednih 14 naredbi:</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">CALL</code></li>
+  <li><code class="language-plaintext highlighter-rouge">CLOSE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">CONNECT</code></li>
+  <li>Složena SQL naredba</li>
+  <li><code class="language-plaintext highlighter-rouge">DESCRIBE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">DISCONNECT</code></li>
+  <li><code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">FETCH</code></li>
+  <li><code class="language-plaintext highlighter-rouge">OPEN</code></li>
+  <li><code class="language-plaintext highlighter-rouge">PREPARE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">RELEASE (Connection)</code></li>
+  <li><code class="language-plaintext highlighter-rouge">ROLLBACK</code></li>
+  <li><code class="language-plaintext highlighter-rouge">SET CONNECTION</code></li>
+  <li><code class="language-plaintext highlighter-rouge">SET variable</code></li>
+</ol>
+
+<p>Važe i neka dodatna pravila. Na primer, ukoliko se naredba <code class="language-plaintext highlighter-rouge">COMMIT</code> koristi kao jedna od podnaredbi, onda se ona mora naći kao poslednja podnaredba. Ukoliko je <code class="language-plaintext highlighter-rouge">COMMIT</code> nađe na ovoj poziciji, onda će ona biti izvršena, čak i u situaciji da klauza <code class="language-plaintext highlighter-rouge">STOP AFTER FIRST</code> indikuje da se neće sve podnaredbe u okviru složene SQL naredbe izvršiti. Na primer, pretpostavimo da je <code class="language-plaintext highlighter-rouge">COMMIT</code> poslednja podnaredba u okviru složene SQL naredbe koja ima 100 podnaredbi. Ukoliko se klauzom <code class="language-plaintext highlighter-rouge">STOP AFTER FIRST</code> specifikuje da se izvršava prvih 50 podnaredbi, onda će <code class="language-plaintext highlighter-rouge">COMMIT</code> podnaredba biti izvršena kao 51. podnaredba.</p>
+
+<p>Neka dodatne napomene koje treba imati u vidu prilikom rada sa složenih SQL naredbama u DB2 sistemu su sledeće:</p>
+
+<ul>
+  <li>
+    <p>Nije dozvoljeno ugnežđavati kod iz matičnog jezika unutar bloka koji definiše složena SQL naredba.</p>
+  </li>
+  <li>
+    <p>Nije dozvoljeno ugnežđavati složene SQL naredbe u okviru drugih složenih SQL naredbi.</p>
+  </li>
+  <li>
+    <p>Pripremljena <code class="language-plaintext highlighter-rouge">COMMIT</code> naredba nije dozvoljena u <code class="language-plaintext highlighter-rouge">ATOMIC</code> složenoj SQL naredbi.</p>
+  </li>
+  <li>
+    <p>Jedna SQLCA struktura se postavlja za celu složenu SQL naredbu. Važe naredna pravila:</p>
+
+    <ul>
+      <li>
+        <p>Vrednosti <code class="language-plaintext highlighter-rouge">SQLCODE</code> i <code class="language-plaintext highlighter-rouge">SQLSTATE</code> koje se postavljaju na kraju složene SQL naredbe su podrazumevano postavljene na osnovu poslednje podnaredbe koja se izvršila u okviru složene SQL naredbe, osim u slučaju opisanom narednom tačkom.</p>
+      </li>
+      <li>
+        <p>Ako je sistem signalizirao upozorenje da “nije pronađen podatak” (<code class="language-plaintext highlighter-rouge">SQLSTATE 02000</code>, odnosno, <code class="language-plaintext highlighter-rouge">SQLCODE +100</code>), onda se tom upozorenju daje prednost u odnosu na ostala upozorenja da bi se naredbom <code class="language-plaintext highlighter-rouge">WHENEVER NOT FOUND</code> moglo dejstvovati. U ovoj situaciji se polja iz <code class="language-plaintext highlighter-rouge">SQLCA</code> strukture koja se eventualno vraćaju aplikaciji postavljaju na osnovu podnaredbe koja je okinula upozorenje da “nije pronađen podatak”. Ukoliko u okviru složene SQL naredbe postoji više podnaredbi koje okidaju ovo upozorenje, onda se polja iz SQLCA strukture postavljaju na osnovu poslednje od tih podnaredbi.</p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<p>Sada slede primeri korišćenja složenih SQL naredbi. Primetimo da smo, kao i u prethodnom zadatku, koristili naredbu <code class="language-plaintext highlighter-rouge">ROLLBACK</code> u definiciji funkcije <code class="language-plaintext highlighter-rouge">is_error</code> da poništimo izmene u bazi podataka u slučaju da dođe do greške, odnosno, naredbu <code class="language-plaintext highlighter-rouge">COMMIT</code> za potvrđivanje izmena pre raskidanja konekcije.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.2</p>
+    Napisati C/SQL program koji redom:<br />
+<br />
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u tekućoj godini čija je oznaka <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'maj'</span> i naziv <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'Maj GODINA'</span> u zavisnosti od tekuće godine (na primer, <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'Maj 2019'</span>). Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 20 dana.<br />
+2. Ažurira datum kraja prijavljivanja za prethodno uneti ispitni rok tako što smanjuje trajanje prijavljivanja za 10 dana.<br />
+<br />
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_2.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Zadatak</span> <span class="mi">4</span><span class="p">.</span><span class="mi">2</span>
+
+<span class="n">Napisati</span> <span class="n">C</span><span class="o">/</span><span class="n">SQL</span> <span class="n">program</span> <span class="n">koji</span> <span class="n">redom</span><span class="o">:</span>
+
+<span class="mi">1</span><span class="p">.</span> <span class="n">Kreira</span> <span class="n">novi</span> <span class="n">ispitni</span> <span class="n">rok</span> <span class="n">samo</span> <span class="n">za</span> <span class="n">predmete</span> <span class="n">iz</span> <span class="n">prvog</span> <span class="n">semestra</span> <span class="n">u</span> <span class="n">teku</span><span class="err">ć</span><span class="n">oj</span> <span class="n">godini</span> <span class="err">č</span><span class="n">ija</span> <span class="n">je</span> <span class="n">oznaka</span> <span class="err">'</span><span class="n">maj</span><span class="err">'</span> <span class="n">i</span> <span class="n">naziv</span> <span class="err">'</span><span class="n">Maj</span> <span class="n">GODINA</span><span class="err">'</span> <span class="n">u</span> <span class="n">zavisnosti</span> <span class="n">od</span> <span class="n">teku</span><span class="err">ć</span><span class="n">e</span> <span class="n">godine</span> <span class="p">(</span><span class="n">na</span> <span class="n">primer</span><span class="p">,</span> <span class="err">'</span><span class="n">Maj</span> <span class="mi">2019</span><span class="err">'</span><span class="p">).</span> <span class="n">Za</span> <span class="n">po</span><span class="err">č</span><span class="n">etak</span> <span class="n">prijavljivanja</span> <span class="n">postaviti</span> <span class="n">dana</span><span class="err">š</span><span class="n">nji</span> <span class="n">datum</span> <span class="n">i</span> <span class="n">postaviti</span> <span class="n">da</span> <span class="n">prijavljivanje</span> <span class="n">traje</span> <span class="mi">20</span> <span class="n">dana</span><span class="p">.</span>
+<span class="mi">2</span><span class="p">.</span> <span class="n">A</span><span class="err">ž</span><span class="n">urira</span> <span class="n">datum</span> <span class="n">kraja</span> <span class="n">prijavljivanja</span> <span class="n">za</span> <span class="n">prethodno</span> <span class="n">uneti</span> <span class="n">ispitni</span> <span class="n">rok</span> <span class="n">tako</span> <span class="err">š</span><span class="n">to</span> <span class="n">smanjuje</span> <span class="n">trajanje</span> <span class="n">prijavljivanja</span> <span class="n">za</span> <span class="mi">10</span> <span class="n">dana</span><span class="p">.</span>
+
+<span class="n">Obezbediti</span> <span class="n">da</span> <span class="n">se</span> <span class="n">navedene</span> <span class="n">operacije</span> <span class="n">izvr</span><span class="err">š</span><span class="n">e</span> <span class="n">ili</span> <span class="n">sve</span> <span class="n">ili</span> <span class="n">nijedna</span><span class="p">.</span>
+</code></pre></div></div>
+
+<h2 id="53-tačke-čuvanja-u-okviru-transakcija">5.3 Tačke čuvanja u okviru transakcija</h2>
+
+<p>U prethodnim primerima smo videli da možemo da predstavimo transakcije kao složene SQL naredbe, a zatim da koristimo specifičnosti složenih SQL naredbi da bismo preciznije definisali ponašanje u zavisnosti od toga da li se pojavila greška tokom rada transakcije ili ne. Preciznije, videli smo kako je moguće poništiti efekat celog izvršavanja programa kao jedinice posla u slučaju pojave greške u nekoj od podnaredbi.</p>
+
+<p>Vrlo često nam je neophodno da imamo precizniju kontrolu nad time šta se tačno poništava, na primer, ukoliko želimo da samo jedan deo transakcije bude poništen, umesto cele transakcije. Da bismo postigli takav efekat, potrebne su nam sofisticiranije metode upravljanja transakcijama. Jedan od takvih metoda podrazumeva korišćenje tačke čuvanja.</p>
+
+<div style="border-left: 7px solid rgb(196, 41, 255); padding-left: 15px; background-color: rgba(192, 192, 192, 0.2);">
+    <p><span style="font-weight: bold;">Definicija:</span> <span style="font-style: italic;">Tačka čuvanja</span> (engl. <span style="font-style: italic;">savepoint</span>) predstavlja mehanizam za poništavanje precizno definisanog skupa izvršenih naredbi. </p>
+</div>
+
+<p>Ukoliko se desi neka greška prilikom izvršavanja transakcije, tačka čuvanja se može koristiti da poništi dejstvo naredbi od trenutka kada je tačka čuvanja započeta do trenutka kada je poništenje akcija zahtevano.</p>
+
+<p>Samim tim, tačka čuvanja omogućava konstruisanje grupe od nekoliko SQL naredbi, grupisanih u jedan izvršivi blok, koji se može izvršavati, kao deo jedne transakcije. Ukoliko se neka od podnaredbi izvrši sa greškom, taj definisani blok će biti poništen.</p>
+
+<h3 id="531-kreiranje-tačke-čuvanja">5.3.1 Kreiranje tačke čuvanja</h3>
+
+<p>Kreiranje tačke čuvanja u izvornom kodu se može izvršiti pozivanjem naredbe <code class="language-plaintext highlighter-rouge">SAVEPOINT</code>, čija je sintaksa data sa:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">SAVEPOINT</span> <span class="o">&lt;</span><span class="n">NAZIV_TACKE_CUVANJA</span><span class="o">&gt;</span> <span class="p">[</span><span class="k">UNIQUE</span><span class="p">]</span>
+<span class="k">ON</span> <span class="k">ROLLBACK</span> <span class="n">RETAIN</span> <span class="n">CURSORS</span>
+<span class="p">[</span><span class="k">ON</span> <span class="k">ROLLBACK</span> <span class="n">RETAIN</span> <span class="n">LOCKS</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Ovom naredbom se kreira nova tačka čuvanja naziva <code class="language-plaintext highlighter-rouge">&lt;NAZIV_TACKE_CUVANJA&gt;</code>. Ukoliko specifikujemo opcionu klauzu <code class="language-plaintext highlighter-rouge">UNIQUE</code>, onda navodimo da aplikacija ne želi da iskoristi ovo ime tačke čuvanja dok je tačka čuvanja aktivna u okviru trenutnog nivoa čuvanja. DB2 sistem će prijaviti grešku ako pokušamo da kreiramo tačku čuvanja kao jedinstvenu ako već postoji tačka čuvanja sa istim imenom, kao i ako pokušamo da kreiramo tačku čuvanja sa imenom koje je prethodno bilo proglašeno za jedinstveno.</p>
+
+<p>Obaveznom klauzom <code class="language-plaintext highlighter-rouge">ON ROLLBACK RETAIN CURSORS</code> se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na otvorene kursore nakon ove SAVEPOINT naredbe. Ovom klauzom se indikuje da, kada god je to moguće, kursori bivaju van uticaja operacije poništavanja do tačke čuvanja. Za više detalja o tome kako poništavanje izmena utiče na kursore, pogledati <a href="#55-poništavanje-izmena">podsekciju 5.5</a>.</p>
+
+<p>Opcionom klauzom <code class="language-plaintext highlighter-rouge">ON ROLLBACK RETAIN LOCKS</code> se specifikuje ponašanje sistema tokom operacija poništavanja izmena do ove tačke čuvanja u odnosu na katance koje je aplikacija dobila nakon ove <code class="language-plaintext highlighter-rouge">SAVEPOINT</code> naredbe. Ukoliko je navedena, katanci koje je aplikacija dobila neće biti oslobođeni prilikom takve operacije poništavanja.</p>
+
+<p>Neka dodatna pravila i napomene koje treba imati u vidu prilikom kreiranja tačaka čuvanja u DB2 sistemu su sledeće:</p>
+
+<ul>
+  <li>
+    <p>Novi nivo čuvanja se kreira kada se naredni događaji okinu:</p>
+
+    <ul>
+      <li>
+        <p>Nova jedinica posla je započela.</p>
+      </li>
+      <li>
+        <p>Pozvana je procedura koja je definisana klauzom <code class="language-plaintext highlighter-rouge">NEW SAVEPOINT LEVEL</code>.</p>
+      </li>
+      <li>
+        <p>Započeta je atomična složena SQL naredba.</p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>Nivo čuvanja se završava kada događaj koji je inicirao njegovo kreiranje je završen ili uklonjen. Kada se nivo čuvanja završi, sve tačke čuvanja koje se nalaze na tom nivou se oslobađaju. Svi otvoreni kursori, DDL akcije ili modifikacije podataka su nasleđeni od strane roditeljskog nivoa čuvanja (odnosno, nivoa čuvanja u okviru kojeg se trenutni nivo čuvanja završio) i pod uticajem su bilo koje naredbe koja se tiče nivoa čuvanja i koja važi u okviru roditeljskog nivoa čuvanja.</p>
+  </li>
+</ul>
+
+<h2 id="54-potvrđivanje-izmena">5.4 Potvrđivanje izmena</h2>
+
+<p>Kao što smo videli, jedna od dve osnovne operacije za upravljanje izmenama koje je napravila jedna transakcija jeste <em>potvrđivanje izmena</em> (engl. <em>commit</em>), koja se izvršava naredbom <code class="language-plaintext highlighter-rouge">COMMIT</code>. Sintaksa ove naredbe je data u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">COMMIT</span> <span class="p">[</span><span class="k">WORK</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Iako naredba pohranjivanja izmena ima jednostavnu sintaksu, njeni efekti su mnogobrojni. Osnovna upotreba naredbe podrazumeva da se jedinica posla, u kojoj je <code class="language-plaintext highlighter-rouge">COMMIT</code> naredba izvršena, završava i nova jedinica posla se inicira. Sve izmene koje su izvršene nekom od narednih naredbi se potvrđuju u bazi podataka: <code class="language-plaintext highlighter-rouge">ALTER</code>, <code class="language-plaintext highlighter-rouge">COMMENT</code>, <code class="language-plaintext highlighter-rouge">CREATE</code>, <code class="language-plaintext highlighter-rouge">DROP</code>, <code class="language-plaintext highlighter-rouge">GRANT</code>, <code class="language-plaintext highlighter-rouge">LOCK TABLE</code>, <code class="language-plaintext highlighter-rouge">REVOKE</code>, <code class="language-plaintext highlighter-rouge">SET INTEGRITY</code>, <code class="language-plaintext highlighter-rouge">SET Variable</code>, kao i naredbe za izmenu podataka: <code class="language-plaintext highlighter-rouge">INSERT</code>, <code class="language-plaintext highlighter-rouge">DELETE</code>, <code class="language-plaintext highlighter-rouge">MERGE</code>, <code class="language-plaintext highlighter-rouge">UPDATE</code>, uključujući i one naredbe koje su  ugnežđene u upitima.</p>
+
+<p>Svi katanci koje je jedinica posla dobila nakon njenog iniciranja se oslobađaju, osim neophodnih katanaca za otvorene kursore koji su deklarisani klauzom <code class="language-plaintext highlighter-rouge">WITH HOLD</code>. Svi otvoreni kursori koji nisu deklarisani klauzom <code class="language-plaintext highlighter-rouge">WITH HOLD</code> se zatvaraju. Otvoreni kursori koji jesu deklarisani klauzom <code class="language-plaintext highlighter-rouge">WITH HOLD</code> ostaju otvoreni, i takvi kursori se pozicioniraju ispred narednog logičkog reda rezultujuće tabele (drugim rečima, naredba <code class="language-plaintext highlighter-rouge">FETCH</code> se mora izvršiti pre nego što se izvrši pozicionirana naredba <code class="language-plaintext highlighter-rouge">UPDATE</code> ili <code class="language-plaintext highlighter-rouge">DELETE</code>).</p>
+
+<p>Sve tačke čuvanja postavljene u okviru transakcije se oslobađaju.</p>
+
+<p>Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:</p>
+
+<ul>
+  <li>Snažno se preporučuje da svaki aplikacioni proces eksplicitno završi svoju jedinicu posla pre nego li se završi. Ako se aplikacioni program završi bez <code class="language-plaintext highlighter-rouge">COMMIT</code> ili <code class="language-plaintext highlighter-rouge">ROLLBACK</code> naredbe, onda će SUBP sam pokušati da izvrši operaciju pohranjivanja ili poništavanja u zavisnosti od okruženja aplikacije. Iako su SUBP sistemi napredni, ipak se ne bi trebalo osloniti na njih da rade posao programera.</li>
+</ul>
+
+<h2 id="55-poništavanje-izmena">5.5 Poništavanje izmena</h2>
+
+<p>Ukoliko želimo da poništimo izmene koje je napravila jedna transakcija, možemo koristiti SQL naredbu <code class="language-plaintext highlighter-rouge">ROLLBACK</code>. Sintaksa ove naredbe je data u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ROLLBACK</span> <span class="p">[</span><span class="k">WORK</span><span class="p">]</span>
+<span class="p">[</span><span class="k">TO</span> <span class="n">SAVEPOINT</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">IME_TACKE_CUVANJA</span><span class="o">&gt;</span><span class="p">]]</span>
+</code></pre></div></div>
+
+<p>Efekat ove naredbe je da se prekida jedinica posla u kojoj je izvršena naredba <code class="language-plaintext highlighter-rouge">ROLLBACK</code> i nova jedinica posla se inicijalizuje. Sve promene koje su se ostvarile u bazi podataka tokom jedinice posla su poništene. U zavisnosti od odabranih vrednosti narednih opcija prilikom deklaracije naredbe <code class="language-plaintext highlighter-rouge">ROLLBACK</code>, ta naredba može imati različite varijante koje utiču na način izvršavanja:</p>
+
+<ul>
+  <li>Navođenjem opcione klauze <code class="language-plaintext highlighter-rouge">TO SAVEPOINT</code>, poništavanje se izvršava parcijalno, odnosno, do poslednje tačke čuvanja. Ukoliko nijedna tačka čuvanja nije aktivna na trenutnom nivou čuvanja, podiže se greška (<code class="language-plaintext highlighter-rouge">SQLSTATE 3B502</code>). Nakon uspešnog poništavanja, navedena tačka čuvanja <code class="language-plaintext highlighter-rouge">&lt;IME_TACKE_CUVANJA&gt;</code> nastavlja da postoji, ali svaka ugnežđena tačka čuvanja se oslobađa i nadalje ne postoji. Ugnežđene tačke čuvanja, ako postoje, smatraju se za poništene i oslobođene kao deo poništavanja do navedene tačke čuvanja. Ukoliko <code class="language-plaintext highlighter-rouge">&lt;IME_TACKE_CUVANJA&gt;</code> nije navedeno, onda se poništavanje vrši do poslednje postavljene tačke čuvanja na tekućem nivou čuvanja.
+<br />
+Ako se klauza <code class="language-plaintext highlighter-rouge">TO SAVEPOINT</code> ne postavi, onda naredba <code class="language-plaintext highlighter-rouge">ROLLBACK</code> poništava čitavu transakciju. Dodatno, sve tačke čuvanja u okviru te transakcije se oslobađaju. Ukoliko se navede <code class="language-plaintext highlighter-rouge">&lt;IME_TACKE_CUVANJA&gt;</code>, onda će se poništavanje izvršiti do te imenovane tačke čuvanja. Nakon uspešne operacije poništavanja, navedena imenovana tačka čuvanja nastavlja da postoji. Ukoliko ne postoji imenovana tačka čuvanja sa datim nazivom, podiže se greška (<code class="language-plaintext highlighter-rouge">SQLSTATE 3B001</code>).</li>
+</ul>
+
+<p>Neka dodatna pravila i napomene koje treba imati u vidu prilikom poništavanja izmena u DB2 sistemu su sledeće:</p>
+
+<ul>
+  <li>
+    <p>Svi katanci koji se čuvaju se oslobađaju prilikom izvršavanja naredbe <code class="language-plaintext highlighter-rouge">ROLLBACK</code> za tu jedinicu posla. Svi otvoreni kursori se zatvaraju.</p>
+  </li>
+  <li>
+    <p>Izvršavanje naredbe <code class="language-plaintext highlighter-rouge">ROLLBACK</code> neće uticati na naredbu <code class="language-plaintext highlighter-rouge">RELEASE</code>.</p>
+  </li>
+  <li>
+    <p>Ukoliko se izvršavanje program ne završi normalno, onda je jedinica posla implicitno poništena.</p>
+  </li>
+  <li>
+    <p>Uticaj na kursore koji rezultuje iz naredbe <code class="language-plaintext highlighter-rouge">ROLLBACK TO SAVEPOINT</code> zavisi od naredbi u okviru tačke čuvanja:</p>
+
+    <ul>
+      <li>
+        <p>Ako tačka čuvanja sadrži DDL za koji je kursor zavisan, kursor se označava za nevalidan. Pokušaji da se takav kursor koristi rezultuju podizanjem greške (<code class="language-plaintext highlighter-rouge">SQLSTATE 57007</code>).</p>
+      </li>
+      <li>
+        <p>Inače:</p>
+
+        <ul>
+          <li>
+            <p>Ako je kursor referenciran u tački čuvanja, kursor ostaje otvoren i biva pozicioniran ispred narednog logičkog reda rezultujuće tabele. U tom slučaju je potrebno  izvršiti naredbu <code class="language-plaintext highlighter-rouge">FETCH</code> pre nego što se izvrši pozicionirajuća naredba <code class="language-plaintext highlighter-rouge">UPDATE</code> ili <code class="language-plaintext highlighter-rouge">DELETE</code>.</p>
+          </li>
+          <li>
+            <p>Inače, kursor ne potpada pod uticaj naredbe <code class="language-plaintext highlighter-rouge">ROLLBACK TO SAVEPOINT</code> (ostaje otvoren i pozicioniran).</p>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">ROLLBACK TO SAVEPOINT</code> će obrisati sve privremeno kreirane ili deklarisane privremene tabele u okviru tačke čuvanja.</p>
+  </li>
+  <li>
+    <p>Svi katanci su sadržani nakon <code class="language-plaintext highlighter-rouge">ROLLBACK TO SAVEPOINT</code> naredbe.</p>
+  </li>
+</ul>
+
+<p>Naredni primeri ilustruju napredno implementiranje transakcija korišćenjem naredbi <code class="language-plaintext highlighter-rouge">COMMIT</code> i <code class="language-plaintext highlighter-rouge">ROLLBACK</code>.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.3</p>
+    Napisati C/SQL program kojim se za svaki ispitni rok prvo ispisuju informacije o nazivu i godini roka, a zatim se korisnik pita da li želi da obriše sva polaganja za taj ispitni rok. Ukoliko želi, aplikacija izvršava brisanje i prikazuje poruku korisniku. Obrada jednog ispitnog roka predstavlja jednu transakciju.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_3.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">godina</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">naziv</span><span class="p">[</span><span class="mi">51</span><span class="p">],</span>
+     <span class="n">oznaka</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"SQLCODE %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+
+    <span class="c1">// Primetimo da smo morali da navedemo klauzu WITH HOLD ovde</span>
+    <span class="c1">// zato sto vrsimo potvrdjivanje izmena tokom obrade kursora.</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">ispitniRok</span> <span class="n">CURSOR</span> <span class="n">WITH</span> <span class="n">HOLD</span> <span class="n">FOR</span> 
+        <span class="n">SELECT</span>  <span class="n">NAZIV</span><span class="p">,</span>
+                <span class="n">GODINA</span><span class="p">,</span>
+                <span class="n">OZNAKA</span>
+        <span class="n">FROM</span>    <span class="n">ISPITNI_ROK</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">ispitniRok</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open"</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(;;)</span>
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">ispitniRok</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">naziv</span><span class="p">,</span>
+                    <span class="o">:</span><span class="n">godina</span><span class="p">,</span>
+                    <span class="o">:</span><span class="n">oznaka</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch"</span><span class="p">);</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Obradjujem ispitni rok %s u %d. godini</span><span class="se">\n</span><span class="s">"</span>
+            <span class="s">"Da li zelite da obrisete polaganja u ovom ispitnom roku? [d/n] "</span><span class="p">,</span> <span class="n">naziv</span><span class="p">,</span> <span class="n">godina</span><span class="p">);</span>
+            
+        <span class="kt">char</span> <span class="n">odgovor_od_korisnika</span><span class="p">;</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%c"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">odgovor_od_korisnika</span><span class="p">);</span>
+        
+        <span class="n">getchar</span><span class="p">();</span> <span class="c1">// Za citanje novog reda</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">odgovor_od_korisnika</span> <span class="o">==</span> <span class="sc">'d'</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span>
+                <span class="n">DELETE</span> 
+                <span class="n">FROM</span>    <span class="n">ISPIT</span>
+                <span class="n">WHERE</span>   <span class="n">GODINA_ROKA</span> <span class="o">=</span> <span class="o">:</span><span class="n">godina</span> <span class="n">AND</span>
+                        <span class="n">OZNAKA_ROKA</span> <span class="o">=</span> <span class="o">:</span><span class="n">oznaka</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Delete"</span><span class="p">);</span>
+            
+            <span class="c1">// Da nismo naveli klauzu WITH HOLD pri deklaraciji kursora, </span>
+            <span class="c1">// onda bi naredni poziv naredbe COMMIT zatvorio kursor,</span>
+            <span class="c1">// pa bi poziv FETCH naredbe u narednoj iteraciji petlje prijavio gresku </span>
+            <span class="c1">// (jer dohvatamo podatak nad zatvorenim kursorom).</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+            
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Podaci su uspesno obrisani</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">ispitniRok</span><span class="p">;</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Potvrdjivanje izmena"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.4</p>
+    Napisati C/SQL program koji za svaki predmet koji nije obrađen izlistava njegov naziv i bodove. Korisniku se nudi opcija da poveća broj bodova za 1. Obrada 5 uzastopnih predmeta predstavlja jednu transakciju. Nakon svakog 5. predmeta pitati korisnika da li želi da nastavi sa daljim izmenama. Ukoliko ne želi, program se prekida. U suprotnom, nastaviti sa daljom obradom predmeta.
+</div>
+
+<p>Rešenje: Pre pokretanja programa, potrebno je kreirati tabelu <code class="language-plaintext highlighter-rouge">OBRADJENI_PREDMETI</code> sa narednom strukturom:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">OBRADJENI_PREDMETI</span> <span class="p">(</span>
+    <span class="n">ID_PREDMETA</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">ID_PREDMETA</span><span class="p">),</span>
+    <span class="k">FOREIGN</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">ID_PREDMETA</span><span class="p">)</span> <span class="k">REFERENCES</span> <span class="n">PREDMET</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_4.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">id_predmeta</span><span class="p">;</span>
+<span class="kt">short</span> <span class="n">bodovi</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">naziv</span><span class="p">[</span><span class="mi">201</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"SQLCODE %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">neobradjeniPredmeti</span> <span class="n">CURSOR</span> <span class="n">WITH</span> <span class="n">HOLD</span> <span class="n">FOR</span> 
+        <span class="n">SELECT</span>  <span class="n">ID_PREDMETA</span><span class="p">,</span>
+                <span class="n">RTRIM</span><span class="p">(</span><span class="n">NAZIV</span><span class="p">),</span>
+                <span class="n">BODOVI</span>
+        <span class="n">FROM</span>    <span class="n">PREDMET</span>
+        <span class="n">WHERE</span>   <span class="n">ID_PREDMETA</span> <span class="n">NOT</span> <span class="n">IN</span> <span class="p">(</span>
+                    <span class="n">SELECT</span>  <span class="n">ID_PREDMETA</span>
+                    <span class="n">FROM</span>    <span class="n">OBRADJENI_PREDMETI</span>
+                <span class="p">)</span>
+        <span class="n">FOR</span>     <span class="n">UPDATE</span> <span class="n">OF</span> <span class="n">BODOVI</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">neobradjeniPredmeti</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open"</span><span class="p">);</span>
+
+    <span class="kt">unsigned</span> <span class="n">broj_obradjenih</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    
+    <span class="k">for</span><span class="p">(;;)</span>
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">neobradjeniPredmeti</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">id_predmeta</span><span class="p">,</span>
+                    <span class="o">:</span><span class="n">naziv</span><span class="p">,</span>
+                    <span class="o">:</span><span class="n">bodovi</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch"</span><span class="p">);</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Predmet %s ima broj bodova: %d.</span><span class="se">\n</span><span class="s">"</span>
+            <span class="s">"Da li zelite da povecate broj bodova za 1? [d/n] "</span><span class="p">,</span> <span class="n">naziv</span><span class="p">,</span> <span class="n">bodovi</span><span class="p">);</span>
+            
+        <span class="kt">char</span> <span class="n">odgovor_od_korisnika</span><span class="p">;</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%c"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">odgovor_od_korisnika</span><span class="p">);</span>
+        
+        <span class="n">getchar</span><span class="p">();</span> <span class="c1">// Za citanje novog reda</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">odgovor_od_korisnika</span> <span class="o">==</span> <span class="sc">'d'</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span> 
+                <span class="n">UPDATE</span>  <span class="n">PREDMET</span>
+                <span class="n">SET</span>     <span class="n">BODOVI</span> <span class="o">=</span> <span class="n">BODOVI</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">WHERE</span>   <span class="n">CURRENT</span> <span class="n">OF</span> <span class="n">neobradjeniPredmeti</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Update"</span><span class="p">);</span>            
+            
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Podaci su uspesno azurirani</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+        
+        <span class="c1">// Ubelezavamo u BP da smo obradili tekuci predmet</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span>
+            <span class="n">INSERT</span> 
+            <span class="n">INTO</span>    <span class="n">OBRADJENI_PREDMETI</span>
+            <span class="n">VALUES</span>  <span class="p">(</span><span class="o">:</span><span class="n">id_predmeta</span><span class="p">);</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into"</span><span class="p">);</span>
+        
+        <span class="c1">// Uvecavamo broj obradjenih predmeta        </span>
+        <span class="o">++</span><span class="n">broj_obradjenih</span><span class="p">;</span>
+        
+        <span class="c1">// Proveravamo da li je kraj jedne transakcije</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">broj_obradjenih</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+            <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+            
+            <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">TRANSAKCIJA JE IZVRSENA</span><span class="se">\n</span><span class="s">"</span>
+                <span class="s">"Da li zelite da nastavite obradu? [d/n] "</span><span class="p">);</span>
+            <span class="kt">char</span> <span class="n">odgovor_od_korisnika</span><span class="p">;</span>
+            <span class="n">scanf</span><span class="p">(</span><span class="s">"%c"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">odgovor_od_korisnika</span><span class="p">);</span>
+            
+            <span class="n">getchar</span><span class="p">();</span> <span class="c1">// Za citanje novog reda</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">odgovor_od_korisnika</span> <span class="o">==</span> <span class="sc">'n'</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="n">broj_obradjenih</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> 
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">neobradjeniPredmeti</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Potvrdjivanje izmena"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Naredni zadatak ilustruje jednostavan rad sa tačkama čuvanja u okviru transakcija.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.5</p>
+    Napisati C/SQL program koji redom:<br />
+<br />
+1. Unosi novi ispitni rok za april u 2019. godini.<br />
+2. Unosi nove ispitne rokove za mart, maj, jun, jul, avgust, septembar i oktobar u 2019. godini.<br />
+3. Ispisuje sve ispitne rokove.<br />
+4. Pita korisnika da li želi da poništi unos ispitnih rokova u koraku 2. Ukoliko korisnik odgovori potvrdno, odgovarajuće izmene se poništavaju. U suprotno, izmene se potvrđuju.<br />
+5. Ispisuje sve ispitne rokove.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_5.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">godina</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">oznaka</span><span class="p">[</span><span class="mi">21</span><span class="p">],</span> 
+     <span class="n">naziv</span><span class="p">[</span><span class="mi">51</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"SQLCODE %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">char</span> <span class="n">odgovor_od_korisnika</span><span class="p">;</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">ispitniRok</span> <span class="n">CURSOR</span> <span class="n">WITH</span> <span class="n">HOLD</span> <span class="n">FOR</span>
+        <span class="n">SELECT</span>  <span class="n">GODINA</span><span class="p">,</span> 
+                <span class="n">OZNAKA</span><span class="p">,</span> 
+                <span class="n">NAZIV</span>
+        <span class="n">FROM</span>    <span class="n">ISPITNI_ROK</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">apr</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">April</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok apr"</span><span class="p">);</span>
+
+    <span class="c1">// Kreiranje tacke cuvanja sa nazivom S1</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">SAVEPOINT</span> <span class="n">S1</span> <span class="n">ON</span> <span class="n">ROLLBACK</span> <span class="n">RETAIN</span> <span class="n">CURSORS</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Savepoint"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">mar</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Mart</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">-</span> <span class="mi">1</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">-</span> <span class="mi">1</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok mar"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">maj</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Maj</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">1</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">1</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok maj"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">jun</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Jun</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">2</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">2</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok jun"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">jul</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Jul</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">3</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">3</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok jul"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">avg</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Avgust</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">4</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">4</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok avg"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">sep</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Septembar</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">5</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">5</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok sep"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span> 
+        <span class="n">INTO</span>    <span class="n">ISPITNI_ROK</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="err">'</span><span class="n">okt</span><span class="err">'</span><span class="p">,</span> <span class="err">'</span><span class="n">Oktobar</span> <span class="mi">2019</span><span class="err">'</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">6</span> <span class="n">MONTH</span><span class="p">,</span> <span class="n">CURRENT_DATE</span> <span class="o">+</span> <span class="mi">1</span> <span class="n">MONTH</span> <span class="o">+</span> <span class="mi">20</span> <span class="n">DAYS</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into ispitni_rok okt"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">ispitniRok</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open"</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(;;)</span>
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">ispitniRok</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">godina</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">oznaka</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">naziv</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch"</span><span class="p">);</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Godina %d oznaka: %s i naziv %s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">godina</span><span class="p">,</span> <span class="n">oznaka</span><span class="p">,</span> <span class="n">naziv</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">ispitniRok</span><span class="p">;</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Da li zelite da ponistite izmene? </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">odgovor_od_korisnika</span> <span class="o">=</span> <span class="n">getchar</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">odgovor_od_korisnika</span> <span class="o">==</span> <span class="sc">'d'</span> <span class="o">||</span> <span class="n">odgovor_od_korisnika</span> <span class="o">==</span> <span class="sc">'D'</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="c1">// Ponistavanje izmena samo do tacke cuvanja S1</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span> <span class="n">TO</span> <span class="n">SAVEPOINT</span> <span class="n">S1</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Rollback"</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> 
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">ispitniRok</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open"</span><span class="p">);</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">ispitniRok</span> 
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">godina</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">oznaka</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">naziv</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch"</span><span class="p">);</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Godina %d oznaka: %s i naziv %s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">godina</span><span class="p">,</span> <span class="n">oznaka</span><span class="p">,</span> <span class="n">naziv</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">ispitniRok</span><span class="p">;</span>    
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Potvrdjivanje izmena"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Naredni zadatak ilustruje kompleksniji rad sa tačkama čuvanja u okviru transakcija.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.6</p>
+    Napisati C/SQL program kojim se omogućuje da radnik u studentskoj službi poništava studentske ispite. Obrada jednog studenta u jednoj godini roka, koja je opisana u nastavku, mora da predstavlja zasebnu transakciju. Transakcija se sastoji od narednih koraka:<br />
+<br />
+1. Aplikacija zahteva od korisnika da unese indeks studenta.<br />
+2. Aplikacija na osnovu unetog indeksa ispisuje godine rokova u kojima student ima neke položene ispite, ali samo ukoliko već nije prethodno ta godina roka obrađena za tog studenta (ova informacija se čuva u tabeli <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">OBRADJENA_POLAGANJA</span>).<br />
+3. Korisnik bira jednu od ispisanih godina.<br />
+4. Aplikacija pronalazi sve položene ispite za datog studenta u odabranoj godini studija. Za svaki ispit, aplikacija ispisuje naziv položenog predmeta i ocenu koju je student ostvario. Takođe, aplikacija pita korisnika da li želi da poništi tekući ispit čije su informacije ispisane. Ukoliko korisnik odgovori potvrdno, aplikacija poništava tekući ispit. U svakom slučaju, aplikacija prelazi na naredni ispit sve do ispisivanja svih ispita.<br />
+5. Kada se svi ispiti obrade, aplikacija pita korisnika da potvrdi sve izmene u tekućoj transakciji. Ukoliko korisnik odgovori odrično, onda je potrebno poništiti sve izmene koje se tiču poništavanja ispita iz koraka 4. Međutim, potrebno je omogućiti da, u svakom slučaju, tekuća godina roka za dati indeks bude obrađena (tj. trajno zapamćena u tabeli <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">OBRADJENA_POLAGANJA</span>).<br />
+<br />
+Na kraju svake transakcije, aplikacija pita korisnika da li želi da završi sa radom. Ukoliko korisnik odgovori potvrdno, aplikacija se završava. U suprotnom, započinje se nova transakcija sa prethodno opisanim koracima.
+</div>
+
+<p>Pre pokretanja programa, izvršiti naredne SQL naredbe:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">DROP</span> <span class="k">TABLE</span> <span class="n">OBRADJENA_POLAGANJA</span><span class="p">;</span>
+
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">OBRADJENA_POLAGANJA</span> <span class="p">(</span>
+    <span class="n">INDEKS</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">GODINA</span> <span class="nb">SMALLINT</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">INDEKS</span><span class="p">,</span> <span class="n">GODINA</span><span class="p">),</span>
+    <span class="k">FOREIGN</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">INDEKS</span><span class="p">)</span>
+        <span class="k">REFERENCES</span> <span class="n">DOSIJE</span>
+<span class="p">);</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">OBRADJENA_POLAGANJA</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="mi">20100050</span><span class="p">,</span> <span class="mi">2011</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>
+    Primer pokretanja programa možete pronaći u datoteci <a href="./Izlazi/5.6.txt">ovde</a>.
+</p>
+
+<p>Rešenje: Da bismo lakše modulirali naše rešenje, implementirajmo naredne funkcije:</p>
+
+<ol>
+  <li>
+    <p>Funkcija <code class="language-plaintext highlighter-rouge">void deklarisi_kursor_za_godine(sqlint32 indeks)</code> vrši deklaraciju čitajućeg kursora sa nazivom <code class="language-plaintext highlighter-rouge">c_godine</code> koji pronalazi godine onih ispitnih rokova u kojem student, čiji je indeks jednak vrednosti parametra <code class="language-plaintext highlighter-rouge">indeks</code> (koja predstavlja matičnu promenljivu koja je globalno deklarisana), ima položene ispite.</p>
+  </li>
+  <li>
+    <p>Funkcija <code class="language-plaintext highlighter-rouge">unsigned godine_polozenih_ispita()</code> ispisuje sve godine iz kursora <code class="language-plaintext highlighter-rouge">c_godine</code>. Funkcija takođe i vraća broj pronađenih godina.</p>
+  </li>
+  <li>
+    <p>Funkcija <code class="language-plaintext highlighter-rouge">void deklarisi_kursor_za_polaganja(sqlint32 indeks, short godina)</code> vrši deklaraciju ažurirajućeg kursora sa nazivom <code class="language-plaintext highlighter-rouge">c_polozeni</code> kojim se može ažurirati vrednost kolone <code class="language-plaintext highlighter-rouge">STATUS_PRIJAVE</code> u tabeli <code class="language-plaintext highlighter-rouge">ISPIT</code> i koji pronalazi naziv predmeta i ocenu za sve položene ispite za studenta sa indeksom <code class="language-plaintext highlighter-rouge">indeks</code> u godini roka <code class="language-plaintext highlighter-rouge">godina</code> (oba parametra predstavljaju matične promenljive). Ovaj kursor mora biti deklarisan klauzom <code class="language-plaintext highlighter-rouge">WITH HOLD</code> zato što se koristi kao deo transakcije.</p>
+  </li>
+  <li>
+    <p>Funkcija <code class="language-plaintext highlighter-rouge">void polaganja_za_studenta_u_godini(sqlint32 indeks, short godina)</code> implementira neophodne operacije koje čine deo transakcije za jednog studenta. Funkcija redom:</p>
+  </li>
+</ol>
+
+<ul>
+  <li>Unosi informacije (<code class="language-plaintext highlighter-rouge">INSERT</code>) o indeksu i godini roka u tabelu <code class="language-plaintext highlighter-rouge">OBRADJENA_POLAGANJA</code>.</li>
+  <li>Kreira tačku čuvanja, kako bismo mogli da eventualno poništimo sve izmene, osim unosa u tabelu iz prethodne tačke.</li>
+  <li>Prolazi kroz kursor <code class="language-plaintext highlighter-rouge">c_polozeni</code>. Za svaki red ispisuje informacije iz kursora i ukoliko korisnik potvrdi poništavanje ispita, izvršava odgovarajuće ažuriranje (<code class="language-plaintext highlighter-rouge">UPDATE</code>).</li>
+  <li>Postavlja pitanje korisniku da li želi da potvrdi izmene. Ukoliko je odgovor negativan, funkcija poništava sve izmene, ali ne i izmenu koja je učinjena u prvoj tački (tj. naredbu <code class="language-plaintext highlighter-rouge">INSERT</code> iznad), pošto bez obzira na poništavanje ažuriranja, želimo da informacija o obrađivanju bude trajno upisana.</li>
+</ul>
+
+<p>Funkcija <code class="language-plaintext highlighter-rouge">int main()</code> je sada poprilično jednostavna. Nakon povezivanja na bazu podataka i deklarisanja kursora (pozivom funkcija pod 1 i 3 iznad), započinje se iterativni proces koji predstavlja jednu transakciju. Svaka transakcija se sastoji od opisanih operacija iz teksta zadatka, tako što se pozivaju odgovarajuće funkcije (pod 2 i 4 iznad). Naravno, da bi svaka iteracija predstavljala jednu transakciju, potrebno je da se na kraju iteracije izvrši naredba <code class="language-plaintext highlighter-rouge">COMMIT</code>.</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_5/zadatak_5_6.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">;</span>
+<span class="kt">short</span> <span class="n">godina</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">naziv</span><span class="p">[</span><span class="mi">201</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">ocena</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"SQLCODE %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+    
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">deklarisi_kursor_za_godine</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">);</span>
+<span class="kt">unsigned</span> <span class="nf">godine_polozenih_ispita</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">deklarisi_kursor_za_polaganja</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">,</span> <span class="kt">short</span> <span class="n">godina</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">polaganja_za_studenta_u_godini</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">,</span> <span class="kt">short</span> <span class="n">godina</span><span class="p">);</span>
+
+<span class="kt">char</span> <span class="n">odgovor</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+
+    <span class="n">deklarisi_kursor_za_godine</span><span class="p">(</span><span class="n">indeks</span><span class="p">);</span>
+    <span class="n">deklarisi_kursor_za_polaganja</span><span class="p">(</span><span class="n">indeks</span><span class="p">,</span> <span class="n">godina</span><span class="p">);</span>
+    
+    <span class="k">for</span><span class="p">(;;)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">----------POCETAK TRANSAKCIJE----------</span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite indeks studenta: "</span><span class="p">);</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">indeks</span><span class="p">);</span>
+        
+        <span class="kt">unsigned</span> <span class="n">br_neobradjenih_godina</span> <span class="o">=</span> <span class="n">godine_polozenih_ispita</span><span class="p">();</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">br_neobradjenih_godina</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span>
+                <span class="s">"Za datog studenta ne postoji obradjena godina "</span>
+                <span class="s">"u kojoj su polagali neke ispite</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite jednu od ponudjenih godina polaganja: "</span><span class="p">);</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%hd"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">godina</span><span class="p">);</span>
+        
+        <span class="n">polaganja_za_studenta_u_godini</span><span class="p">(</span><span class="n">indeks</span><span class="p">,</span> <span class="n">godina</span><span class="p">);</span>
+        
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit transakcije"</span><span class="p">);</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">----------KRAJ TRANSAKCIJE----------</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Da li zelite da nastavite dalje? [da/ne] "</span><span class="p">);</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">odgovor</span><span class="p">);</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">odgovor</span><span class="p">,</span> <span class="s">"da"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+    
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">deklarisi_kursor_za_godine</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">c_godine</span> <span class="n">CURSOR</span> <span class="n">FOR</span>
+        <span class="n">SELECT</span>  <span class="n">DISTINCT</span> 
+                <span class="n">GODINA_ROKA</span>
+        <span class="n">FROM</span>    <span class="n">ISPIT</span> <span class="n">I</span>
+        <span class="n">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="o">:</span><span class="n">indeks</span> <span class="n">AND</span>
+                <span class="n">OCENA</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="n">AND</span>
+                <span class="n">STATUS_PRIJAVE</span> <span class="o">=</span> <span class="sc">'o'</span> <span class="n">AND</span>
+                <span class="n">NOT</span> <span class="n">EXISTS</span> <span class="p">(</span>
+                    <span class="n">SELECT</span>  <span class="o">*</span>
+                    <span class="n">FROM</span>    <span class="n">OBRADJENA_POLAGANJA</span>
+                    <span class="n">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="o">:</span><span class="n">indeks</span> <span class="n">AND</span>
+                            <span class="n">GODINA</span> <span class="o">=</span> <span class="n">I</span><span class="p">.</span><span class="n">GODINA_ROKA</span>
+                <span class="p">)</span>
+        <span class="n">FOR</span>     <span class="n">READ</span> <span class="n">ONLY</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare c_godine"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">unsigned</span> <span class="nf">godine_polozenih_ispita</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="n">br_neobradjenih_godina</span> <span class="o">=</span> <span class="mi">0u</span><span class="p">;</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">c_godine</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open c_godine"</span><span class="p">);</span>
+    
+    <span class="k">for</span><span class="p">(;;)</span> <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">c_godine</span>
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">godina</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch c_godine"</span><span class="p">);</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">%hd</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">godina</span><span class="p">);</span>
+        <span class="o">++</span><span class="n">br_neobradjenih_godina</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">c_godine</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close c_godine"</span><span class="p">);</span>
+    
+    <span class="k">return</span> <span class="n">br_neobradjenih_godina</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">deklarisi_kursor_za_polaganja</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">,</span> <span class="kt">short</span> <span class="n">godina</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">c_polozeni</span> <span class="n">CURSOR</span> <span class="n">WITH</span> <span class="n">HOLD</span> <span class="n">FOR</span>
+        <span class="n">SELECT</span>  <span class="p">(</span>
+                    <span class="n">SELECT</span>  <span class="n">TRIM</span><span class="p">(</span><span class="n">P</span><span class="p">.</span><span class="n">NAZIV</span><span class="p">)</span>
+                    <span class="n">FROM</span>    <span class="n">PREDMET</span> <span class="n">P</span>
+                    <span class="n">WHERE</span>   <span class="n">I</span><span class="p">.</span><span class="n">ID_PREDMETA</span> <span class="o">=</span> <span class="n">P</span><span class="p">.</span><span class="n">ID_PREDMETA</span>
+                <span class="p">)</span> <span class="n">AS</span> <span class="n">NAZIV_PREDMETA</span><span class="p">,</span>
+                <span class="n">I</span><span class="p">.</span><span class="n">OCENA</span>
+        <span class="n">FROM</span>    <span class="n">ISPIT</span> <span class="n">I</span>
+        <span class="n">WHERE</span>   <span class="n">I</span><span class="p">.</span><span class="n">INDEKS</span> <span class="o">=</span> <span class="o">:</span><span class="n">indeks</span> <span class="n">AND</span>
+                <span class="n">I</span><span class="p">.</span><span class="n">GODINA_ROKA</span> <span class="o">=</span> <span class="o">:</span><span class="n">godina</span> <span class="n">AND</span>
+                <span class="n">OCENA</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="n">AND</span>
+                <span class="n">STATUS_PRIJAVE</span> <span class="o">=</span> <span class="sc">'o'</span>
+        <span class="n">FOR</span>     <span class="n">UPDATE</span> <span class="n">OF</span> <span class="n">STATUS_PRIJAVE</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare c_polozeni"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">polaganja_za_studenta_u_godini</span><span class="p">(</span><span class="n">sqlint32</span> <span class="n">indeks</span><span class="p">,</span> <span class="kt">short</span> <span class="n">godina</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">INSERT</span>  <span class="n">INTO</span> <span class="n">OBRADJENA_POLAGANJA</span>
+        <span class="n">VALUES</span>  <span class="p">(</span><span class="o">:</span><span class="n">indeks</span><span class="p">,</span> <span class="o">:</span><span class="n">godina</span><span class="p">);</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Insert into"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span>
+        <span class="n">SAVEPOINT</span> <span class="n">s_obradjeni</span> <span class="n">ON</span> <span class="n">ROLLBACK</span> <span class="n">RETAIN</span> <span class="n">CURSORS</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Savepoint"</span><span class="p">);</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">c_polozeni</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open c_polozeni"</span><span class="p">);</span>
+    
+    <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">c_polozeni</span>
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">naziv</span><span class="p">,</span>
+                    <span class="o">:</span><span class="n">ocena</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch c_polozeni"</span><span class="p">);</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">printf</span><span class="p">(</span><span class="s">"%s, %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">naziv</span><span class="p">,</span> <span class="n">ocena</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Da li zelite da ponistite ispit? [da/ne] "</span><span class="p">);</span>
+        <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">odgovor</span><span class="p">);</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">odgovor</span><span class="p">,</span> <span class="s">"da"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">EXEC</span> <span class="n">SQL</span>
+            <span class="n">UPDATE</span>  <span class="n">ISPIT</span>
+            <span class="n">SET</span>     <span class="n">STATUS_PRIJAVE</span> <span class="o">=</span> <span class="sc">'x'</span>
+            <span class="n">WHERE</span>   <span class="n">CURRENT</span> <span class="n">OF</span> <span class="n">c_polozeni</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Update"</span><span class="p">);</span>
+    <span class="p">}</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">c_polozeni</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close c_polozeni"</span><span class="p">);</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Da li zelite da potvrdite sve izmene za tekuceg studenta? [da/ne] "</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">odgovor</span><span class="p">);</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">odgovor</span><span class="p">,</span> <span class="s">"da"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span> <span class="n">TO</span> <span class="n">SAVEPOINT</span> <span class="n">s_obradjeni</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Rollback to savepoint"</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<h2 id="56-zadaci-za-vežbu">5.6 Zadaci za vežbu</h2>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.7</p>
+    Napisati C/SQL program koji redom:<br />
+<br />
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'apr'</span> i naziv <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'April 2019'</span>. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.<br />
+2. Ažurira tip za prethodno uneti ispitni rok na tip <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'Z'</span>. <br />
+<br />
+Obezbediti da se navedene operacije izvrše ili sve ili nijedna.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.8</p>
+    Napisati C/SQL program koji redom:<br />
+<br />
+1. Kreira novi ispitni rok samo za predmete iz prvog semestra u 2019. godini čija je oznaka <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'apr'</span> i naziv <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'April 2019'</span>. Za početak prijavljivanja postaviti današnji datum i postaviti da prijavljivanje traje 10 dana.<br />
+2. Ažurira tip za prethodno uneti ispitni rok na tip <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'Z'</span>. <br />
+<br />
+Obezbediti da se navedene operacije izvrše zasebno.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.9</p>
+    Napisati C/SQL program koji omogućava korisniku da unese nove ispitne rokove samo za predmete iz prvog semestra u 2019. godini za svaki mesec od marta do oktobra, sa odgovarajućim oznakama i nazivima. Za svaki ispitni rok postaviti da je datum početka prijavljivanja današnji datum pomeren za odgovarajući broj meseci, kao i da prijavljivanje traje 20 dana.<br />
+<br />
+Omogućiti da korisnik unese broj ispitnih rokova koji želi da kreira. Minimalni broj ispitnih rokova je 0, a maksimalni broj je 6. U zavisnosti od unetog broja, kreirati odgovarajući broj ispitnih rokova. <br />
+<br />
+Obezbediti da se navedene operacije izvrše zasebno.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.10</p>
+    Napisati C/SQL program koji za svaki predmet koji je obavezan na smeru čiji je identifikator 201, pita korisnika da li želi da poveća broj bodova za 1. Ukoliko je odgovor korisnika 'da', izvršava se odgovarajuća naredba. Obrada jednog predmeta treba da predstavlja jednu transakciju.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 5.11</p>
+    Napisati C/SQL program koji omogućava korisniku da obriše informacije o studentima koji su upisani u godini koja se unosi sa standardnog ulaza. Za svakog studenta, program pita korisnika da li želi da obriše informacije. Ako korisnik potvrdi, obrisati podatke iz tabela <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">ISPIT</span>, <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">UPISAN_KURS</span>, <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">UPIS_GODINE</span>, <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">STATUS</span> i <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">DOSIJE</span> (tim redosledom) za tekućeg studenta i ispisati poruku o uspešnosti brisanja za svaku tabelu ponaosob. Nakon toga, aplikacija pita korisnika da li želi da izvrši potvrđivanje ili poništavanje dotadašnjih izmena. Korisnik može da bira jednu od tri opcije:<br />
+1. Izvršavanje potvrđivanja<br />
+2. Izvršavanje poništavanja<br />
+3. Bez akcije<br />
+<br />
+U slučaju akcija 1. i 2. potrebno je izvršiti odgovarajuću SQL naredbu i prikazati poruku korisniku o uspešnosti akcije. Takođe ispisati i informaciju o tome za koliko studenata je izvršeno potvrđivanje/poništavanje, na primer: <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'TRANSAKCIJA JE ZAVRSENA: POTVRDILI STE BRISANJE 7 STUDENATA'</span> ili <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">'TRANSAKCIJA JE ZAVRSENA: PONIŠTILI STE BRISANJE 7 STUDENATA'</span> (ukoliko je pre tekuće akcije korisnik 7 puta odabrao 3. akciju). <br />
+<br />
+U slučaju akcije 3. potrebno je samo uvećati broj studenata koji je obrisan u tekućoj jedinici posla. Naravno, prilikom izvršavanja akcije 1. ili 2. ovaj broj se mora postaviti na 0.
+</div>
+
+  </div>
+
+</article>
+
+        </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/PDb2BP/"></data>
+
+    <div class="wrapper">
+
+        <div class="row">
+            <h2 class="footer-heading">Programiranje Db2 baza podataka</h2>
+        </div>
+
+        <div class="footer-col-wrapper">
+            <div class="row">
+                <div class="col-6">
+                    <ul class="contact-list">
+                        <li class="p-name">Programiranje Db2 baza podataka</li><li><a class="u-email" href="mailto:nikola_ajzenhamer@math.rs">nikola_ajzenhamer@math.rs</a></li></ul>
+                </div>
+                <div class="col-6">
+                    <p>Elektronska knjiga &quot;Programiranje Db2 baza podataka&quot; dostupna besplatno na adresi&nbsp;<a
+                            href="/PDb2BP/">https://theikeofficial.github.io//PDb2BP/</a>.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</footer><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

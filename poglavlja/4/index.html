@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Aplikacije sa dinamičkim SQL naredbama | Programiranje Db2 baza podataka</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="Aplikacije sa dinamičkim SQL naredbama" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<meta property="og:description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<link rel="canonical" href="https://theikeofficial.github.io//PDb2BP/poglavlja/4/" />
+<meta property="og:url" content="https://theikeofficial.github.io//PDb2BP/poglavlja/4/" />
+<meta property="og:site_name" content="Programiranje Db2 baza podataka" />
+<script type="application/ld+json">
+{"description":"Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi","@type":"WebPage","url":"https://theikeofficial.github.io//PDb2BP/poglavlja/4/","headline":"Aplikacije sa dinamičkim SQL naredbama","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/PDb2BP/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://theikeofficial.github.io//PDb2BP/feed.xml" title="Programiranje Db2 baza podataka" /></head>
+<body><header class="site-header" role="banner"
+    style="background-image: url(/PDb2BP/resources/header.png); height: 300px; background-repeat: repeat-x;"><a class="site-title" rel="author" href="/PDb2BP/"
+        style="display: flex; position: relative; top: 125px; background-color: white; width: 100%; height: 86px;flex-wrap: wrap; justify-content: center; align-items: center; line-height: 0px; font-size: 36px;">
+        
+        
+        <span style="font-weight: bold;">PROGRAMIRANJE&nbsp;</span>
+        
+        <span style="font-weight: bold;">DB2&nbsp;</span>
+        
+        <span style="font-weight: bold;">BAZA&nbsp;</span>
+        
+        <span style="font-weight: bold;">PODATAKA&nbsp;</span>
+        
+    </a>
+</header><main class="page-content" aria-label="Content">
+        <div class="wrapper" style="max-width: calc(1100px - (30px * 2));">
+            <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">4. Aplikacije sa dinamičkim SQL naredbama</h1>
+  </header>
+
+  <div class="post-content">
+    <p>Do sada smo konstruisali aplikacije sa ugnežđenim SQL-om koje su koristile statičke SQL naredbe. Da se podsetimo, u pitanju su bile naredbe čiji je plan izvršavanja moguće izračunati u fazi pretprocesiranja. Ipak, kreiranje statičkih SQL aplikacija nam nije dovoljno ukoliko su nam neki elementi SQL naredbi nepoznati u fazi prevođenja programa. Štaviše, nekada je potrebno konstruisati aplikaciju u kojoj nijedna SQL naredba nije unapred poznata (sa izuzetkom naredba povezivanja na bazu podataka, prekidanja konekcije i sl.).</p>
+
+<p>Dizajniranje složenijih SQL aplikacija zahteva nešto moćnije alate za rad koji se oslanjaju na rad sa dinamičkim SQL naredbama, čime se kreiraju dinamičke SQL aplikacije. Samim tim što je programiranje dinamičkih SQL aplikacija moćnije, to je i složenije jer, pored velikog broja novih načina za pisanje aplikacija, otvara i nove teme, pre svega poređenje složenosti, performansi i upotrebljivosti u odnosu na statičke SQL aplikacije. Međutim, u ovom poglavlju, mi ćemo se baviti isključivo programiranjem dinamičkih SQL aplikacija, ne i pitanjima njihovog razvoja.</p>
+
+<p>Pre nego što započnemo sa poglavljem, napomenimo da ukoliko se koriste struktuirani podaci ili podaci koji su nekog od tipa <code class="language-plaintext highlighter-rouge">LOB</code> (<code class="language-plaintext highlighter-rouge">BLOB</code>, <code class="language-plaintext highlighter-rouge">CLOB</code>, <code class="language-plaintext highlighter-rouge">DBLOB</code>, itd.), onda je za neke od naredbi potrebno izvršiti dodatna procesiranja. Zbog toga ćemo pretpostaviti da naše aplikacije neće baratati takvim podacima.</p>
+
+<h2 id="41-naredbe-za-ugnežđavanje-dinamičkih-sql-naredbi">4.1 Naredbe za ugnežđavanje dinamičkih SQL naredbi</h2>
+
+<p>Da bismo mogli da izvršimo SQL naredbu dinamički, prvo je neophodno skladištiti je u matičnu promenljivu čiji je tip niska. Dinamička SQL naredba podrazumeva da matična
+promenljiva-niska sadrži tekstualnu formu SQL naredbe. Ova naredba, koja je zadata kao tekst, biće procesirana dinamički, odnosno, tek u fazi izvršavanja programa.</p>
+
+<p>Naredna slika prikazuje deo programskog koda koji procesira dinamičku SQL naredbu <code class="language-plaintext highlighter-rouge">SELECT</code>. Na početku, dinamička SQL naredba je zadata kao niska. Prvi korak se sastoji u procesiranju tog tekstualnog oblika SQL naredbe. Rezultat ove naredbe je pripremljena SQL naredba, odnosno, njen izvršivi oblik. Dodatno, moguće je ovom naredbom upisati informacije o samoj dinamičkoj SQL naredbi u odgovarajuće strukture podataka. Nakon toga, drugi korak se sastoji u samom izvršavanju pripremljene naredbe. Prilikom izvršavanja se informacije koje su bile nepoznate zamenjuju konkretnim vrednostima, naravno, ako je dinamička SQL naredba imala nepoznate informacije.</p>
+
+<p><img src="/PDb2BP/poglavlja/4/Slike/dinamicke_naredbe.png" alt="&quot;Proces izvršavanja dinamičkih SQL naredbi u dva koraka&quot;" /></p>
+
+<p>Tekstualni oblik naredbe neće biti procesiran prilikom prekompilacije aplikacije. Zapravo, sam tekstualni sadrži ne mora ni da postoji u fazi pretprocesiranja. Umesto toga, o dinamičkoj SQL naredbi možemo razmišljati kao matičnoj promenljivoj tokom faze prekompilacije na koju će se referisati prilikom faze izvršavanja.</p>
+
+<p>Sadržaj dinamičkih SQL naredbi odgovara istoj sintaksi kao i za statičke SQL naredbe. Ipak, postoje neki izuzeci nametnuti od strane DB2 SUBP:</p>
+
+<ul>
+  <li>Tekstualni oblik naredbe ne sme počinjati ključnim rečima <code class="language-plaintext highlighter-rouge">EXEC SQL</code>.</li>
+  <li>Tekstualni oblik naredbe se ne sme završavati karakterom za označavanje kraja naredbe (karakter tačka-zapeta (<code class="language-plaintext highlighter-rouge">;</code>)). Jedini izuzetak od ovog pravila jeste naredba <code class="language-plaintext highlighter-rouge">CREATE TRIGGER</code>.</li>
+</ul>
+
+<p>Da bismo tekstualni oblik SQL naredbe transformisali u njegov izvršivi oblik, potrebno je izvršiti odgovarajuće korake, odnosno, naredbe za podršku dinamičkom SQL-u. Ove naredbe operišu nad matičnim promenljivama tako što procesiraju tekstualni oblik naredbe, proveravajući sintaksu naredbe i druga pravila koja ta naredba mora da zadovolji. Ovih naredbi ima više, a mi ćemo prikazati svaku od njih u nastavku poglavlja. Za sada, dajmo kratak opis naredbi kako bismo ih imali na umu tokom njihove detaljnije diskusije:</p>
+
+<ul>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code> vrši pripremu i izvršavanje dinamičkih SQL naredbi u jednom koraku.</p>
+  </li>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">PREPARE</code> vrši prvu fazu izvršavanja dinamičke SQL naredbe: od tekstualnog oblika naredbe kreira njen izvršivi oblik, dodaje joj naziv i, opciono, upisuje informacije o dinamičkoj SQL naredbi u specijalnim SQLDA strukturama.</p>
+  </li>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">EXECUTE</code> vrši drugu fazu izvršavanja dinamičke SQL naredbe: izvršava prethodno pripremljenu dinamičku SQL naredbu.</p>
+  </li>
+  <li>
+    <p>Naredba <code class="language-plaintext highlighter-rouge">DESCRIBE</code> upisuje informacije o dinamičkoj SQL naredbi u specijalnim SQLDA strukturama.</p>
+  </li>
+</ul>
+
+<h2 id="42-naredba-execute-immediate">4.2 Naredba <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code></h2>
+
+<p>Naredba <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code> priprema izvršivi oblik dinamičke SQL naredbe od njegovog tekstualnog oblika i odmah zatim ga i izvršava. Može biti korišćena za pripremu i izvršavanje SQL naredbi koje ne sadrže ni matične promenljive ni parametarske oznake.</p>
+
+<p>Sintaksa ove naredbe je data u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXECUTE</span> <span class="k">IMMEDIATE</span> <span class="o">&lt;</span><span class="n">IZRAZ</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>Vrednost <code class="language-plaintext highlighter-rouge">&lt;IZRAZ&gt;</code> predstavlja izraz koji sadrži naredbu koja će se izvršiti. Izraz mora izračunavati nisku čija je najveća veličina 2 MB. Deo spiska naredbi koje mogu biti dinamički izvršene korišćenjem ove SQL naredbe je dat u nastavku:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">ALTER</code></li>
+  <li><code class="language-plaintext highlighter-rouge">CALL</code></li>
+  <li><code class="language-plaintext highlighter-rouge">COMMIT</code></li>
+  <li>Složena SQL naredba (linijska)</li>
+  <li>Složena SQL naredba (kompilirana)</li>
+  <li><code class="language-plaintext highlighter-rouge">CREATE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">DELETE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">DROP</code></li>
+  <li><code class="language-plaintext highlighter-rouge">GRANT</code></li>
+  <li><code class="language-plaintext highlighter-rouge">INSERT</code></li>
+  <li><code class="language-plaintext highlighter-rouge">LOCK TABLE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">MERGE</code></li>
+  <li><code class="language-plaintext highlighter-rouge">ROLLBACK</code></li>
+  <li><code class="language-plaintext highlighter-rouge">SAVEPOINT</code></li>
+  <li><code class="language-plaintext highlighter-rouge">SET CURRENT LOCK TIMEOUT</code></li>
+  <li><code class="language-plaintext highlighter-rouge">SET &lt;PROMENLJIVA&gt;</code></li>
+  <li><code class="language-plaintext highlighter-rouge">UPDATE</code></li>
+</ul>
+
+<p>Niska koja sadrži naredbu ne sme imati parametarske oznake ili reference na matične promenljive i ne sme počinjati ključnim rečima <code class="language-plaintext highlighter-rouge">EXEC SQL</code>. Takođe, onda ne sme sadržati operator završavanja naredbe sa izuzetkom složenih SQL naredbi koje mogu sadržati tačku-zapetu (<code class="language-plaintext highlighter-rouge">;</code>) za razdvajanje naredbi u bloku izvršavanja.</p>
+
+<p>Kada se naredba <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code> izvrši, specifikovana naredba se parsira i proveravaju se greške. Ako SQL naredba nije validna, ona se neće izvršiti i uslov koji je doveo do greške se izveštava kroz SQLCA. Ako je SQL naredba validna, ali njeno izvršavanje dovodi do greške, onda se ta greška takođe izveštava kroz SQLCA.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.1</p>
+    Napisati C/SQL program u kojem se naredbe izvršavaju dinamički koji čita SQL naredbu iz datoteke čiji se naziv zadaje kao prvi argument komandne linije. SQL naredba se čita do pojave karaktera <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">;</span> ili do kraja datoteke, ispisuje se korisniku, a potom se izvršava. Pretpostaviti da korisnik neće uneti naredbu <span style="color: #e83e8c; background-color: #eef; padding: 1px 5px; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;">SELECT</span>, kao ni da neće sadržati parametarske oznake. Pretpostaviti da upit koji se čita iz datoteke nije duži od 255 karaktera.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_4/zadatak_4_1.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="c1">// Maticna promenljiva koja ce cuvati tekstualni oblik dinamicke SQL naredbe</span>
+<span class="kt">char</span> <span class="n">stmt</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Greska %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+    <span class="c1">// Proveravamo argumente i datoteku za citanje</span>
+    <span class="c1">// pre nego sto se uopste povezemo</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span> 
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Niste naveli datoteku za citanje!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">FILE</span> <span class="o">*</span><span class="n">ulaz</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"r"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ulaz</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Postoji problem sa citanjem datoteke </span><span class="se">\"</span><span class="s">%s</span><span class="se">\"</span><span class="s">!</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+    
+    <span class="kt">int</span> <span class="n">c</span><span class="p">;</span> <span class="c1">// `int` umesto `char` zbog EOF</span>
+    <span class="kt">int</span> <span class="n">broj_karaktera</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">while</span><span class="p">(</span><span class="n">broj_karaktera</span> <span class="o">&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">stmt</span><span class="p">))</span>
+    <span class="p">{</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">fgetc</span><span class="p">(</span><span class="n">ulaz</span><span class="p">);</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">';'</span> <span class="o">||</span> <span class="n">c</span> <span class="o">==</span> <span class="n">EOF</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">stmt</span><span class="p">[</span><span class="n">broj_karaktera</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">fclose</span><span class="p">(</span><span class="n">ulaz</span><span class="p">);</span>
+
+    <span class="c1">// Ispisujemo korisniku sta je uneo</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Izvrsavam naredbu:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"***************************</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">stmt</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"***************************</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    
+    <span class="c1">// Pripremamo i izvrsavamo unetu naredbu</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">EXECUTE</span> <span class="n">IMMEDIATE</span> <span class="o">:</span><span class="n">stmt</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Execute immediate"</span><span class="p">);</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Naredba je uspesno izvrsena.</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="43-naredba-prepare">4.3 Naredba <code class="language-plaintext highlighter-rouge">PREPARE</code></h2>
+
+<p>Naredba <code class="language-plaintext highlighter-rouge">PREPARE</code> se koristi od strane aplikativnog programa da dinamički pripremi SQL naredbu za izvršenje. Ova naredba kreira izvršivu SQL naredbu koja se naziva <em>pripremljena naredba</em> (engl. <em>prepared statement</em>) na osnovu tekstualnog oblika naredbe koji se naziva <em>niska naredbe</em> (engl. <em>statement string</em>).</p>
+
+<p>Sintaksa ove naredbe data je u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">PREPARE</span> <span class="o">&lt;</span><span class="n">NAZIV_NAREDBE</span><span class="o">&gt;</span>
+<span class="p">[[</span><span class="k">OUTPUT</span><span class="p">]</span> <span class="k">INTO</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A_IZLAZA</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="p">[</span><span class="k">INPUT</span> <span class="k">INTO</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A_ULAZA</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="k">FROM</span> <span class="p">(</span><span class="o">&lt;</span><span class="n">MATI</span><span class="err">Č</span><span class="n">NA_PROMENLJIVA</span><span class="o">&gt;|&lt;</span><span class="n">IZRAZ</span><span class="o">&gt;</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Specifikovanjem vrednosti za <code class="language-plaintext highlighter-rouge">&lt;NAZIV_NAREDBE&gt;</code> se imenuje pripremljena naredba. Ako se isti naziv koristi za identifikaciju već postojeće pripremljene naredbe, onda se ta, prethodno pripremljena naredba, uništava. Ipak, postoji izuzetak od ovog pravila: <code class="language-plaintext highlighter-rouge">&lt;NAZIV_NAREDBE&gt;</code> ne sme već idenfitikovati pripremljenu naredbu koja predstavlja <code class="language-plaintext highlighter-rouge">SELECT</code> naredbu u otvorenom kursoru.</p>
+
+<p>Pripremljena naredba se izračunava na osnovu niske naredbe koja se nalazi u vrednosti u <code class="language-plaintext highlighter-rouge">FROM</code> klauzi. Može se navesti bilo matična promenljiva čiji je identifikator <code class="language-plaintext highlighter-rouge">&lt;MATIČNA_PROMENLJIVA&gt;</code> i tip niska ili izraz <code class="language-plaintext highlighter-rouge">&lt;IZRAZ&gt;</code> koji vraća nisku.</p>
+
+<p>U zavisnosti od korišćenja narednih klauza, ova naredba ima sledeće efekte:</p>
+
+<ul>
+  <li>
+    <p>Klauzom <code class="language-plaintext highlighter-rouge">OUTPUT INTO</code> se informacije o izlaznim parametarskim oznakama u pripremljenoj naredbi upisuju u SQLDA promenljivu koja se specifikuje kao <code class="language-plaintext highlighter-rouge">&lt;NAZIV_OPISIVAČA_IZLAZA&gt;</code>.</p>
+  </li>
+  <li>
+    <p>Klauzom <code class="language-plaintext highlighter-rouge">INPUT INTO</code> se informacije o ulaznim parametarskim oznakama u pripremljenoj naredbi upisuju u SQLDA promenljivu koja se specifikuje kao <code class="language-plaintext highlighter-rouge">&lt;NAZIV_OPISIVAČA_ULAZA&gt;</code>. Ulazne parametarske oznake se uvek smatraju za <em>potencijalno nedostajuće</em> (engl. <em>nullable</em>), bez obzira na njihovo korišćenje.</p>
+  </li>
+</ul>
+
+<p>Umesto ovih klauza se može koristiti naredba <code class="language-plaintext highlighter-rouge">DESCRIBE</code> o kojoj će biti reči u kasnijem tekstu.</p>
+
+<p>Naredbe koje se mogu pripremiti na ovaj način su iste one naredbe kao za naredbu <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code>, uz dodatak <code class="language-plaintext highlighter-rouge">SELECT</code> naredbe.</p>
+
+<h3 id="431-parametarske-oznake">4.3.1 Parametarske oznake</h3>
+
+<p>Iako dinamička SQL naredba koja se priprema ne može da sadrži reference na matične promenljive, ona ipak može da koristi <em>parametarske oznake</em> (engl. <em>parameter marker</em>). Parametarske oznake mogu biti zamenjene vrednostima iz matičnih promenljivih u trenutku izvršavanja pripremljene naredbe.</p>
+
+<p>Postoje dva načina za specifikovanje parametarskih oznaka:</p>
+
+<ul>
+  <li>
+    <p><em>Neimenovana</em> parametarska oznaka se navodi korišćenjem karaktera upitnika (<code class="language-plaintext highlighter-rouge">?</code>).</p>
+  </li>
+  <li>
+    <p><em>Imenovana</em> parametarska oznaka se navodi karakterom dvotačke (<code class="language-plaintext highlighter-rouge">:</code>) iza koje sledi identifikator parametarske oznake. Na primer, <code class="language-plaintext highlighter-rouge">:GODINA_UPISA</code>.</p>
+  </li>
+</ul>
+
+<p>Oba opisana načina se koriste na istom mestu gde bi se koristile matične promenljive u slučaju da je SQL naredba statička. Iako imenovane parametarske oznake imaju istu sintaksu kao i matične promenljive, njihova upotrebna vrednost je svakako drugačija. Matična promenljiva sadrži vrednost u memoriji i koristi se direktno u statičkoj SQL naredbi. Imenovana parametarska oznaka predstavlja tek <em>mesto za zamenu</em> (engl. <em>placeholder</em>) za vrednost u dinamičkoj SQL naredbi i njena vrednost se navodi prilikom  izvršavanja pripremljene naredbe.</p>
+
+<p>Takođe, parametarske oznake imaju i dva tipa:</p>
+
+<ul>
+  <li><em>Netipizirana</em> parametarska oznaka se navodi bez tipa njenog rezultata i ima neimenovanu formu. Sam tip vrednosti netipizirane parametarske oznake se izvodi iz konteksta u kojem se upotrebljava. Na primer, u SQL naredbi</li>
+</ul>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">UPDATE</span>  <span class="n">ISPIT</span>
+<span class="k">SET</span>     <span class="n">NAPOMENA</span> <span class="o">=</span> <span class="s1">'Ovaj student je polozio sve ispite'</span>
+<span class="k">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="o">?</span>
+</code></pre></div></div>
+
+<p>koristi se netipizirana parametarska oznaka kao predikat restrikcije, čiji će tip biti implicitno postavljen na onaj tip kojim je definisana kolona <code class="language-plaintext highlighter-rouge">INDEKS</code>. Netipizirane parametarske oznake se mogu koristiti u dinamičkim SQL naredbama sve dok se tip parametarske oznake može izvesti iz konteksta upotrebe. U suprotnom, SUBP prijavljuje <code class="language-plaintext highlighter-rouge">SQLSTATE</code> vrednost <code class="language-plaintext highlighter-rouge">42610</code> (<code class="language-plaintext highlighter-rouge">SQLCODE -418</code>).</p>
+
+<ul>
+  <li><em>Tipizirana</em> parametarska oznaka se navodi zajedno sa tipom rezultata. Sintaksa koja se koristi u ovom slučaju je</li>
+</ul>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CAST</span><span class="p">(</span><span class="o">?</span> <span class="k">AS</span> <span class="o">&lt;</span><span class="n">TIP_PODATAKA</span><span class="o">&gt;</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>gde je <code class="language-plaintext highlighter-rouge">&lt;TIP_PODATAKA&gt;</code> odgovarajući tip. Ova notacija ne predstavlja poziv funkcije ili eksplicitnu konverziju, već tek “obećanje” da će tip vrednosti, koja će se koristiti umesto navedene tipizirane parametarske oznake, odgovarati tipu koji je naveden ili da se makar može konvertovati u njega. Na primer, u SQL naredbi</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">UPDATE</span>  <span class="n">DOSIJE</span>
+<span class="k">SET</span>     <span class="n">PREZIME</span> <span class="o">=</span> <span class="k">TRANSLATE</span><span class="p">(</span><span class="k">CAST</span><span class="p">(</span><span class="o">?</span> <span class="k">AS</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)))</span>
+<span class="k">WHERE</span>   <span class="n">INDEKS</span> <span class="o">=</span> <span class="mi">20100050</span>
+</code></pre></div></div>
+
+<p>vrednost argumenta funkcije <code class="language-plaintext highlighter-rouge">TRANSLATE</code> biće navedena tokom faze izvršavanja. Očekuje se da je tip te vrednosti bilo <code class="language-plaintext highlighter-rouge">VARCHAR(50)</code> ili tip koji se može konvertovati u
+njega. Tipizirane parametarske oznake se mogu koristiti u dinamičkim SQL naredbama gde god se očekuje matična promenljiva i tip podataka je kompatibilan sa “obećanjem” navedenim u <code class="language-plaintext highlighter-rouge">CAST</code> funkciji.</p>
+
+<p>Kada se naredba <code class="language-plaintext highlighter-rouge">PREPARE</code> izvrši, specifikovana naredba se parsira i proveravaju se greške. Ako SQL naredba nije validna, ona se neće izvršiti i uslov koji je doveo do greške se izveštava kroz SQLCA. Svako naredno izvršavanje naredbi <code class="language-plaintext highlighter-rouge">EXECUTE</code> ili <code class="language-plaintext highlighter-rouge">OPEN</code> koji referišu na ovu naredbu će takođe dobiti istu grešku, osim ukoliko se prethodno ne ispravi.</p>
+
+<p>Pripremljena naredba može biti referisana u narednim naredbama, sa odgovarajućim ograničenjima navedenim u zagradama:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">DESCRIBE</code> (može biti proizvoljna naredba)</li>
+  <li><code class="language-plaintext highlighter-rouge">DECLARE CURSOR</code> (može biti isključivo <code class="language-plaintext highlighter-rouge">SELECT</code> naredba)</li>
+  <li><code class="language-plaintext highlighter-rouge">EXECUTE</code> (ne sme biti <code class="language-plaintext highlighter-rouge">SELECT</code> naredba)</li>
+</ul>
+
+<p>Prednost korišćenja pripremljenih naredbi je u činjenici da se one mogu izvršavati više puta. Ipak, ukoliko naredba ne sadrži parametarske oznake i izvršava se samo jednom, onda se preporučuje korišćenje <code class="language-plaintext highlighter-rouge">EXECUTE IMMEDIATE</code> naredbe umesto korišćenja naredbi <code class="language-plaintext highlighter-rouge">PREPARE</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>.</p>
+
+<h2 id="44-naredba-execute">4.4 Naredba <code class="language-plaintext highlighter-rouge">EXECUTE</code></h2>
+
+<p>Naredba <code class="language-plaintext highlighter-rouge">EXECUTE</code> izvršava prethodno pripremljenu SQL naredbu. Sintaksa ove naredbe je data u nastavku:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXECUTE</span> <span class="o">&lt;</span><span class="n">NAZIV_NAREDBE</span><span class="o">&gt;</span>
+<span class="p">[</span><span class="k">INTO</span> <span class="k">DESCRIPTOR</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A_IZLAZA</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="p">[</span><span class="k">USING</span> <span class="p">(</span><span class="o">&lt;</span><span class="n">LISTA_MATI</span><span class="err">Č</span><span class="n">NIH_PROMENLJIVIH</span><span class="o">&gt;</span> <span class="o">|</span> <span class="k">DESCRIPTOR</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A_ULAZA</span><span class="o">&gt;</span><span class="p">)]</span>
+</code></pre></div></div>
+
+<p>Ova naredba izvršava prethodno pripremljenu naredbu koja se identifikuje pomoću <code class="language-plaintext highlighter-rouge">&lt;NAZIV_NAREDBE&gt;</code>. Ta vrednost mora odgovarati prethodno pripremljenoj naredbi i ta naredba ne sme biti <code class="language-plaintext highlighter-rouge">SELECT</code>. Pripremljena naredba se može izvršiti više puta.</p>
+
+<p>U zavisnosti od korišćenja narednih klauza, ova naredba ima sledeće efekte:</p>
+
+<ul>
+  <li>
+    <p>Klauzom <code class="language-plaintext highlighter-rouge">INTO DESCRIPTOR</code> se identifikuje izlazna SQLDA struktura <code class="language-plaintext highlighter-rouge">&lt;NAZIV_OPISIVAČA_IZLAZA&gt;</code> koja mora sadržati validne opise matičnih promenljivih. Videti sekciju 4.5.1 za dodatne napomene.</p>
+  </li>
+  <li>
+    <p>Klauzom <code class="language-plaintext highlighter-rouge">USING</code> se idenfitikuje lista matičnih promenljivih ili izraza koje će se koristiti prilikom zamene vrednosti za ulazne parametarske oznake u pripremljenoj naredbi. Ako se makar jedna ulazna parametarska oznaka nalazi u pripremljenoj naredbi, onda se mora specifikovati klauza <code class="language-plaintext highlighter-rouge">USING</code>. U suprotnom, SUBP prijavljuje <code class="language-plaintext highlighter-rouge">SQLSTATE</code> vrednost <code class="language-plaintext highlighter-rouge">07004</code>. Vrednosti se mogu specifikovati na dva načina:</p>
+
+    <ul>
+      <li>
+        <p><code class="language-plaintext highlighter-rouge">&lt;LISTA_MATIČNIH_PROMENLJIVIH&gt;</code> predstavlja listu matičnih promenljivih koje su razdvojene karakterom zapete (<code class="language-plaintext highlighter-rouge">,</code>). Broj matičnih promenljivih u listi mora biti jednak broju ulaznih parametarskih oznaka u pripremljenoj naredbi. Dodatno, <em>n</em>-ta matična promenljiva u listi odgovara <em>n</em>-toj parametarskoj oznaci u pripremljenoj naredbi.</p>
+      </li>
+      <li>
+        <p><code class="language-plaintext highlighter-rouge">DESCRIPTOR &lt;NAZIV_OPISIVAČA_ULAZA&gt;</code> identifikuje ulaznu SQLDA strukturu koja mora sadržati validne opise matičnih promenljivih. Videti sekciju 4.5.1 za dodatne napomene.</p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<p>Pre samog izvršavanja pripremljene naredbe, svaka ulazna parametarska oznaka se zamenjuje vrednošću odgovarajuće promenljive ili izraza. Za tipizirane parametarske oznake, atributi ciljne promenljive ili izraza su oni koji su navedeni u <code class="language-plaintext highlighter-rouge">CAST</code> specifikaciji. Za netipizirane parametarske oznake, atributi ciljne promenljive ili izraza se izvode iz konteksta upotrebe parametarske oznake.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.2</p>
+    Napisati C/SQL program u kojem se naredbe izvršavaju dinamički kojim se omogućava da korisnik unese podatke o novom ispitnom roku. Uneti novi ispitni rok u bazu podataka sa unetim podacima. Obratiti pažnju da se naziv roka može sadržati od više reči.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_4/zadatak_4_2.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">stmt</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
+<span class="n">sqlint32</span> <span class="n">godina</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">sifra</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> 
+     <span class="n">naziv</span><span class="p">[</span><span class="mi">51</span><span class="p">],</span> 
+     <span class="n">pocetak_prijave</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> 
+     <span class="n">kraj_prijave</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> 
+     <span class="n">tip</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Greska %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+
+    <span class="c1">// Kreiramo dinamicku SQL naredbu sa netipiziranim i neimenovanim parametarskim oznakama.</span>
+    <span class="c1">// Primetimo po jedan karakter razmaka na kraju svake niske!!!</span>
+    <span class="c1">// Ovo je vazna napomena, zato sto ce pretprocesor programskog jezika C</span>
+    <span class="c1">// jednostavno konkatenirati date doslovne niske u jednu nisku,</span>
+    <span class="c1">// tako da je neophodno da ostavimo karakter razmaka</span>
+    <span class="c1">// kako ne bismo kreirali neispravnu SQL naredbu.</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">stmt</span><span class="p">,</span> 
+        <span class="s">"INSERT "</span>
+        <span class="s">"INTO   ISPITNI_ROK "</span>
+        <span class="s">"VALUES (?, ?, ?, ?, ?, ?)"</span><span class="p">);</span>
+
+    <span class="c1">// Pripremamo naredbu za izvrsavanje</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">PREPARE</span> <span class="n">PREP_NAREDBA</span> 
+        <span class="n">FROM</span>    <span class="o">:</span><span class="n">stmt</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"PREPARE"</span><span class="p">);</span>
+    
+    <span class="c1">// Ucitavamo podatke za unosenje u tabelu ispitni_rok</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite godinu roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">godina</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite sifru roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">sifra</span><span class="p">);</span>
+    <span class="n">getchar</span><span class="p">();</span> <span class="c1">// novi red</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite naziv roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="c1">// Funkcija fgets ce procitati i karakter za novi red,</span>
+    <span class="c1">// tako da moramo da ga postavimo na terminirajucu nulu.</span>
+    <span class="n">fgets</span><span class="p">(</span><span class="n">naziv</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">naziv</span><span class="p">),</span> <span class="n">stdin</span><span class="p">);</span>
+    <span class="n">naziv</span><span class="p">[</span><span class="n">strcspn</span><span class="p">(</span><span class="n">naziv</span><span class="p">,</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">)]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite pocetak prijave roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">pocetak_prijave</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite kraj prijave roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">kraj_prijave</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite tip roka:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">tip</span><span class="p">);</span>
+
+    <span class="c1">// Izvrsavamo prethodno pripremljenu naredbu </span>
+    <span class="c1">// koriscenjem maticnih promenljivih</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">EXECUTE</span> <span class="n">PREP_NAREDBA</span> 
+        <span class="n">USING</span>   <span class="o">:</span><span class="n">godina</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">sifra</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">naziv</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">pocetak_prijave</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">kraj_prijave</span><span class="p">,</span> 
+                <span class="o">:</span><span class="n">tip</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Execute"</span><span class="p">);</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Novi ispitni rok je uspesno unet!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Kao što smo rekli, moguće je pripremiti dinamičku SQL naredbu <code class="language-plaintext highlighter-rouge">SELECT</code> naredbom <code class="language-plaintext highlighter-rouge">PREPARE</code>. Međutim, ovakvu naredbu nije moguće izvršiti naredbom <code class="language-plaintext highlighter-rouge">EXECUTE</code>. Umesto toga, koristimo isti pristup rada sa kursorima, sa razlikom da se prilikom deklaracije kursora koristi pripremljena naredba umesto kursora, kao i da se prilikom otvaranja kursora navode matične promenljive ili izrazi koji će biti zamenjeni umesto parametarskih oznaka u <code class="language-plaintext highlighter-rouge">SELECT</code> naredbi, ako ih takva naredba sadrži. Naredni zadatak ilustruje rad sa dinamičkom SQL naredbom <code class="language-plaintext highlighter-rouge">SELECT</code>.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.3</p>
+    Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Izdvojiti naredne podatke o smerovima: identifikator, oznaka, naziv, broj semestara i bodovi, za svaki smer čiji se broj semestara unosi sa standardnog ulaza.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_4/zadatak_4_3.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="n">sqlint32</span> <span class="n">d_id</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">d_oznaka</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+<span class="kt">char</span> <span class="n">d_naziv</span><span class="p">[</span><span class="mi">201</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">d_semestara</span><span class="p">;</span>
+<span class="kt">short</span> <span class="n">d_bodovi</span><span class="p">;</span>
+
+<span class="kt">char</span> <span class="n">naredba</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
+<span class="kt">short</span> <span class="n">uneseno_semestara</span><span class="p">;</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">err</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Greska %d: %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+    
+    <span class="c1">// Kreiranje niske naredbe sa netipiziranom parametarskom oznakom</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">naredba</span><span class="p">,</span> 
+        <span class="s">"SELECT ID_SMERA, "</span>
+        <span class="s">"       OZNAKA, "</span>
+        <span class="s">"       RTRIM(NAZIV), "</span>
+        <span class="s">"       SEMESTARA, "</span>
+        <span class="s">"       BODOVI "</span>
+        <span class="s">"FROM   SMER "</span>
+        <span class="s">"WHERE  SEMESTARA = ?"</span><span class="p">);</span>
+    
+    <span class="c1">// Prevodjenje niske naredbe u pripremljenu naredbu </span>
+    <span class="c1">// sa nazivom PREP_NAREDBA</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">PREPARE</span> <span class="n">PREP_NAREDBA</span> 
+        <span class="n">FROM</span>    <span class="o">:</span><span class="n">naredba</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Prepare"</span><span class="p">);</span>
+
+    <span class="c1">// Deklaracija kursora na osnovu pripremljene naredbe.</span>
+    <span class="c1">// Ne navodimo dvotacku ispred PREP_NAREDBA jer je to identifikator,</span>
+    <span class="c1">// a ne maticna promenljiva.</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">DECLARE</span> <span class="n">SMEROVI</span> <span class="n">CURSOR</span> <span class="n">FOR</span> 
+        <span class="n">PREP_NAREDBA</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Declare cursor"</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite broj semestara: "</span><span class="p">);</span>
+    <span class="n">scanf</span><span class="p">(</span><span class="s">"%hd"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">uneseno_semestara</span><span class="p">);</span>
+
+    <span class="c1">// Otvaranje kursora i navodjenje vrednosti parametarske oznake</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> 
+        <span class="n">OPEN</span>    <span class="n">SMEROVI</span> 
+        <span class="n">USING</span>   <span class="o">:</span><span class="n">uneseno_semestara</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Open cursor"</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(;;)</span>
+    <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> 
+            <span class="n">FETCH</span>   <span class="n">SMEROVI</span>
+            <span class="n">INTO</span>    <span class="o">:</span><span class="n">d_id</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">d_oznaka</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">d_naziv</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">d_semestara</span><span class="p">,</span> 
+                    <span class="o">:</span><span class="n">d_bodovi</span><span class="p">;</span>
+        <span class="n">is_error</span><span class="p">(</span><span class="s">"Fetch cursor"</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"ID: %d   OZNAKA: %s   NAZIV: %.70s   SEMESTARA: %d   BODOVI: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> 
+            <span class="n">d_id</span><span class="p">,</span> <span class="n">d_oznaka</span><span class="p">,</span> <span class="n">d_naziv</span><span class="p">,</span> <span class="n">d_semestara</span><span class="p">,</span> <span class="n">d_bodovi</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">SMEROVI</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Close cursor"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">is_error</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+    
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="45-sql-prostor-za-opisivanje-sqlda">4.5 SQL prostor za opisivanje (SQLDA)</h2>
+
+<p><em>SQL prostor za opisivanje</em> (engl. <em>SQL Description Area</em>, skr. <em>SQLDA</em>) predstavlja kolekciju promenljivih koje su neophodne za dohvatanje informacija o dinamičkim SQL naredbama. Da bismo mogli da ga koristimo, zaglavlje je potrebno uključiti pomoću naredbe <code class="language-plaintext highlighter-rouge">INCLUDE</code>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLDA</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Promenljive deklarisane u SQLDA zaglavlju predstavljaju podešavanja koja se mogu koristiti u naredbama poput <code class="language-plaintext highlighter-rouge">PREPARE</code>, <code class="language-plaintext highlighter-rouge">OPEN</code>, <code class="language-plaintext highlighter-rouge">FETCH</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>. SQLDA komunicira sa dinamičkom SQL naredbom i ima nekoliko upotrebnih vrednosti. Značenje informacija u SQLDA zavisi od njenog korišćenja. U naredbama <code class="language-plaintext highlighter-rouge">PREPARE</code> i <code class="language-plaintext highlighter-rouge">DESCRIBE</code>, koristi se kao izvor informacija ka aplikaciji o pripremljenoj naredbi. U naredbama <code class="language-plaintext highlighter-rouge">OPEN</code>, <code class="language-plaintext highlighter-rouge">EXECUTE</code> i <code class="language-plaintext highlighter-rouge">FETCH</code>, SQLDA nosi informacije o matičnim promenljivama.</p>
+
+<p>U nastavku sledi opis strukture SQLDA, a grafički prikaz se nalazi na narednoj slici.</p>
+
+<p><img src="/PDb2BP/poglavlja/4/Slike/sqlda.png" alt="&quot;Struktura SQLDA.&quot;" /></p>
+
+<p>Zaglavlje strukture se sastoji od narednih informacija:</p>
+
+<ul>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqldaid</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">CHAR(8)</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Sedmi bajt ovog polja se naziva <code class="language-plaintext highlighter-rouge">SQLDOUBLED</code> i postavlja se od strane SUBP na karakter <code class="language-plaintext highlighter-rouge">2</code> ukoliko se za svaku kolonu koriste dve <code class="language-plaintext highlighter-rouge">SQLVAR</code> vrednosti.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Ako se bilo koja od matičnih promenljivih opisuje kao struktuirani tip ili neka od <code class="language-plaintext highlighter-rouge">LOB</code> vrednosti, onda <code class="language-plaintext highlighter-rouge">SQLDOUBLED</code> mora biti postavljen na karakter <code class="language-plaintext highlighter-rouge">2</code>.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqldabc</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">INTEGER</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Veličina SQLDA strukture u bajtovima.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Isto.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqln</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">SMALLINT</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Nepromenjena od strane SUBP. Mora biti postavljena na vrednost veću ili jednaku nuli pre izvršavanja naredbe <code class="language-plaintext highlighter-rouge">DESCRIBE</code>. Indikuje ukupan broj pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Ukupan broj pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code> u SQLDA. <code class="language-plaintext highlighter-rouge">SQLN</code> vrednost mora biti postavljena na vrednost veću ili jednaku nuli.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqld</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">SMALLINT</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Broj kolona u rezultujućoj tabeli ili broj parametarskih oznaka, postavljen od strane SUBP.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Broj matičnih promenljivih opisanih pojavljivanjima SQLVAR.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Zaglavlje je praćeno proizvoljnim brojem pojavljivanja struktura koje se nazivaju <code class="language-plaintext highlighter-rouge">SQLVAR</code>. U naredbama <code class="language-plaintext highlighter-rouge">OPEN</code>, <code class="language-plaintext highlighter-rouge">FETCH</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code> svako pojavljivanje <code class="language-plaintext highlighter-rouge">SQLVAR</code> opisuje matičnu promenljivu. U naredbama <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code> svako pojavljivanje <code class="language-plaintext highlighter-rouge">SQLVAR</code> opisuje kolonu rezultujuće tabele ili parametarsku oznaku. Svaka <code class="language-plaintext highlighter-rouge">SQLVAR</code> struktura ima naredna polja:</p>
+
+<ul>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqltype</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">SMALLINT</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Indikuje tip kolone ili parametarske oznake, kao i informaciju o tome da li je potencijalno nedostajuća (pri čemu smo napomenuli da se parametarske oznake uvek smatraju za potencijalno nedostajuće). Tabela u nastavku prikazuje dozvoljene vrednosti i njihova značenja.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Isto kao u prethodnom slučaju, samo primenjeno na matične promenljive.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqllen</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">SMALLINT</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Dužina atributa kolone ili parametarske oznake.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Dužina atributa matične promenljive.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqldata</code>:
+    <ul>
+      <li>Tip: pokazivač</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Za različite varijante tipa niske sadrži informaciju o preslikavanju karaktera u tačke kodova. Za ostale tipove je nedefinisan.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Adresa matične promenljive u kojoj će biti smešteni dohvaćeni podaci.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqlind</code>:
+    <ul>
+      <li>Tip: pokazivač</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Za različite varijante tipa niske sadrži informaciju o preslikavanju karaktera u tačke kodova. Za ostale tipove je nedefinisan.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Adresa indikatorske promenljive za odgovarajuću matičnu promenljivu, ako postoji. Inače, ne koristi se. Ako je vrednost <code class="language-plaintext highlighter-rouge">sqltype</code> paran broj, ovo polje se ignoriše.</li>
+    </ul>
+  </li>
+  <li>Polje <code class="language-plaintext highlighter-rouge">sqlname</code>:
+    <ul>
+      <li>Tip: <code class="language-plaintext highlighter-rouge">VARCHAR(30)</code></li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">DESCRIBE</code> i <code class="language-plaintext highlighter-rouge">PREPARE</code>: Sadrži naziv kolone ili parametarske oznake.</li>
+      <li>Značenje u <code class="language-plaintext highlighter-rouge">FETCH</code>, <code class="language-plaintext highlighter-rouge">OPEN</code> i <code class="language-plaintext highlighter-rouge">EXECUTE</code>: Različito značenje za različit tip baze podataka (relacione ili XML).</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Naredna tabela opisuje SQL tipove kolona i njihove odgovarajuće <code class="language-plaintext highlighter-rouge">SQLTYPE</code> tipove u SQLDA. Primetimo da svaki simbolički naziv počinje imenom <code class="language-plaintext highlighter-rouge">SQL_TYP_</code> ukoliko vrednost nije potencijalno nedostajuća, a imenom <code class="language-plaintext highlighter-rouge">SQL_TYP_N</code> ukoliko jeste.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>SQL tip kolone</th>
+      <th>SQLTYPE numerička vrednost</th>
+      <th>SQLTYPE simboličko ime</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>DATE</td>
+      <td>384/385</td>
+      <td>SQL_TYP_DATE / SQL_TYP_NDATE</td>
+    </tr>
+    <tr>
+      <td>TIME</td>
+      <td>388/389</td>
+      <td>SQL_TYP_TIME / SQL_TYP_NTIME</td>
+    </tr>
+    <tr>
+      <td>TIMESTAMP</td>
+      <td>392/393</td>
+      <td>SQL_TYP_STAMP / SQL_TYP_NSTAMP</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>400/401</td>
+      <td>SQL_TYP_CGSTR / SQL_TYP_NCGSTR</td>
+    </tr>
+    <tr>
+      <td>BLOB</td>
+      <td>404/405</td>
+      <td>SQL_TYP_BLOB / SQL_TYP_NBLOB</td>
+    </tr>
+    <tr>
+      <td>CLOB</td>
+      <td>408/409</td>
+      <td>SQL_TYP_CLOB / SQL_TYP_NCLOB</td>
+    </tr>
+    <tr>
+      <td>DBCLOB</td>
+      <td>412/413</td>
+      <td>SQL_TYP_DBCLOB / SQL_TYP_NDBCLOB</td>
+    </tr>
+    <tr>
+      <td>VARCHAR</td>
+      <td>448/449</td>
+      <td>SQL_TYP_VARCHAR / SQL_TYP_NVARCHAR</td>
+    </tr>
+    <tr>
+      <td>CHAR</td>
+      <td>452/453</td>
+      <td>SQL_TYP_CHAR / SQL_TYP_NCHAR</td>
+    </tr>
+    <tr>
+      <td>LONG VARCHAR</td>
+      <td>456/457</td>
+      <td>SQL_TYP_LONG / SQL_TYP_NLONG</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>460/461</td>
+      <td>SQL_TYP_CSTR / SQL_TYP_NCSTR</td>
+    </tr>
+    <tr>
+      <td>VARGRAPHIC</td>
+      <td>464/465</td>
+      <td>SQL_TYP_VARGRAPH / SQL_TYP_NVARGRAPH</td>
+    </tr>
+    <tr>
+      <td>GRAPHIC</td>
+      <td>468/469</td>
+      <td>SQL_TYP_GRAPHIC / SQL_TYP_NGRAPHIC</td>
+    </tr>
+    <tr>
+      <td>LONG VARGRAPHIC</td>
+      <td>472/473</td>
+      <td>SQL_TYP_LONGRAPH / SQL_TYP_NLONGRAPH</td>
+    </tr>
+    <tr>
+      <td>FLOAT</td>
+      <td>480/481</td>
+      <td>SQL_TYP_FLOAT / SQL_TYP_NFLOAT</td>
+    </tr>
+    <tr>
+      <td>REAL</td>
+      <td>480/481</td>
+      <td>SQL_TYP_FLOAT / SQL_TYP_NFLOAT</td>
+    </tr>
+    <tr>
+      <td>DECIMAL</td>
+      <td>484/485</td>
+      <td>SQL_TYP_DECIMAL / SQL_TYP_DECIMAL</td>
+    </tr>
+    <tr>
+      <td>INTEGER</td>
+      <td>496/497</td>
+      <td>SQL_TYP_INTEGER / SQL_TYP_NINTEGER</td>
+    </tr>
+    <tr>
+      <td>SMALLINT</td>
+      <td>500/501</td>
+      <td>SQL_TYP_SMALL / SQL_TYP_NSMALL</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>804/805</td>
+      <td>SQL_TYP_BLOB_FILE / SQL_TYPE_NBLOB_FILE</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>808/809</td>
+      <td>SQL_TYP_CLOB_FILE / SQL_TYPE_NCLOB_FILE</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>812/813</td>
+      <td>SQL_TYP_DBCLOB_FILE / SQL_TYPE_NDBCLOB_FILE</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>960/961</td>
+      <td>SQL_TYP_BLOB_LOCATOR / SQL_TYP_NBLOB_LOCATOR</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>964/965</td>
+      <td>SQL_TYP_CLOB_LOCATOR / SQL_TYP_NCLOB_LOCATOR</td>
+    </tr>
+    <tr>
+      <td>n/a</td>
+      <td>968/969</td>
+      <td>SQL_TYP_DBCLOB_LOCATOR / SQL_TYP_NDBCLOB_LOCATOR</td>
+    </tr>
+    <tr>
+      <td>XML</td>
+      <td>988/989</td>
+      <td>SQL_TYP_XML / SQL_TYP_XML</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="451-efekat-naredbe-execute-na-sqlda-strukturu">4.5.1 Efekat naredbe <code class="language-plaintext highlighter-rouge">EXECUTE</code> na SQLDA strukturu</h3>
+
+<p>Pre nego što se naredba <code class="language-plaintext highlighter-rouge">EXECUTE</code> izvrši, korisnik mora da postavi naredna polja u ulaznoj SQLDA strukturi:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">SQLN</code> za indikovanje broja pojavljivanja SQLVAR.</li>
+  <li><code class="language-plaintext highlighter-rouge">SQLDABC</code> za indikovanje broja bajtova alociranih za SQLDA.</li>
+  <li><code class="language-plaintext highlighter-rouge">SQLD</code> za indikovanje broja promenljivih koje se koriste u SQLDA prilikom procesiranja naredbe.</li>
+  <li><code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja za indikovanje atributa promenljivih.</li>
+</ul>
+
+<p>Pritom, SQLDA mora imati dovoljno alociranog prostora da sadrži sva pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>.</p>
+
+<p>Procedura za alociranje dovoljne veličine prostora glasi:</p>
+
+<ul>
+  <li>Zaglavlje sadrži fiksnu veličinu od 16 bajtova.</li>
+  <li>Niz promenljive dužine <code class="language-plaintext highlighter-rouge">SQLVAR</code> struktura za svaki element sadrži 44 bajtova na 32-bitnim, odnosno, 56 bajtova na 64-bitnim sistemima.</li>
+</ul>
+
+<p>Drugim rečima, količina prostora koju treba alocirati je (<code class="language-plaintext highlighter-rouge">SQLD</code> je odgovarajući broj matičnih promenljivih opisanih pojavljivanjima <code class="language-plaintext highlighter-rouge">SQLVAR</code>):</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">16</span> <span class="o">+</span> <span class="p">(</span><span class="n">SQLD</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlvar</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p>Na raspolaganju nam je makro <code class="language-plaintext highlighter-rouge">SQLDASIZE</code> koji će izračunati ovu vrednost za nas, uzimajući u obzir specifičnosti platforme. Njegov obavezni argument je upravo vrednost <code class="language-plaintext highlighter-rouge">SQLD</code>. Dodatno, <code class="language-plaintext highlighter-rouge">SQLD</code> mora biti postavljen na vrednost veću ili jednaku nuli i manju od ili jednaku <code class="language-plaintext highlighter-rouge">SQLN</code>.</p>
+
+<h3 id="452-efekat-naredbe-prepare-na-sqlda-strukturu">4.5.2 Efekat naredbe <code class="language-plaintext highlighter-rouge">PREPARE</code> na SQLDA strukturu</h3>
+
+<p>Prilikom izvršavanja naredbe <code class="language-plaintext highlighter-rouge">PREPARE INPUT</code>, SUBP uvek postavlja <code class="language-plaintext highlighter-rouge">SQLD</code> na broj ulaznih parametarskih oznaka u naredbi.</p>
+
+<p>Prilikom izvršavanja naredbe <code class="language-plaintext highlighter-rouge">PREPARE OUTPUT</code>, SUBP uvek postavlja <code class="language-plaintext highlighter-rouge">SQLD</code> na broj kolona u rezultujućoj tabeli ili na broj izlaznih parametarskih oznaka.</p>
+
+<h2 id="46-naredba-describe">4.6 Naredba <code class="language-plaintext highlighter-rouge">DESCRIBE</code></h2>
+
+<p>Naredba <code class="language-plaintext highlighter-rouge">DESCRIBE</code> dohvata informacije o pripremljenoj naredbi. Postoje dva tipa informacija koja se mogu dobiti ovom naredbom, i svaki od njih ćemo posebno opisati.</p>
+
+<h3 id="461-naredba-describe-input">4.6.1 Naredba <code class="language-plaintext highlighter-rouge">DESCRIBE INPUT</code></h3>
+
+<p>Ova naredba dohvata informacije o ulaznim parametarskim oznakama u pripremljenoj naredbi. Ova informacija se smešta u SQLDA strukturu.</p>
+
+<p>Sintaksa ove naredbe je:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">DESCRIBE</span> <span class="k">INPUT</span> <span class="o">&lt;</span><span class="n">NAZIV_NAREDBE</span><span class="o">&gt;</span> <span class="k">INTO</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>Ova naredba dohvata informacije iz prethodno pripremljene naredbe koja se identifikuje imenom <code class="language-plaintext highlighter-rouge">&lt;NAZIV_NAREDBE&gt;</code>. Klauza <code class="language-plaintext highlighter-rouge">INTO &lt;NAZIV_OPISIVAČA&gt;</code> identifikuje SQLDA strukturu za unos informacija.</p>
+
+<p>Prilikom izvršavanja naredbe <code class="language-plaintext highlighter-rouge">DESCRIBE INPUT</code>, SUBP uvek postavlja <code class="language-plaintext highlighter-rouge">SQLD</code> na broj ulaznih parametarskih oznaka u naredbi.</p>
+
+<h4 id="priprema-sqlda-strukture-za-izvršavanje-naredbe">Priprema SQLDA strukture za izvršavanje naredbe</h4>
+
+<p>Pre izvršavanja <code class="language-plaintext highlighter-rouge">DESCRIBE INPUT</code> naredbe, korisnik mora da alocira prostor za SQLDA strukturu i da postavi vrednost promenljive <code class="language-plaintext highlighter-rouge">SQLN</code> na broj <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja u okviru SQLDA strukture. Ova vrednost mora biti veća od nule ili jednaka nuli, pre nego što se naredba izvrši.</p>
+
+<p>Postoje tri tehnike za alociranje SQLDA strukture:</p>
+
+<ol>
+  <li>
+    <p>Alocirati prostor za SQLDA strukturu sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> promenljivih da sadrži bilo koju listu informacija koju aplikacija može da procesira. Najveći dozvoljen broj informacija iznosi 255. Ova tehnika koristi veliku količinu prostora koja u praktičnim primenama neće biti iskorišćena.</p>
+  </li>
+  <li>
+    <p>Ponavljati naredna dva koraka:</p>
+  </li>
+</ol>
+
+<ul>
+  <li>
+    <p>Izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE INPUT</code> sa SQLDA koja nema pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>, odnosno, u kojoj je <code class="language-plaintext highlighter-rouge">SQLN</code> vrednost postavljena na nulu. Vrednost koja je postavljena u <code class="language-plaintext highlighter-rouge">SQLD</code> nakon izvršavanja naredbe predstavlja broj kolona u rezultujućoj tabeli. SUBP u ovom slučaju postavlja <code class="language-plaintext highlighter-rouge">SQLCODE</code> na vrednost <code class="language-plaintext highlighter-rouge">+236</code>.</p>
+  </li>
+  <li>
+    <p>Alocirati prostor za SQLDA strukturu sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja na osnovu postavljene vrednosti za <code class="language-plaintext highlighter-rouge">SQLD</code> iz prethodnog koraka. Zatim izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE</code> ponovo, korišćenjem novoalocirane SQLDA. Ova tehnika ima bolji mehanizam rukovanja memorijom od prve tehnike, ali se broj izvršavanja naredbi <code class="language-plaintext highlighter-rouge">DESCRIBE</code> udvostručava.</p>
+  </li>
+</ul>
+
+<ol start="3">
+  <li>Alocirati prostor za SQLDA strukturu koja je dovoljno velika da sadrži veliki broj <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja, ako ne i sve liste informacija koju aplikacija može da procesira, ali je takođe i dovoljno mala da ne bude previše viška memorije utrošeno. Ukoliko je ovo dovoljna količina prostora, nastaviti sa izvršavanjem. U suprotnom, alocirati novi prostor sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja i izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE</code> ponovo. Ova tehnika predstavlja kompromis između prethodne dve tehnike i oslanja se na heuristiku izbora veličine prostora koja je dovoljno velika, a u isto vreme i dovoljno mala.</li>
+</ol>
+
+<h4 id="efekat-izvršenja-naredbe">Efekat izvršenja naredbe</h4>
+
+<p>Nakon izvršavanja naredbe <code class="language-plaintext highlighter-rouge">DESCRIBE INPUT</code>, SUBP dodeljuje vrednosti promenljivama strukture SQLDA na sledeći način:</p>
+
+<ul>
+  <li>
+    <p>U polju <code class="language-plaintext highlighter-rouge">SQLDAID</code> prvih 6 bajtova se postavlja na nisku <code class="language-plaintext highlighter-rouge">'SQLDA '</code>, a sedmi bajt (<code class="language-plaintext highlighter-rouge">SQLDOUBLED</code>) postavlja se na karakter <code class="language-plaintext highlighter-rouge">'2'</code> ili na razmak. Osmi bajt se postavlja na razmak.</p>
+  </li>
+  <li>
+    <p>Polje <code class="language-plaintext highlighter-rouge">SQLDABC</code> se postavlja na dužinu SQLDA strukture u bajtovima.</p>
+  </li>
+  <li>
+    <p>Polje <code class="language-plaintext highlighter-rouge">SQLD</code> se postavlja na broj ulaznih parametara procedure.</p>
+  </li>
+  <li>
+    <p>Za svako pojavljivanje <code class="language-plaintext highlighter-rouge">SQLVAR</code>: ako je vrednost <code class="language-plaintext highlighter-rouge">SQLD</code> jednaka nuli ili veća od <code class="language-plaintext highlighter-rouge">SQLN</code>, ne postavljaju se vrednosti za pojavljivanja SQLVAR. Ako je vrednost <code class="language-plaintext highlighter-rouge">SQLD</code> jednaka <em>n</em>, gde je <em>n &gt; 0</em> i <em>n &lt;= <code class="language-plaintext highlighter-rouge">SQLN</code></em>, onda se vrednosti dodeljuju prvih <em>n</em> pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>. Ove vrednosti opisuju parametarske oznake za ulazne parametre prodecure, redom.</p>
+  </li>
+</ul>
+
+<h3 id="462-naredba-describe-output">4.6.2 Naredba <code class="language-plaintext highlighter-rouge">DESCRIBE OUTPUT</code></h3>
+
+<p>Ova naredba dohvata informacije o pripremljenoj naredbi ili informacije o listi kolona u pripremljenoj <code class="language-plaintext highlighter-rouge">SELECT</code> naredbi. Ova informacija se smešta u SQLDA strukturu.</p>
+
+<p>Sintaksa ove naredbe je:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">DESCRIBE</span> <span class="p">[</span><span class="k">OUTPUT</span><span class="p">]</span> <span class="o">&lt;</span><span class="n">NAZIV_NAREDBE</span><span class="o">&gt;</span> <span class="k">INTO</span> <span class="o">&lt;</span><span class="n">NAZIV_OPISIVA</span><span class="err">Č</span><span class="n">A</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>Ova naredba dohvata informacije iz perthodno pripremljene naredbe koja se identifikuje imenom <code class="language-plaintext highlighter-rouge">&lt;NAZIV_NAREDBE&gt;</code>. Ako je pripremljena naredba <code class="language-plaintext highlighter-rouge">SELECT</code> ili <code class="language-plaintext highlighter-rouge">VALUES INTO</code>, onda informacija koja se dohvata predstavlja informaciju o kolonama rezultujuće tabele. Klauza <code class="language-plaintext highlighter-rouge">INTO &lt;NAZIV_OPISIVAČA&gt;</code> identifikuje SQLDA strukturu za unos informacija.</p>
+
+<p>Prilikom izvršavanja naredbe <code class="language-plaintext highlighter-rouge">DESCRIBE OUTPUT</code>, SUBP uvek postavlja <code class="language-plaintext highlighter-rouge">SQLD</code> na broj kolona u rezultujućoj tabeli ili na broj izlaznih parametarskih oznaka.</p>
+
+<p>Pre izvršavanja <code class="language-plaintext highlighter-rouge">DESCRIBE OUTPUT</code> naredbe, korisnik mora da alocira prostor za SQLDA strukturu i da postavi vrednost promenljive <code class="language-plaintext highlighter-rouge">SQLN</code> na broj <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja u okviru SQLDA strukture. Ova vrednost mora biti veća od nule ili jednaka nuli, pre nego što se naredba izvrši.</p>
+
+<p>Postoje tri tehnike za alociranje SQLDA strukture:</p>
+
+<ol>
+  <li>
+    <p>Alocirati prostor za SQLDA strukturu sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> promenljivih da sadrži bilo koju listu informacija koju aplikacija može da procesira. Najveći dozvoljen broj informacija iznosi 255. Ova tehnika koristi veliku količinu prostora koja u praktičnim primenama neće biti iskorišćena.</p>
+  </li>
+  <li>
+    <p>Ponavljati naredna dva koraka:</p>
+  </li>
+</ol>
+
+<ul>
+  <li>
+    <p>Izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE OUTPUT</code> sa SQLDA koja nema pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>, odnosno, u kojoj je <code class="language-plaintext highlighter-rouge">SQLN</code> vrednost postavljena na nulu. Vrednost koja je postavljena u <code class="language-plaintext highlighter-rouge">SQLD</code> nakon izvršavanja naredbe predstavlja broj kolona u rezultujućoj tabeli. SUBP u ovom slučaju postavlja <code class="language-plaintext highlighter-rouge">SQLCODE</code> na vrednost <code class="language-plaintext highlighter-rouge">+236</code>.</p>
+  </li>
+  <li>
+    <p>Alocirati prostor za SQLDA strukturu sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja na osnovu postavljene vrednosti za <code class="language-plaintext highlighter-rouge">SQLD</code> iz prethodnog koraka. Zatim izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE</code> ponovo, korišćenjem novoalocirane SQLDA. Ova tehnika ima bolji mehanizam rukovanja memorijom od prve tehnike, ali se broj izvršavanja naredbi <code class="language-plaintext highlighter-rouge">DESCRIBE</code> udvostručava.</p>
+  </li>
+</ul>
+
+<ol start="3">
+  <li>Alocirati prostor za SQLDA strukturu koja je dovoljno velika da sadrži veliki broj <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja, ako ne i sve liste informacija koju aplikacija može da procesira, ali je takođe i dovoljno mala da ne bude previše viška memorije utrošeno. Ukoliko je ovo dovoljna količina prostora, nastaviti sa izvršavanjem. U suprotnom, alocirati novi prostor sa dovoljnim brojem <code class="language-plaintext highlighter-rouge">SQLVAR</code> pojavljivanja i izvršiti naredbu <code class="language-plaintext highlighter-rouge">DESCRIBE</code> ponovo. Ova tehnika predstavlja kompromis između prethodne dve tehnike i oslanja se na heuristiku izbora veličine prostora koja je dovoljno velika, a u isto vreme i dovoljno mala.</li>
+</ol>
+
+<h4 id="efekat-izvršenja-naredbe-1">Efekat izvršenja naredbe</h4>
+
+<p>Nakon izvršavanja naredbe <code class="language-plaintext highlighter-rouge">DESCRIBE OUTPUT</code>, SUBP dodeljuje vrednosti promenljivama strukture SQLDA na sledeći način:</p>
+
+<ul>
+  <li>
+    <p>U polju <code class="language-plaintext highlighter-rouge">SQLDAID</code> prvih 6 bajtova se postavlja na nisku <code class="language-plaintext highlighter-rouge">'SQLDA '</code>, a sedmi bajt (<code class="language-plaintext highlighter-rouge">SQLDOUBLED</code>) postavlja se na karakter <code class="language-plaintext highlighter-rouge">'2'</code> ili na razmak. Osmi bajt se postavlja na razmak.</p>
+  </li>
+  <li>
+    <p>Polje <code class="language-plaintext highlighter-rouge">SQLDABC</code> se postavlja na dužinu SQLDA strukture u bajtovima.</p>
+  </li>
+  <li>
+    <p>Polje <code class="language-plaintext highlighter-rouge">SQLD</code> se postavlja na broj kolona u rezultujućoj tabeli, ako je pripremljena naredba <code class="language-plaintext highlighter-rouge">SELECT</code>. Inače, <code class="language-plaintext highlighter-rouge">SQLD</code> se postavlja na 0.</p>
+  </li>
+  <li>
+    <p>Za svako pojavljivanje <code class="language-plaintext highlighter-rouge">SQLVAR</code>: ako je vrednost <code class="language-plaintext highlighter-rouge">SQLD</code> jednaka nuli ili veća od <code class="language-plaintext highlighter-rouge">SQLN</code>, ne postavljaju se vrednosti za pojavljivanja SQLVAR. Ako je vrednost <code class="language-plaintext highlighter-rouge">SQLD</code> jednaka <em>n</em>, gde je <em>n &gt; 0</em> i <em>n &lt;= <code class="language-plaintext highlighter-rouge">SQLN</code></em>, onda se vrednosti dodeljuju prvih <em>n</em> pojavljivanja <code class="language-plaintext highlighter-rouge">SQLVAR</code>. Ove vrednosti opisuju parametarske oznake za ulazne parametre prodecure, redom.</p>
+  </li>
+</ul>
+
+<p>Naredni zadatak ilustruje sve opisane tehnike za dizajn programa koji može da izvrši proizvoljnu dinamičku SQL naredbu.</p>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.4</p>
+    Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Omogućiti izvršavanje proizvoljne naredbe. Pretpostaviti da su jedini tipovi podataka koji se koriste numerički, tekstualni i datumi. Pretpostaviti da naredba koja se unosi sa standardnog ulaza nije duža od 512 karaktera.
+</div>
+
+<p>Rešenje:</p>
+
+<p>Datoteka: <code class="language-plaintext highlighter-rouge">primeri/poglavlje_4/zadatak_4_4.sqc</code>:</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="c1">// Za SQLTYPE simbolicka imena</span>
+<span class="cp">#include &lt;sqlenv.h&gt;
+</span>
+<span class="c1">// Za SQLDA strukture </span>
+<span class="cp">#include &lt;sqlda.h&gt;
+</span>
+<span class="c1">// Deklaracija SQL prostora za komunikaciju</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">INCLUDE</span> <span class="n">SQLCA</span><span class="p">;</span>
+
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">BEGIN</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">stmt</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
+<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">END</span> <span class="n">DECLARE</span> <span class="n">SECTION</span><span class="p">;</span>
+
+<span class="c1">// Deklarisemo SQLDA promenljive za opisivanje dinamickih naredbi</span>
+<span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr_output</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr_input</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+<span class="c1">// Enumerator za tip DESCRIBE naredbe</span>
+<span class="k">enum</span> <span class="n">describe_type</span> <span class="p">{</span>
+	<span class="n">INPUT</span><span class="p">,</span>
+	<span class="n">OUTPUT</span>
+<span class="p">};</span>
+
+<span class="c1">// BEGIN funkcije za obradu dinamickih naredbi</span>
+<span class="c1">// Ucitavanje i pripremanje dinamicke naredbe </span>
+<span class="kt">void</span> <span class="nf">unesi_i_pripremi_naredbu</span><span class="p">();</span>
+<span class="c1">// Dohvatanje informacija o ulaznim i izlaznim parametrima pripremljene naredbe</span>
+<span class="kt">void</span> <span class="nf">pripremi_sqlda</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">**</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="k">enum</span> <span class="n">describe_type</span> <span class="n">d_type</span><span class="p">);</span>
+<span class="c1">// Upravljanje memorijom za podatke</span>
+<span class="kt">void</span> <span class="nf">pripremi_podatke_za_izvrsavanje_naredbe</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">alociraj_prostor_za_sqlda</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">markiraj_prvih_i_SQLVAR_u_sqlda_za_oslobadjanje</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">i</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">oslobodi_sqlda</span><span class="p">();</span>
+<span class="c1">// Ucitavanje ulaznih podataka</span>
+<span class="kt">void</span> <span class="nf">zatrazi_vrednosti_za_parametarske_oznake</span><span class="p">();</span>
+<span class="c1">// Izvrsavanje naredbi</span>
+<span class="kt">void</span> <span class="nf">izvrsi_naredbu_na_osnovu_tipa</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">izvrsi_ne_select_naredbu</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">ispisi_podatke</span><span class="p">();</span>
+<span class="kt">double</span> <span class="nf">dohvati_double_iz_decimal</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">sqldata</span><span class="p">,</span> <span class="kt">short</span> <span class="n">sqllen</span><span class="p">);</span>
+<span class="c1">// END funkcije za obradu dinamickih naredbi</span>
+
+<span class="c1">// Funkcije za obradu gresaka</span>
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">err</span><span class="p">,</span> <span class="kt">int</span> <span class="n">linenum</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+
+<span class="c1">// Makro koji poziva funkciju `is_error` za obradu greske,</span>
+<span class="c1">// pri cemu ce proslediti liniju u fajlu gde je doslo do greske</span>
+<span class="cp">#define IS_ERROR_WITH_LINE(err) is_error(err, __LINE__)
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">TO</span> <span class="n">vstud</span> <span class="n">USER</span> <span class="n">student</span> <span class="n">USING</span> <span class="n">abcdef</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Connect"</span><span class="p">);</span>
+    
+    <span class="n">unesi_i_pripremi_naredbu</span><span class="p">();</span>    
+    <span class="n">pripremi_sqlda</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sqldaptr_input</span><span class="p">,</span> <span class="n">INPUT</span><span class="p">);</span>
+	<span class="n">pripremi_sqlda</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sqldaptr_output</span><span class="p">,</span> <span class="n">OUTPUT</span><span class="p">);</span>
+	<span class="n">pripremi_podatke_za_izvrsavanje_naredbe</span><span class="p">();</span>
+    <span class="n">izvrsi_naredbu_na_osnovu_tipa</span><span class="p">();</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">##########################################################</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">stmt</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">##########################################################</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    
+    <span class="n">oslobodi_sqlda</span><span class="p">();</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Potvrdjivanje izmena"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CONNECT</span> <span class="n">RESET</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Connect reset"</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">unesi_i_pripremi_naredbu</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite SQL naredbu do %d karaktera:</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">stmt</span><span class="p">)));</span>
+
+    <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">broj_karaktera</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">broj_karaktera</span> <span class="o">&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">stmt</span><span class="p">))</span> <span class="p">{</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">getchar</span><span class="p">();</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">';'</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="n">stmt</span><span class="p">[</span><span class="n">broj_karaktera</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+        <span class="o">++</span><span class="n">broj_karaktera</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">PREPARE</span> <span class="n">PREPARED_STATEMENT</span> <span class="n">FROM</span> <span class="o">:</span><span class="n">stmt</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Prepare"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">pripremi_sqlda</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">**</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="k">enum</span> <span class="n">describe_type</span> <span class="n">d_type</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Ova funkcija koristi tehniku 2, koja sadrzi dva koraka,</span>
+    <span class="c1">// za alokaciju najmanje potrebne memorije za SQLDA strukturu.</span>
+    
+    <span class="c1">// Korak 1:</span>
+    <span class="c1">// Alocirati prostor samo za zaglavlje strukture</span>
+    <span class="o">*</span><span class="n">sqldaptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">SQLDASIZE</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Neuspesna alokacija SQLDA zaglavlja</span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Postaviti velicinu SQLN na 0</span>
+    <span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">sqln</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="c1">// Izvrsiti prvi put naredbu DESCRIBE </span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">d_type</span> <span class="o">==</span> <span class="n">INPUT</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">DESCRIBE</span> <span class="n">INPUT</span> <span class="n">PREPARED_STATEMENT</span> 
+			<span class="n">INTO</span> <span class="o">:**</span><span class="n">sqldaptr</span><span class="p">;</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">d_type</span> <span class="o">==</span> <span class="n">OUTPUT</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">DESCRIBE</span> <span class="n">OUTPUT</span> <span class="n">PREPARED_STATEMENT</span> 
+			<span class="n">INTO</span> <span class="o">:**</span><span class="n">sqldaptr</span><span class="p">;</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Nepoznat tip DESCRIBE naredbe</span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+	<span class="p">}</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Describe - Korak 1"</span><span class="p">);</span>
+
+    <span class="c1">// Korak 2:</span>
+    <span class="kt">int</span> <span class="n">numcols</span><span class="p">;</span>
+    
+    <span class="c1">// Ukoliko nismo alocirali dovoljno prostora za sve SQLVAR</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">236</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Dohvatamo broj kolona u naredbi</span>
+        <span class="n">numcols</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span>
+        <span class="c1">// Oslobadjamo prethodno alociranu strukturu</span>
+        <span class="n">free</span><span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span><span class="p">);</span>
+		<span class="o">*</span><span class="n">sqldaptr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+        <span class="c1">// Alociramo novu strukturu </span>
+        <span class="c1">// sa ispravnim brojem SQLVAR promenljivih</span>
+        <span class="o">*</span><span class="n">sqldaptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">SQLDASIZE</span><span class="p">(</span><span class="n">numcols</span><span class="p">));</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Neuspesna alokacija SQLDA strukture</span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>    
+        <span class="p">}</span>    
+    <span class="p">}</span>
+
+    <span class="c1">// Postavljamo ispravnu vrednost za SQLN</span>
+    <span class="p">(</span><span class="o">*</span><span class="n">sqldaptr</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">sqln</span> <span class="o">=</span> <span class="n">numcols</span><span class="p">;</span>
+
+    <span class="c1">// Izvrsavamo finalnu naredbu DESCRIBE OUTPUT</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">d_type</span> <span class="o">==</span> <span class="n">INPUT</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">DESCRIBE</span> <span class="n">INPUT</span> <span class="n">PREPARED_STATEMENT</span> 
+			<span class="n">INTO</span> <span class="o">:**</span><span class="n">sqldaptr</span><span class="p">;</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">d_type</span> <span class="o">==</span> <span class="n">OUTPUT</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">DESCRIBE</span> <span class="n">OUTPUT</span> <span class="n">PREPARED_STATEMENT</span> 
+			<span class="n">INTO</span> <span class="o">:**</span><span class="n">sqldaptr</span><span class="p">;</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Nepoznat tip DESCRIBE naredbe</span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+	<span class="p">}</span>
+
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Describe - Korak 2"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">pripremi_podatke_za_izvrsavanje_naredbe</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">alociraj_prostor_za_sqlda</span><span class="p">(</span><span class="n">sqldaptr_input</span><span class="p">);</span>
+    <span class="n">alociraj_prostor_za_sqlda</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="p">);</span>
+	<span class="n">zatrazi_vrednosti_za_parametarske_oznake</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">alociraj_prostor_za_sqlda</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">short</span> <span class="n">sqltype</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">;</span>
+    <span class="k">for</span><span class="p">(</span> <span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">sqltype</span> <span class="o">=</span> <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqltype</span><span class="p">;</span>
+        <span class="n">sqllen</span> <span class="o">=</span> <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqllen</span><span class="p">;</span>
+        
+        <span class="c1">// Alociramo prostor na osnovu informacije o tipu.</span>
+        <span class="c1">// Za svaku kolonu alociramo maticnu promenljivu </span>
+        <span class="c1">// kao i indikatorsku promenljivu</span>
+        <span class="k">switch</span> <span class="p">(</span><span class="n">sqltype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_SMALL</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NSMALL</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_INTEGER</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NINTEGER</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_FLOAT</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NFLOAT</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_DECIMAL</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NDECIMAL</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="k">break</span><span class="p">;</span>
+            
+            <span class="k">case</span> <span class="n">SQL_TYP_DATE</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_TIME</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_STAMP</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_VARCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_CHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_CSTR</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqltype</span> <span class="o">=</span> <span class="n">SQL_TYP_CSTR</span><span class="p">;</span>
+                <span class="k">break</span><span class="p">;</span>
+                
+            <span class="k">case</span> <span class="n">SQL_TYP_NDATE</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NTIME</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NSTAMP</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NVARCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NCSTR</span><span class="p">:</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">);</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">short</span><span class="p">));</span>
+                <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqltype</span> <span class="o">=</span> <span class="n">SQL_TYP_NCSTR</span><span class="p">;</span>
+                <span class="k">break</span><span class="p">;</span>
+                
+            <span class="nl">default:</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"Nepoznat tip: %hd</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="c1">// Provera alokacije za promenljivu</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Neuspesna alokacija SQLVAR za kolonu %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+            
+            <span class="c1">// Oslobadjamo sve alocirane prostore do sada</span>
+            <span class="n">markiraj_prvih_i_SQLVAR_u_sqlda_za_oslobadjanje</span><span class="p">(</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+            <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+        <span class="p">}</span>
+        <span class="c1">// Provera alokacije za indikatorsku promenljivu</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Neuspesna alokacija SQLVAR (indikator) za kolonu %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+            
+            <span class="c1">// Prvo oslobadjamo promenljivu</span>
+            <span class="n">free</span><span class="p">(</span><span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+            
+            <span class="c1">// Pa onda i sve prethodne </span>
+            <span class="n">markiraj_prvih_i_SQLVAR_u_sqlda_za_oslobadjanje</span><span class="p">(</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+            <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">markiraj_prvih_i_SQLVAR_u_sqlda_za_oslobadjanje</span><span class="p">(</span><span class="k">struct</span> <span class="n">sqlda</span> <span class="o">*</span><span class="n">sqldaptr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">sqldaptr</span><span class="o">-&gt;</span><span class="n">sqld</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">oslobodi_sqlda</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">sqldaptr_input</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+		<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+		<span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+			<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+			<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">);</span>
+		<span class="p">}</span>
+
+		<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_input</span><span class="p">);</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">sqldaptr_output</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+		<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+		<span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+			<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+			<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">);</span>
+		<span class="p">}</span>
+
+		<span class="n">free</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">zatrazi_vrednosti_za_parametarske_oznake</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">short</span> <span class="n">sqltype</span><span class="p">,</span> <span class="n">sqllen</span><span class="p">;</span>
+    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">sqltype</span> <span class="o">=</span> <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqltype</span><span class="p">;</span>
+        <span class="n">sqllen</span> <span class="o">=</span> <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqllen</span><span class="p">;</span>
+        
+        <span class="c1">// Za svaku parametarsku oznaku na osnovu njegov tipa,</span>
+        <span class="c1">// pitamo korisnika da unese vrednost</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Unesite vrednost za %d. parametarsku oznaku: "</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+
+        <span class="k">switch</span> <span class="p">(</span><span class="n">sqltype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_SMALL</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NSMALL</span><span class="p">:</span>
+                <span class="n">scanf</span><span class="p">(</span><span class="s">"%hd"</span><span class="p">,</span> <span class="p">(</span><span class="kt">short</span> <span class="o">*</span><span class="p">)</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_INTEGER</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NINTEGER</span><span class="p">:</span>
+                <span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_FLOAT</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NFLOAT</span><span class="p">:</span>
+                <span class="n">scanf</span><span class="p">(</span><span class="s">"%f"</span><span class="p">,</span> <span class="p">(</span><span class="kt">float</span> <span class="o">*</span><span class="p">)</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+				
+            <span class="k">case</span> <span class="n">SQL_TYP_DECIMAL</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NDECIMAL</span><span class="p">:</span>
+                <span class="n">scanf</span><span class="p">(</span><span class="s">"%lf"</span><span class="p">,</span> <span class="p">(</span><span class="kt">double</span> <span class="o">*</span><span class="p">)</span><span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+            
+            <span class="k">case</span> <span class="n">SQL_TYP_DATE</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_TIME</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_STAMP</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_VARCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_CHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_CSTR</span><span class="p">:</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">short</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">sqllen</span><span class="p">;)</span> <span class="p">{</span>
+                    <span class="kt">char</span> <span class="n">c</span> <span class="o">=</span> <span class="n">getchar</span><span class="p">();</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">'\n'</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                            <span class="k">continue</span><span class="p">;</span>
+                        <span class="p">}</span>
+                        <span class="k">break</span><span class="p">;</span>
+                    <span class="p">}</span>
+                    <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+                    <span class="o">++</span><span class="n">j</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="k">break</span><span class="p">;</span>
+                
+            <span class="k">case</span> <span class="n">SQL_TYP_NDATE</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NTIME</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NSTAMP</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NVARCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NCHAR</span><span class="p">:</span>
+            <span class="k">case</span> <span class="n">SQL_TYP_NCSTR</span><span class="p">:</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">short</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">sqllen</span><span class="p">;)</span> <span class="p">{</span>
+                    <span class="kt">char</span> <span class="n">c</span> <span class="o">=</span> <span class="n">getchar</span><span class="p">();</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">'\n'</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                            <span class="k">continue</span><span class="p">;</span>
+                        <span class="p">}</span>
+                        <span class="k">break</span><span class="p">;</span>
+                    <span class="p">}</span>
+                    <span class="n">sqldaptr_input</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+                    <span class="o">++</span><span class="n">j</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="k">break</span><span class="p">;</span>
+                
+            <span class="nl">default:</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"Nepoznat tip: %hd</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">);</span>
+                <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">izvrsi_naredbu_na_osnovu_tipa</span><span class="p">()</span> <span class="p">{</span>
+	<span class="c1">// Ukoliko naredba nije SELECT, tj. broj kolona izlaza je 0,</span>
+    <span class="c1">// mozemo koristiti EXECUTE naredbu.</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqld</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">izvrsi_ne_select_naredbu</span><span class="p">();</span>
+		<span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+	<span class="c1">// U suprotnom, moramo obraditi naredbu SELECT pomocu kursora.</span>
+    <span class="n">ispisi_podatke</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">izvrsi_ne_select_naredbu</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">EXECUTE</span> <span class="n">PREPARED_STATEMENT</span> <span class="n">USING</span> <span class="n">DESCRIPTOR</span> <span class="o">:*</span><span class="n">sqldaptr_input</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Execute immediate"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">ispisi_podatke</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">DECLARE</span> <span class="n">KURSOR</span> <span class="n">CURSOR</span> <span class="n">FOR</span> <span class="n">PREPARED_STATEMENT</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Declare"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">OPEN</span> <span class="n">KURSOR</span>
+        <span class="n">USING</span> <span class="n">DESCRIPTOR</span> <span class="o">:*</span><span class="n">sqldaptr_input</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Open"</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">broj_reda</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    
+    <span class="k">for</span><span class="p">(;;)</span> <span class="p">{</span>
+        <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">FETCH</span> <span class="n">KURSOR</span> 
+            <span class="n">USING</span> <span class="n">DESCRIPTOR</span> <span class="o">:*</span><span class="n">sqldaptr_output</span><span class="p">;</span>
+        <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Fetch"</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">==</span> <span class="mi">100</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s"># %3d &gt;&gt;</span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="n">broj_reda</span><span class="p">);</span>
+        
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqld</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">short</span> <span class="n">sqltype</span> <span class="o">=</span> <span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqltype</span><span class="p">;</span>
+            
+            <span class="k">switch</span> <span class="p">(</span><span class="n">sqltype</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_SMALL</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_NSMALL</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="s">"NULL"</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%hd </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="o">*</span><span class="p">((</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">)));</span>
+                    <span class="p">}</span>
+                    <span class="k">break</span><span class="p">;</span>
+					
+                <span class="k">case</span> <span class="n">SQL_TYP_INTEGER</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_NINTEGER</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="s">"NULL"</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%d </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="o">*</span><span class="p">((</span><span class="n">sqlint32</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">)));</span>
+                    <span class="p">}</span>
+                    <span class="k">break</span><span class="p">;</span>
+					
+                <span class="k">case</span> <span class="n">SQL_TYP_FLOAT</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_NFLOAT</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="s">"NULL"</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%f </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">)));</span>
+                    <span class="p">}</span>
+                    <span class="k">break</span><span class="p">;</span>
+					
+                <span class="k">case</span> <span class="n">SQL_TYP_DECIMAL</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_NDECIMAL</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="s">"NULL"</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="kt">double</span> <span class="n">value</span> <span class="o">=</span> <span class="n">dohvati_double_iz_decimal</span><span class="p">(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">,</span> <span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqllen</span><span class="p">);</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%lf"</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">break</span><span class="p">;</span>
+                
+                <span class="k">case</span> <span class="n">SQL_TYP_CSTR</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">SQL_TYP_NCSTR</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqlind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="s">"NULL"</span><span class="p">);</span>
+                    <span class="p">}</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">[</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqllen</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                        <span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\t</span><span class="s">"</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)(</span><span class="n">sqldaptr_output</span><span class="o">-&gt;</span><span class="n">sqlvar</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">sqldata</span><span class="p">));</span>
+                    <span class="p">}</span>
+                    <span class="k">break</span><span class="p">;</span>
+                    
+                <span class="nl">default:</span>
+                    <span class="n">printf</span><span class="p">(</span><span class="s">"Nepoznat tip: %hd"</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">);</span>
+                    <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="o">++</span><span class="n">broj_reda</span><span class="p">;</span>
+    <span class="p">}</span>    
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">CLOSE</span> <span class="n">KURSOR</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Close"</span><span class="p">);</span>
+
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">COMMIT</span><span class="p">;</span>
+    <span class="n">IS_ERROR_WITH_LINE</span><span class="p">(</span><span class="s">"Commit"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">double</span> <span class="nf">dohvati_double_iz_decimal</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">sqldata</span><span class="p">,</span> <span class="kt">short</span> <span class="n">sqllen</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">1000</span><span class="p">];</span>
+    <span class="kt">short</span> <span class="n">precision</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="p">)(((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">sqllen</span><span class="p">)[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="kt">short</span> <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="p">)(((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">sqllen</span><span class="p">)[</span><span class="mi">1</span><span class="p">]);</span>
+
+    <span class="c1">// Prilagodi preciznost na neparnu vrednost</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">precision</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="n">precision</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">short</span> <span class="n">numBytes</span> <span class="o">=</span> <span class="p">(</span><span class="kt">short</span><span class="p">)(</span><span class="n">precision</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span>
+
+    <span class="c1">// Izracunavanje znaka na osnovu donje vrednost poslednjeg bajta</span>
+    <span class="kt">short</span> <span class="n">bottom</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">sqldata</span> <span class="o">+</span> <span class="n">numBytes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x000F</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">bottom</span> <span class="o">==</span> <span class="mh">0x000D</span> <span class="o">||</span> <span class="n">bottom</span> <span class="o">==</span> <span class="mh">0x000B</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'-'</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">' '</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Pripremanje decimalnog broja</span>
+    <span class="kt">short</span> <span class="n">digNb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">digNb</span> <span class="o">==</span> <span class="n">precision</span> <span class="o">-</span> <span class="n">scale</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'.'</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">short</span> <span class="n">byteNb</span><span class="p">;</span>
+    <span class="kt">short</span> <span class="n">top</span><span class="p">;</span>
+
+    <span class="c1">// (top + bottom) iz prvih (numBytes - 1) bajtova ...</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">byteNb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">byteNb</span> <span class="o">&lt;</span> <span class="n">numBytes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="n">byteNb</span> <span class="o">=</span> <span class="n">byteNb</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">sqldata</span> <span class="o">+</span> <span class="n">byteNb</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x00F0</span><span class="p">;</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">top</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">;</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">sqldata</span> <span class="o">+</span> <span class="n">byteNb</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x000F</span><span class="p">;</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">top</span> <span class="o">+</span> <span class="sc">'0'</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">digNb</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">digNb</span> <span class="o">==</span> <span class="n">precision</span> <span class="o">-</span> <span class="n">scale</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'.'</span><span class="p">;</span>
+            <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bottom</span> <span class="o">+</span> <span class="sc">'0'</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">digNb</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">digNb</span> <span class="o">==</span> <span class="n">precision</span> <span class="o">-</span> <span class="n">scale</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'.'</span><span class="p">;</span>
+            <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// ... i pocetak poslednjeg bajta (kraj predstavlja znak)</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">sqldata</span> <span class="o">+</span> <span class="n">byteNb</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x00F0</span><span class="p">;</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">top</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">;</span>
+    <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">top</span> <span class="o">+</span> <span class="sc">'0'</span><span class="p">;</span>
+    <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">digNb</span><span class="o">++</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">digNb</span> <span class="o">==</span> <span class="n">precision</span> <span class="o">-</span> <span class="n">scale</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'.'</span><span class="p">;</span>
+        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Izracunaj decimalni broj </span>
+    <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">atof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">is_error</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">err</span><span class="p">,</span> <span class="kt">int</span> <span class="n">linenum</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">SQLCODE</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Greska %d: %s (linija %d)</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span> 
+            <span class="n">SQLCODE</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">linenum</span><span class="p">);</span>
+        
+        <span class="n">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">izadji_bez_uspeha_sa_oslobadjanjem_memorije</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">oslobodi_sqlda</span><span class="p">();</span>
+	
+    <span class="n">EXEC</span> <span class="n">SQL</span> <span class="n">ROLLBACK</span><span class="p">;</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="46-zadaci-za-vežbu">4.6 Zadaci za vežbu</h2>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.5</p>
+    Napisati C/SQL program u kojem se naredbe izvršavaju dinamički. Izdvojiti naziv predmeta, prosečnu ocenu i procenat studenata iz tog predmeta u školskoj godini koja se unosi sa standardnog ulaza.
+</div>
+
+<div style="border: 2px solid rgb(196, 41, 255); padding: 5px; background-color: rgba(197, 197, 197, 0.3); margin: 10px 0;">
+    <p style="font-weight: bold;">Zadatak 4.6</p>
+    Uraditi zadatke za vežbu iz poglavlja 2 i 3 korišćenjem dinamičkog SQL-a.
+</div>
+
+  </div>
+
+</article>
+
+        </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/PDb2BP/"></data>
+
+    <div class="wrapper">
+
+        <div class="row">
+            <h2 class="footer-heading">Programiranje Db2 baza podataka</h2>
+        </div>
+
+        <div class="footer-col-wrapper">
+            <div class="row">
+                <div class="col-6">
+                    <ul class="contact-list">
+                        <li class="p-name">Programiranje Db2 baza podataka</li><li><a class="u-email" href="mailto:nikola_ajzenhamer@math.rs">nikola_ajzenhamer@math.rs</a></li></ul>
+                </div>
+                <div class="col-6">
+                    <p>Elektronska knjiga &quot;Programiranje Db2 baza podataka&quot; dostupna besplatno na adresi&nbsp;<a
+                            href="/PDb2BP/">https://theikeofficial.github.io//PDb2BP/</a>.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</footer><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Arhitektura klijent-server | Programiranje Db2 baza podataka</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="Arhitektura klijent-server" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<meta property="og:description" content="Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi" />
+<link rel="canonical" href="https://theikeofficial.github.io//PDb2BP/poglavlja/1/" />
+<meta property="og:url" content="https://theikeofficial.github.io//PDb2BP/poglavlja/1/" />
+<meta property="og:site_name" content="Programiranje Db2 baza podataka" />
+<script type="application/ld+json">
+{"description":"Elektronska knjiga “Programiranje Db2 baza podataka” dostupna besplatno na adresi","@type":"WebPage","url":"https://theikeofficial.github.io//PDb2BP/poglavlja/1/","headline":"Arhitektura klijent-server","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/PDb2BP/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://theikeofficial.github.io//PDb2BP/feed.xml" title="Programiranje Db2 baza podataka" /></head>
+<body><header class="site-header" role="banner"
+    style="background-image: url(/PDb2BP/resources/header.png); height: 300px; background-repeat: repeat-x;"><a class="site-title" rel="author" href="/PDb2BP/"
+        style="display: flex; position: relative; top: 125px; background-color: white; width: 100%; height: 86px;flex-wrap: wrap; justify-content: center; align-items: center; line-height: 0px; font-size: 36px;">
+        
+        
+        <span style="font-weight: bold;">PROGRAMIRANJE&nbsp;</span>
+        
+        <span style="font-weight: bold;">DB2&nbsp;</span>
+        
+        <span style="font-weight: bold;">BAZA&nbsp;</span>
+        
+        <span style="font-weight: bold;">PODATAKA&nbsp;</span>
+        
+    </a>
+</header><main class="page-content" aria-label="Content">
+        <div class="wrapper" style="max-width: calc(1100px - (30px * 2));">
+            <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">1. Arhitektura klijent-server</h1>
+  </header>
+
+  <div class="post-content">
+    <p>DB2 je sistem za upravljanje relacionim bazama podataka (RSUBP) koji nudi veoma moćne softverske alate za programiranje baza podataka. Ovi alati su korisni kako administratorima baza podataka, tako i programerima aplikacija koje koriste mogućnosti relacionih baza podataka. Pod programiranjem baza podataka možemo smestiti naredne dve aktivnosti:</p>
+
+<ol>
+  <li>Programiranje na serveru, odnosno, programiranje SQL rutina.</li>
+  <li>Programiranje na klijentu kroz više programske jezike.</li>
+</ol>
+
+<p>Programiranje na klijentu podrazumeva korišćenje viših programskih jezika kao što su C, C++, Java, PHP i mnogih drugih. Često se ovi jezici nazivaju i <em>matični jezici</em> (engl. <em>host language</em>). Korišćenjem nekih od razvojnih okruženja, ti programski jezici se koriste za pristupanje interfejsu za programiranje aplikacija (engl. <em>application programming interface</em>, skr. <em>API</em>). Kroz ovaj interfejs se zatim, preko drajvera koji je dostupan programerima, aplikacija povezuje sa RSUBP i izvršava SQL upite. Ovo povezivanje sa bazom podataka se izvršava kroz mogućnosti operativnog sistema na kojem se klijentska aplikacija izvršava.</p>
+
+<p>Sa druge strane, programiranje na serveru obuhvata programiranje tzv. <em>SQL rutina</em> (engl. <em>SQL routine</em>). SQL rutina može biti: <em>ugrađena procedura</em> (engl. <em>stored procedure</em>), <em>korisnički-definisana funkcija</em> (engl. <em>user-defined function</em>) ili <em>okidač</em> (engl. <em>trigger</em>). Svi ovi tipovi SQL rutina podrazumevaju programiranje operacija koje se čuvaju u samoj bazi podataka. Programeri zatim imaju mogućnost poziva ovih sačuvanih procedura, odn. njihovog izračunavanja.</p>
+
+<p><img src="./Slike/klijent-server-arhitektura.png" alt="&quot;Dva načina za programiranje baza podataka: programiranje na klijentu (levo) i programiranje na serveru (desno).&quot;" title="Dva načina za programiranje baza podataka: programiranje na klijentu (levo) i programiranje na serveru (desno)." /></p>
+
+<h2 id="11-opis-razvoja-klijentskih-aplikacija">1.1 Opis razvoja klijentskih aplikacija</h2>
+
+<p>Prilikom razvijanja klijentskih aplikacija važno je odrediti viši programski jezik koji će se koristiti. Odabir konkretnog višeg programskog jezika u određenoj meri diktira proces razvoja u kontekstu API-ja koji je dostupan za dati viši programski jezik. Međutim, bez obzira koji se viši programski jezik koristi, koncepti koji se koriste za rad sa bazama podataka su isti. Ono što dodatno olakšava ovaj proces jeste postojanje različitih elemenata softverskog paketa koji se zove <em>Db2 Data Server Client</em>. Neki od elemenata ovog paketa sa kojima ćemo se susreti u ovoj knjizi su:</p>
+
+<ul>
+  <li>Prekompilatori za C/C++, COBOL i Fortran.</li>
+  <li>Podrška za ugnežđene SQL naredbe u višim programskim jezicima u vidu programerskih biblioteka, zaglavlja za uključivanje u izvorni kod i primere izvornih kodova.</li>
+  <li>Podrška za aplikacije zasnovane na ODBC i Db2 Call Level Interface (Db2 CLI) standardima.</li>
+  <li>IBM Data Server Driver za JDBC i SQLJ aplikacije.</li>
+  <li>IBM Data Studio softversko okruženje za razvoj aplikacija i radom sa Db2 bazama podataka.</li>
+</ul>
+
+<p>Opišimo sada proces razvoja klijentskih aplikacija na primeru aplikacije sa ugnežđenim SQL naredbama u programskom jeziku C. Ovaj proces će biti opisan na dovoljno apstraktnom nivou da ne ulazi u detalje programskog jezika C i detalja procesa vezanim za njega, ali će biti i dovoljno konkretan da čitalac stekne opšti utisak u način razvoja klijentskih aplikacija za rad sa Db2 bazama podataka.</p>
+
+<p>Nakon prepoznavanja problema i izvođenja njegovog rešenja u poslovnom modelu, pristupa se konstrukciji baze podataka i definisanju potrebnih SQL naredbi koje će se koristiti u njegovom rešavanju. Baza podataka se zatim instalira na Db2 serveru baze podataka, a SQL naredbe se koriste u izvornom kodu višeg programskog jezika C prateći odgovarajući C/SQL Db2 API. Aplikacija se kodira na klijentu koji ima instaliran Db2 Data Server Client softverski paket sa alatima za razvoj aplikacija. S obzirom da kod predstavlja “mešavinu” C naredbi i SQL naredbi, potrebno je izvesti iz tog koda nova dva međukoda: jedan koji ima “čiste” C naredbe i drugi koji ima “čiste” SQL naredbe. Prvi međukod se podvrgava procesu prevođenja kao i svaki drugi C program, dok se drugi kod proverava nad bazom podataka nad kojom su definisane SQL naredbe koje se koriste. Ukoliko nema grešaka, SQL naredbe se ugrađuju u bazu podataka, a od izvornog C koda se formira izvršni program.</p>
+
+<p>Izvršni program se zatim instalira na odgovarajućim uređajima gde će se koristiti (pri čemu je potrebno da ti sistemi imaju odgovarajuće Db2 drajvere za komunikaciju sa Db2 serverom baze podataka - ovo je po pravilu lakše instalirati od celog Db2 Data Server Client softverskog paketa). Prilikom pokretanja programa, aplikacija izvršava C naredbe kao i svaki drugi C program, a kada naiđe na deo koda koji upravlja bazom podataka, program vrši komunikaciju sa datom bazom podataka preko odgovarajućeg Db2 drajvera, korišćenjem mogućnosti operativnog sistema i mreže, čime se prethodno ugrađene SQL naredbe izvršavaju. Rezultati izvršavanja tih SQL naredbi se šalju nazad programu, uz eventualno izveštavanje o greškama ili upozorenjima do koje je došlo u sistemu za upravljanje bazom podataka.</p>
+
+<p><img src="./Slike/razvoj-klijentskih-aplikacija.png" alt="&quot;Konceptualni prikaz razvoja C/SQL klijentskih aplikacija sa ugnežđenim SQL naredbama.&quot;" title="Konceptualni prikaz razvoja C/SQL klijentskih aplikacija sa ugnežđenim SQL naredbama." /></p>
+
+<h2 id="12-opis-razvoja-serverskih-aplikacija">1.2 Opis razvoja serverskih aplikacija</h2>
+
+  </div>
+
+</article>
+
+        </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/PDb2BP/"></data>
+
+    <div class="wrapper">
+
+        <div class="row">
+            <h2 class="footer-heading">Programiranje Db2 baza podataka</h2>
+        </div>
+
+        <div class="footer-col-wrapper">
+            <div class="row">
+                <div class="col-6">
+                    <ul class="contact-list">
+                        <li class="p-name">Programiranje Db2 baza podataka</li><li><a class="u-email" href="mailto:nikola_ajzenhamer@math.rs">nikola_ajzenhamer@math.rs</a></li></ul>
+                </div>
+                <div class="col-6">
+                    <p>Elektronska knjiga &quot;Programiranje Db2 baza podataka&quot; dostupna besplatno na adresi&nbsp;<a
+                            href="/PDb2BP/">https://theikeofficial.github.io//PDb2BP/</a>.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</footer><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
