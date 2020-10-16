@@ -6,8 +6,8 @@ title: Programiranje Db2 baza podataka
 ## Autori
 
 - [Ajzenhamer Nikola](https://www.nikolaajzenhamer.rs)
-- [Vulović Ana](http://www.math.rs/~aspasic)
 - [Bukurov Anja](http://www.math.rs/~anja_bukurov)
+- [Vulović Ana](http://www.math.rs/~aspasic)
 
 ## Sadržaj
 
